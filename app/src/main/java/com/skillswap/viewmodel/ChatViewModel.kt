@@ -302,7 +302,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 val accessToken = sharedPreferences.getString("access_token", null) ?: return@launch
                 chatService.reactToMessage(messageId, emoji, accessToken)
                 // Reload messages to reflect the reaction
-                activeThreadId?.let { loadMessagesForThread(it) }
+                activeThreadId?.let { loadMessages(it) }
             } catch (e: Exception) {
                 _error.value = "Failed to add reaction: ${e.message}"
             }
@@ -318,7 +318,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 val accessToken = sharedPreferences.getString("access_token", null) ?: return@launch
                 chatService.deleteMessage(messageId, accessToken)
                 // Reload messages to reflect the deletion
-                activeThreadId?.let { loadMessagesForThread(it) }
+                activeThreadId?.let { loadMessages(it) }
             } catch (e: Exception) {
                 _error.value = "Failed to delete message: ${e.message}"
             }
@@ -353,7 +353,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 _replyToMessage.value = null
                 
                 // Refresh messages
-                loadMessagesForThread(threadId)
+                loadMessages(threadId)
             } catch (e: Exception) {
                 _error.value = "Failed to send message: ${e.message}"
             }

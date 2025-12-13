@@ -2,7 +2,6 @@ package com.skillswap.services
 
 import android.content.Context
 import android.util.Log
-import io.getstream.webrtc.android.ui.VideoTextureViewRenderer
 import org.webrtc.*
 
 interface WebRTCClientDelegate {
@@ -29,8 +28,8 @@ class WebRTCClient(
     private var videoSource: VideoSource? = null
     private var audioSource: AudioSource? = null
     
-    private var localVideoRenderer: VideoTextureViewRenderer? = null
-    private var remoteVideoRenderer: VideoTextureViewRenderer? = null
+    private var localVideoRenderer: SurfaceViewRenderer? = null
+    private var remoteVideoRenderer: SurfaceViewRenderer? = null
     
     private val audioConstraints = MediaConstraints().apply {
         mandatory.add(MediaConstraints.KeyValuePair("googEchoCancellation", "true"))
@@ -118,6 +117,9 @@ class WebRTCClient(
             override fun onDataChannel(dataChannel: DataChannel?) {}
             override fun onRenegotiationNeeded() {}
             override fun onAddTrack(receiver: RtpReceiver?, streams: Array<out MediaStream>?) {}
+            override fun onIceConnectionReceivingChange(receiving: Boolean) {
+                Log.d(tag, "ICE connection receiving change: $receiving")
+            }
         }
         
         peerConnection = peerConnectionFactory.createPeerConnection(rtcConfig, observer)
@@ -244,12 +246,12 @@ class WebRTCClient(
         Log.d(tag, "ICE candidate added")
     }
     
-    fun renderLocalVideo(renderer: VideoTextureViewRenderer) {
+    fun renderLocalVideo(renderer: SurfaceViewRenderer) {
         localVideoRenderer = renderer
         localVideoTrack?.addSink(renderer)
     }
     
-    fun renderRemoteVideo(renderer: VideoTextureViewRenderer) {
+    fun renderRemoteVideo(renderer: SurfaceViewRenderer) {
         remoteVideoRenderer = renderer
         remoteVideoTrack?.addSink(renderer)
     }

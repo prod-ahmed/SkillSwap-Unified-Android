@@ -33,6 +33,46 @@ class QuizViewModel : ViewModel() {
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
     
+    private val _unlockedLevel = MutableStateFlow<Map<String, Int>>(emptyMap())
+    val unlockedLevel: StateFlow<Map<String, Int>> = _unlockedLevel.asStateFlow()
+    
+    private val _subjects = MutableStateFlow<List<String>>(emptyList())
+    val subjects: StateFlow<List<String>> = _subjects.asStateFlow()
+    
+    private val _selectedLevel = MutableStateFlow<Int?>(null)
+    val selectedLevel: StateFlow<Int?> = _selectedLevel.asStateFlow()
+    
+    init {
+        loadProgress()
+    }
+    
+    private fun loadProgress() {
+        // Load from local storage or service
+        _subjects.value = listOf("Swift", "History", "Math", "Science")
+        _unlockedLevel.value = mapOf("Swift" to 1, "History" to 1)
+    }
+    
+    fun selectLevel(level: Int) {
+        _selectedLevel.value = level
+    }
+    
+    fun clearSelectedLevel() {
+        _selectedLevel.value = null
+    }
+    
+    fun getUnlockedLevel(subject: String): Int {
+        return _unlockedLevel.value[subject] ?: 1
+    }
+    
+    fun unlockNextLevel(subject: String, currentLevel: Int) {
+        val current = _unlockedLevel.value[subject] ?: 1
+        if (currentLevel >= current && current < 10) {
+            _unlockedLevel.value = _unlockedLevel.value.toMutableMap().apply {
+                put(subject, currentLevel + 1)
+            }
+        }
+    }
+    
     fun generateQuiz(subject: String, level: Int) {
         viewModelScope.launch {
             _isGenerating.value = true
@@ -66,7 +106,7 @@ class QuizViewModel : ViewModel() {
         }
     }
     
-    fun submitQuiz() {
+    fun submitQuiz(subject: String, level: Int) {
         var correctAnswers = 0
         _quizQuestions.value.forEachIndexed { index, question ->
             val selectedAnswer = _selectedAnswers.value[index]
@@ -76,6 +116,11 @@ class QuizViewModel : ViewModel() {
         }
         _score.value = correctAnswers
         _showResults.value = true
+        
+        // Unlock next level if passed (>= 50%)
+        if (correctAnswers.toDouble() / _quizQuestions.value.size >= 0.5) {
+            unlockNextLevel(subject, level)
+        }
     }
     
     fun resetQuiz() {

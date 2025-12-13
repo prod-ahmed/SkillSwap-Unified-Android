@@ -328,8 +328,4 @@ class CallViewModel(application: Application) : AndroidViewModel(application), W
     fun toggleSpeaker(enable: Boolean) {
         _state.value = _state.value.copy(speakerOn = enable)
     }
-    
-    fun switchCamera() {
-        rtcClient.switchCamera()
-    }
 }

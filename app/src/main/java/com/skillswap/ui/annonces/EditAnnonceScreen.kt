@@ -59,7 +59,7 @@ fun EditAnnonceScreen(
                     val fileName = "annonce_${System.currentTimeMillis()}.jpg"
                     val mimeType = context.contentResolver.getType(it) ?: "image/jpeg"
                     mediaPayload = MediaPayload(
-                        fileName = fileName,
+                        filename = fileName,
                         mimeType = mimeType,
                         bytes = bytes
                     )

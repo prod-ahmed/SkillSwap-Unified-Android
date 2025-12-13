@@ -1,6 +1,7 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.0"
 }
 
 import java.util.Properties
@@ -81,6 +82,9 @@ dependencies {
 
     // Navigation
     implementation("androidx.navigation:navigation-compose:2.7.7")
+    
+    // Kotlin Serialization
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
 
     // Maps
     implementation("com.google.maps.android:maps-compose:4.3.0")
