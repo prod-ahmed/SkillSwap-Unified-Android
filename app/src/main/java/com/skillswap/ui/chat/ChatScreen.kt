@@ -150,83 +150,18 @@ fun ChatScreen(
             .fillMaxSize()
             .background(Color(0xFFF2F2F7)) // System Grouped Background
     ) {
-        // Custom Gradient Header
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    Brush.horizontalGradient(
-                        colors = listOf(ChatOrangeStart, ChatOrangeEnd)
-                    )
-                )
-                .padding(top = 48.dp, bottom = 16.dp) // Status bar padding roughly
-                .padding(horizontal = 16.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                // Back Button
-                IconButton(
-                    onClick = onBack,
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.2f))
-                ) {
-                    Icon(Icons.Default.ChevronLeft, contentDescription = "Back", tint = Color.White)
-                }
-
-                Spacer(Modifier.width(12.dp))
-
-                // Avatar
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.2f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(partnerInitials.ifBlank { "?" }, color = Color.White, fontWeight = FontWeight.Bold)
-                }
-
-                Spacer(Modifier.width(12.dp))
-
-                // Name & Status
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(partnerName ?: "Conversation", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(
-                            when {
-                                callState.isInCall -> "En appel"
-                                partnerTyping -> "Écrit..."
-                                else -> if (socketConnected) "Connecté" else "Reconnexion…"
-                            },
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.White.copy(alpha = 0.8f)
-                        )
-                        if (partnerId != null) {
-                            Box(
-                                modifier = Modifier
-                                    .size(8.dp)
-                                    .clip(CircleShape)
-                                    .background(if (isPartnerOnline) Color(0xFF34C759) else Color.Gray.copy(alpha = 0.6f))
-                            )
-                        }
-                    }
-                }
-
-                // Actions
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    HeaderIcon(Icons.Default.Videocam) {
-                        launchCall(video = true)
-                    }
-                    HeaderIcon(Icons.Default.Call) {
-                        launchCall(video = false)
-                    }
-                }
-            }
-        }
+        ChatHeader(
+            partnerName = partnerName,
+            partnerInitials = partnerInitials,
+            partnerId = partnerId,
+            isPartnerOnline = isPartnerOnline,
+            callStateInCall = callState.isInCall,
+            partnerTyping = partnerTyping,
+            socketConnected = socketConnected,
+            onBack = onBack,
+            onVideoCall = { launchCall(true) },
+            onAudioCall = { launchCall(false) }
+        )
 
         // Messages List
         LazyColumn(
@@ -402,6 +337,89 @@ fun HeaderIcon(icon: androidx.compose.ui.graphics.vector.ImageVector, onClick: (
         contentAlignment = Alignment.Center
     ) {
         Icon(icon, contentDescription = "Action chat", tint = Color.White)
+    }
+}
+
+@Composable
+private fun ChatHeader(
+    partnerName: String?,
+    partnerInitials: String,
+    partnerId: String?,
+    isPartnerOnline: Boolean,
+    callStateInCall: Boolean,
+    partnerTyping: Boolean,
+    socketConnected: Boolean,
+    onBack: () -> Unit,
+    onVideoCall: () -> Unit,
+    onAudioCall: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                Brush.horizontalGradient(
+                    colors = listOf(ChatOrangeStart, ChatOrangeEnd)
+                )
+            )
+            .padding(top = 48.dp, bottom = 16.dp)
+            .padding(horizontal = 16.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.2f))
+            ) {
+                Icon(Icons.Default.ChevronLeft, contentDescription = "Back", tint = Color.White)
+            }
+
+            Spacer(Modifier.width(12.dp))
+
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.2f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(partnerInitials.ifBlank { "?" }, color = Color.White, fontWeight = FontWeight.Bold)
+            }
+
+            Spacer(Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(partnerName ?: "Conversation", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        when {
+                            callStateInCall -> "En appel"
+                            partnerTyping -> "Écrit..."
+                            else -> if (socketConnected) "Connecté" else "Reconnexion…"
+                        },
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White.copy(alpha = 0.8f)
+                    )
+                    if (partnerId != null) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(if (isPartnerOnline) Color(0xFF34C759) else Color.Gray.copy(alpha = 0.6f))
+                        )
+                    }
+                }
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                HeaderIcon(Icons.Default.Videocam) { onVideoCall() }
+                HeaderIcon(Icons.Default.Call) { onAudioCall() }
+            }
+        }
     }
 }
 
