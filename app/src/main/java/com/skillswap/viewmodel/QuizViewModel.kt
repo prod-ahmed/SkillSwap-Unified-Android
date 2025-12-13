@@ -1,16 +1,24 @@
 package com.skillswap.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import android.content.Context
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.skillswap.data.QuizQuestion
+import com.skillswap.data.QuizResult
 import com.skillswap.data.QuizService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import java.util.UUID
 
-class QuizViewModel : ViewModel() {
+class QuizViewModel(application: Application) : AndroidViewModel(application) {
     private val quizService = QuizService.instance
+    private val prefs = application.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
+    private val gson = Gson()
     
     private val _isGenerating = MutableStateFlow(false)
     val isGenerating: StateFlow<Boolean> = _isGenerating.asStateFlow()
@@ -42,14 +50,43 @@ class QuizViewModel : ViewModel() {
     private val _selectedLevel = MutableStateFlow<Int?>(null)
     val selectedLevel: StateFlow<Int?> = _selectedLevel.asStateFlow()
     
+    private val _quizHistory = MutableStateFlow<List<QuizResult>>(emptyList())
+    val quizHistory: StateFlow<List<QuizResult>> = _quizHistory.asStateFlow()
+    
     init {
         loadProgress()
+        loadHistory()
     }
     
     private fun loadProgress() {
-        // Load from local storage or service
-        _subjects.value = listOf("Swift", "History", "Math", "Science")
-        _unlockedLevel.value = mapOf("Swift" to 1, "History" to 1)
+        val progressJson = prefs.getString("quiz_progress", null)
+        if (progressJson != null) {
+            val type = object : TypeToken<Map<String, Int>>() {}.type
+            val progress = gson.fromJson<Map<String, Int>>(progressJson, type)
+            _unlockedLevel.value = progress
+        } else {
+            _unlockedLevel.value = mapOf("Swift" to 1, "History" to 1)
+        }
+        _subjects.value = listOf("Swift", "History", "Math", "Science", "Kotlin", "Java", "Python")
+    }
+    
+    private fun loadHistory() {
+        val historyJson = prefs.getString("quiz_history", null)
+        if (historyJson != null) {
+            val type = object : TypeToken<List<QuizResult>>() {}.type
+            val history = gson.fromJson<List<QuizResult>>(historyJson, type)
+            _quizHistory.value = history.sortedByDescending { it.date }
+        }
+    }
+    
+    private fun saveProgress() {
+        val progressJson = gson.toJson(_unlockedLevel.value)
+        prefs.edit().putString("quiz_progress", progressJson).apply()
+    }
+    
+    private fun saveHistory() {
+        val historyJson = gson.toJson(_quizHistory.value)
+        prefs.edit().putString("quiz_history", historyJson).apply()
     }
     
     fun selectLevel(level: Int) {
@@ -70,6 +107,7 @@ class QuizViewModel : ViewModel() {
             _unlockedLevel.value = _unlockedLevel.value.toMutableMap().apply {
                 put(subject, currentLevel + 1)
             }
+            saveProgress()
         }
     }
     
@@ -117,6 +155,18 @@ class QuizViewModel : ViewModel() {
         _score.value = correctAnswers
         _showResults.value = true
         
+        // Save to history
+        val result = QuizResult(
+            id = UUID.randomUUID().toString(),
+            subject = subject,
+            level = level,
+            score = correctAnswers,
+            totalQuestions = _quizQuestions.value.size,
+            date = System.currentTimeMillis()
+        )
+        _quizHistory.value = listOf(result) + _quizHistory.value
+        saveHistory()
+        
         // Unlock next level if passed (>= 50%)
         if (correctAnswers.toDouble() / _quizQuestions.value.size >= 0.5) {
             unlockNextLevel(subject, level)
@@ -130,5 +180,10 @@ class QuizViewModel : ViewModel() {
         _showResults.value = false
         _score.value = 0
         _errorMessage.value = null
+    }
+    
+    fun clearHistory() {
+        _quizHistory.value = emptyList()
+        prefs.edit().remove("quiz_history").apply()
     }
 }
