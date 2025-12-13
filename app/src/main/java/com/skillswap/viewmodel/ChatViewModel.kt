@@ -87,7 +87,14 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             }
             launch {
                 socketClient.readReceipts.collectLatest {
-                    // placeholder: messages UI not yet showing read state
+                    val threadMatches = it["threadId"] == activeThreadId
+                    val ids = it["messageIds"] as? List<*> ?: emptyList<Any>()
+                    if (threadMatches && ids.isNotEmpty()) {
+                        val updated = _messages.value.map { m ->
+                            if (m.isMe && ids.contains(m.id)) m.copy(read = true) else m
+                        }
+                        _messages.value = updated
+                    }
                 }
             }
         }
@@ -190,7 +197,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                             id = UUID.randomUUID().toString(),
                             text = msg.content,
                             isMe = msg.senderId == me,
-                            time = msg.createdAt
+                            time = msg.createdAt,
+                            read = msg.senderId == me
                         )
                         if (msg.senderId != me) {
                             markThreadRead(threadId, null)
@@ -260,7 +268,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             id = id,
             text = content,
             isMe = senderId == meId,
-            time = createdAt
+            time = createdAt,
+            read = read || senderId == meId
         )
     }
 

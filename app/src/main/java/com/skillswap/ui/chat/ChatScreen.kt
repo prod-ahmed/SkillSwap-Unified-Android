@@ -419,13 +419,25 @@ fun ChatBubble(message: Message) {
         }
         
         Spacer(Modifier.height(4.dp))
-        
-        Text(
-            text = message.time,
-            style = MaterialTheme.typography.labelSmall,
-            color = Color.Gray,
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
             modifier = Modifier.padding(horizontal = 8.dp)
-        )
+        ) {
+            Text(
+                text = message.time,
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.Gray
+            )
+            if (isMe) {
+                val statusColor = if (message.read) Color(0xFF4CAF50) else Color.Gray
+                Text(
+                    text = if (message.read) "Lu" else "Envoyé",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = statusColor
+                )
+            }
+        }
     }
 }
 

@@ -125,7 +125,8 @@ data class Message(
     val id: String,
     val text: String,
     val isMe: Boolean,
-    val time: String
+    val time: String,
+    val read: Boolean = false
 )
 
 data class ChatPayload(
