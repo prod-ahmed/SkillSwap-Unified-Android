@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -19,9 +20,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.skillswap.model.Session
+import com.skillswap.model.Recommendation
 import com.skillswap.ui.theme.OrangePrimary
-import com.skillswap.viewmodel.SessionsViewModel
+import com.skillswap.viewmodel.RecommendationsViewModel
 
 enum class SessionMode {
     ONLINE, IN_PERSON
@@ -35,27 +36,26 @@ enum class ViewMode {
 @Composable
 fun SessionsPourVousScreen(
     onBack: () -> Unit,
-    onSessionClick: (String) -> Unit,
-    viewModel: SessionsViewModel = viewModel()
+    onProfileClick: (String) -> Unit = {},
+    viewModel: RecommendationsViewModel = viewModel()
 ) {
     var viewMode by remember { mutableStateOf(ViewMode.LIST) }
     var sessionMode by remember { mutableStateOf(SessionMode.ONLINE) }
     
-    val sessions by viewModel.sessions.collectAsState()
+    val recommendations by viewModel.recommendations.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val currentUser by viewModel.currentUser.collectAsState()
     
-    // Filter sessions based on mode
-    val filteredSessions = remember(sessions, sessionMode) {
-        sessions.filter { 
-            when (sessionMode) {
-                SessionMode.ONLINE -> it.location == null || it.location.isEmpty()
-                SessionMode.IN_PERSON -> !it.location.isNullOrEmpty()
-            }
+    // Filter recommendations based on mode
+    val filteredRecommendations = remember(recommendations, sessionMode) {
+        when (sessionMode) {
+            SessionMode.ONLINE -> recommendations
+            SessionMode.IN_PERSON -> recommendations.filter { it.distance.isNotEmpty() && it.distance != "0 km" }
         }
     }
     
     LaunchedEffect(Unit) {
-        viewModel.loadSessions()
+        viewModel.loadRecommendations()
     }
     
     Scaffold(
@@ -101,7 +101,7 @@ fun SessionsPourVousScreen(
                     // Yellow banner
                     item {
                         YellowBannerCard(
-                            count = filteredSessions.size
+                            count = filteredRecommendations.size
                         )
                     }
                     
@@ -115,7 +115,7 @@ fun SessionsPourVousScreen(
                     
                     // Interest tags section
                     item {
-                        InterestTagsSection()
+                        InterestTagsSection(currentUser = currentUser)
                     }
                     
                     // Loading or content
@@ -130,15 +130,15 @@ fun SessionsPourVousScreen(
                                 CircularProgressIndicator(color = OrangePrimary)
                             }
                         }
-                    } else if (filteredSessions.isEmpty()) {
+                    } else if (filteredRecommendations.isEmpty()) {
                         item {
                             EmptyStateView()
                         }
                     } else {
-                        items(filteredSessions) { session ->
+                        items(filteredRecommendations) { recommendation ->
                             RecommendationCard(
-                                session = session,
-                                onClick = { onSessionClick(session.id) }
+                                recommendation = recommendation,
+                                onClick = { onProfileClick(recommendation.id) }
                             )
                         }
                     }
@@ -148,7 +148,7 @@ fun SessionsPourVousScreen(
                 MapViewPlaceholder(
                     sessionMode = sessionMode,
                     onModeChange = { sessionMode = it },
-                    sessionsCount = filteredSessions.size
+                    count = filteredRecommendations.size
                 )
             }
         }
@@ -260,33 +260,24 @@ fun SessionModeButton(
 }
 
 @Composable
-fun InterestTagsSection() {
-    val interests = listOf("Design", "Développement", "Marketing", "Photoshop", "Musique")
-    var selectedInterests by remember { mutableStateOf(setOf<String>()) }
+fun InterestTagsSection(currentUser: com.skillswap.model.User?) {
+    val interests = currentUser?.skillsLearn ?: listOf("Design", "Développement", "Marketing")
     
     Column {
         Text(
-            "Centres d'intérêt",
+            "Basées sur vos intérêts",
             fontSize = 16.sp,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(vertical = 8.dp)
         )
         
-        Row(
+        LazyRow(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            interests.take(3).forEach { interest ->
+            items(interests) { interest ->
                 InterestChip(
-                    text = interest,
-                    isSelected = selectedInterests.contains(interest),
-                    onClick = {
-                        selectedInterests = if (selectedInterests.contains(interest)) {
-                            selectedInterests - interest
-                        } else {
-                            selectedInterests + interest
-                        }
-                    }
+                    text = interest
                 )
             }
         }
@@ -294,25 +285,21 @@ fun InterestTagsSection() {
 }
 
 @Composable
-fun InterestChip(
-    text: String,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
+fun InterestChip(text: String) {
     Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(16.dp),
-        color = if (isSelected) OrangePrimary else Color(0xFFF5F5F5),
-        modifier = Modifier.height(32.dp)
+        shape = RoundedCornerShape(20.dp),
+        color = OrangePrimary,
+        modifier = Modifier.height(36.dp)
     ) {
         Box(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text,
-                fontSize = 12.sp,
-                color = if (isSelected) Color.White else Color.Black
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color.White
             )
         }
     }
@@ -320,7 +307,7 @@ fun InterestChip(
 
 @Composable
 fun RecommendationCard(
-    session: Session,
+    recommendation: Recommendation,
     onClick: () -> Unit
 ) {
     Card(
@@ -329,23 +316,24 @@ fun RecommendationCard(
             .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(16.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
+            // Header with avatar and info
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.Top
             ) {
                 Box(
                     modifier = Modifier
-                        .size(48.dp)
+                        .size(50.dp)
                         .clip(CircleShape)
-                        .background(OrangePrimary.copy(alpha = 0.2f)),
+                        .background(Color.Gray.copy(alpha = 0.2f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        session.teacher.username.take(2).uppercase(),
-                        fontSize = 16.sp,
+                        recommendation.initials,
+                        fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         color = OrangePrimary
                     )
@@ -353,80 +341,137 @@ fun RecommendationCard(
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        session.teacher.username,
+                        if (recommendation.age > 0) "${recommendation.mentorName}, ${recommendation.age}" 
+                        else recommendation.mentorName,
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp
                     )
-                    Text(
-                        session.skill,
-                        fontSize = 14.sp,
-                        color = Color.Gray
-                    )
-                }
-                if (!session.location.isNullOrEmpty()) {
-                    Column(horizontalAlignment = Alignment.End) {
-                        Icon(
-                            Icons.Default.LocationOn,
-                            contentDescription = null,
-                            tint = OrangePrimary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Text(
-                            "À proximité",
-                            fontSize = 11.sp,
-                            color = Color.Gray
-                        )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    // Skills chips
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        recommendation.skills.take(2).forEach { skill ->
+                            Text(
+                                skill.trim(),
+                                fontSize = 12.sp,
+                                modifier = Modifier
+                                    .background(Color.Gray.copy(alpha = 0.1f), RoundedCornerShape(4.dp))
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
                     }
                 }
             }
             
-            Spacer(modifier = Modifier.height(12.dp))
-            
-            Text(
-                session.title,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Medium
-            )
-            
-            if (!session.description.isNullOrEmpty()) {
-                Spacer(modifier = Modifier.height(8.dp))
+            // Description
+            if (recommendation.description.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    session.description,
-                    fontSize = 13.sp,
+                    recommendation.description,
+                    fontSize = 14.sp,
                     color = Color.Gray,
                     maxLines = 2
                 )
             }
             
+            // Stats row
             Spacer(modifier = Modifier.height(12.dp))
-            
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                if (recommendation.distance.isNotEmpty()) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.LocationOn,
+                            contentDescription = null,
+                            tint = Color.Gray,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            recommendation.distance,
+                            fontSize = 12.sp,
+                            color = Color.Gray
+                        )
+                    }
+                }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        Icons.Default.Schedule,
+                        Icons.Default.Star,
                         contentDescription = null,
-                        tint = Color.Gray,
-                        modifier = Modifier.size(16.dp)
+                        tint = Color(0xFFFFC107),
+                        modifier = Modifier.size(14.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        "${session.duration} min",
+                        String.format("%.1f/5", recommendation.rating),
                         fontSize = 12.sp,
                         color = Color.Gray
                     )
                 }
-                
-                TextButton(onClick = onClick) {
-                    Text("Voir détails", color = OrangePrimary)
-                    Icon(
-                        Icons.Default.KeyboardArrowRight,
-                        contentDescription = null,
-                        tint = OrangePrimary,
-                        modifier = Modifier.size(16.dp)
-                    )
+                Text(
+                    recommendation.lastActive,
+                    fontSize = 12.sp,
+                    color = Color.Gray
+                )
+                Text(
+                    "${recommendation.sessionsCount} sessions",
+                    fontSize = 12.sp,
+                    color = Color.Gray
+                )
+            }
+            
+            // Availability badge
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                modifier = Modifier
+                    .background(Color(0xFFE8F5E9), RoundedCornerShape(8.dp))
+                    .padding(vertical = 8.dp, horizontal = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Default.Schedule,
+                    contentDescription = null,
+                    tint = Color(0xFF4CAF50),
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    recommendation.availability,
+                    fontSize = 14.sp,
+                    color = Color(0xFF4CAF50),
+                    fontWeight = FontWeight.Medium
+                )
+            }
+            
+            // Action buttons
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedButton(
+                    onClick = onClick,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = OrangePrimary
+                    ),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, OrangePrimary),
+                    shape = RoundedCornerShape(25.dp)
+                ) {
+                    Text("Voir profil", fontWeight = FontWeight.SemiBold)
+                }
+                Button(
+                    onClick = onClick,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = OrangePrimary
+                    ),
+                    shape = RoundedCornerShape(25.dp)
+                ) {
+                    Text("Réserver", fontWeight = FontWeight.SemiBold)
                 }
             }
         }
@@ -468,7 +513,7 @@ fun EmptyStateView() {
 fun MapViewPlaceholder(
     sessionMode: SessionMode,
     onModeChange: (SessionMode) -> Unit,
-    sessionsCount: Int
+    count: Int
 ) {
     Column(
         modifier = Modifier
@@ -517,7 +562,7 @@ fun MapViewPlaceholder(
                         color = Color.White
                     ) {
                         Text(
-                            "$sessionsCount session(s) à proximité",
+                            "$count session(s) à proximité",
                             fontSize = 14.sp,
                             modifier = Modifier.padding(12.dp)
                         )

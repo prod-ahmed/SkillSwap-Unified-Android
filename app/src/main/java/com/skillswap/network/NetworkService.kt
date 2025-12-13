@@ -42,6 +42,10 @@ interface SkillSwapApi {
 
     @GET("/sessions/me")
     suspend fun getSessions(@Header("Authorization") token: String): List<Session>
+    
+    @GET("/sessions/recommendations")
+    suspend fun getSessionRecommendations(@Header("Authorization") token: String): RecommendationResponse
+    
     @POST("/sessions")
     suspend fun createSession(
         @Header("Authorization") token: String,
