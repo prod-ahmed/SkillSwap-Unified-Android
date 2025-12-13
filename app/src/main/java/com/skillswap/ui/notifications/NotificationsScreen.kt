@@ -163,7 +163,11 @@ fun NotificationsScreen(
             ) {
                 items(listToRender) { notif ->
                     val threadId = notif.payload?.get("threadId")?.toString()
+                        ?: notif.payload?.get("thread")?.toString()
                     val sessionId = notif.payload?.get("sessionId")?.toString()
+                        ?: notif.payload?.get("session")?.toString()
+                    val meetingLink = notif.meetingUrl ?: notif.payload?.get("meetingUrl")?.toString()
+                    val proposedDate = notif.proposedDate ?: notif.payload?.get("proposedDate")?.toString()
                     NotificationCard(
                         item = notif,
                         onAccept = {
@@ -180,11 +184,12 @@ fun NotificationsScreen(
                         onOpen = {
                             viewModel.markRead(notif.id)
                             when {
-                                notif.meetingUrl?.isNotBlank() == true -> openUrl(context, notif.meetingUrl)
+                                meetingLink?.isNotBlank() == true -> openUrl(context, meetingLink)
                                 threadId != null -> onNavigateToChat(threadId)
                                 sessionId != null -> onNavigateToSession(sessionId)
                             }
-                        }
+                        },
+                        proposedDate = proposedDate
                     )
                 }
             }
@@ -241,7 +246,8 @@ fun NotificationCard(
     onAccept: () -> Unit,
     onDecline: () -> Unit,
     onMarkRead: () -> Unit,
-    onOpen: () -> Unit
+    onOpen: () -> Unit,
+    proposedDate: String? = null
 ) {
     val accent = when (item.type) {
         "match" -> Color(0xFFFA5940)
@@ -313,6 +319,14 @@ fun NotificationCard(
                 color = Color.Gray,
                 modifier = Modifier.padding(top = 8.dp)
             )
+            proposedDate?.let {
+                Text(
+                    "Proposition: $it",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFF5C52BF),
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
 
             if (item.actionable != false && item.responded != true) {
                 Row(
