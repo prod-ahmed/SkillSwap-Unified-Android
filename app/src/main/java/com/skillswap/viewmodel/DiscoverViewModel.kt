@@ -53,6 +53,22 @@ class DiscoverViewModel(application: Application) : AndroidViewModel(application
     val cityFilter: StateFlow<String?> = _cityFilter.asStateFlow()
     private val _skillFilter = MutableStateFlow<String?>(null)
     val skillFilter: StateFlow<String?> = _skillFilter.asStateFlow()
+    
+    // ============ PHASE 13: Advanced Filters ============
+    
+    private val _annonceFilterState = MutableStateFlow(com.skillswap.ui.discover.AnnonceFilterState())
+    val annonceFilterState: StateFlow<com.skillswap.ui.discover.AnnonceFilterState> = _annonceFilterState.asStateFlow()
+    
+    private val _promoFilterState = MutableStateFlow(com.skillswap.ui.discover.PromoFilterState())
+    val promoFilterState: StateFlow<com.skillswap.ui.discover.PromoFilterState> = _promoFilterState.asStateFlow()
+    
+    fun applyAnnonceFilters(filterState: com.skillswap.ui.discover.AnnonceFilterState) {
+        _annonceFilterState.value = filterState
+    }
+    
+    fun applyPromoFilters(filterState: com.skillswap.ui.discover.PromoFilterState) {
+        _promoFilterState.value = filterState
+    }
 
     fun setSegment(newSegment: DiscoverSegment) {
         _segment.value = newSegment
