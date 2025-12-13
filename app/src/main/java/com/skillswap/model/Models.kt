@@ -160,7 +160,17 @@ data class ThreadMessage(
     val type: String,
     val content: String,
     val read: Boolean,
-    val createdAt: String
+    val createdAt: String,
+    val reactions: Map<String, List<String>>? = null, // emoji -> list of userIds
+    val isDeleted: Boolean? = null,
+    val replyTo: ReferencedMessage? = null
+)
+
+data class ReferencedMessage(
+    @SerializedName("_id") val id: String,
+    val content: String,
+    @SerializedName("sender") val senderId: String,
+    val type: String = "text"
 )
 
 data class MessagesResponse(

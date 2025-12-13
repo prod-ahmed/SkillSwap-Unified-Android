@@ -285,4 +285,78 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             unreadCount = thread.unreadCount
         )
     }
+    
+    // ============ PHASE 12: Chat Enhancements ============
+    
+    private val chatService = com.skillswap.network.ChatService.instance
+    
+    private val _replyToMessage = MutableStateFlow<com.skillswap.model.ThreadMessage?>(null)
+    val replyToMessage: StateFlow<com.skillswap.model.ThreadMessage?> = _replyToMessage.asStateFlow()
+    
+    /**
+     * Add a reaction to a message
+     */
+    fun reactToMessage(messageId: String, emoji: String) {
+        viewModelScope.launch {
+            try {
+                val accessToken = sharedPreferences.getString("access_token", null) ?: return@launch
+                chatService.reactToMessage(messageId, emoji, accessToken)
+                // Reload messages to reflect the reaction
+                activeThreadId?.let { loadMessagesForThread(it) }
+            } catch (e: Exception) {
+                _error.value = "Failed to add reaction: ${e.message}"
+            }
+        }
+    }
+    
+    /**
+     * Delete a message
+     */
+    fun deleteMessage(messageId: String) {
+        viewModelScope.launch {
+            try {
+                val accessToken = sharedPreferences.getString("access_token", null) ?: return@launch
+                chatService.deleteMessage(messageId, accessToken)
+                // Reload messages to reflect the deletion
+                activeThreadId?.let { loadMessagesForThread(it) }
+            } catch (e: Exception) {
+                _error.value = "Failed to delete message: ${e.message}"
+            }
+        }
+    }
+    
+    /**
+     * Set a message to reply to
+     */
+    fun setReplyToMessage(message: com.skillswap.model.ThreadMessage?) {
+        _replyToMessage.value = message
+    }
+    
+    /**
+     * Send a message with optional reply
+     */
+    fun sendMessageWithReply(content: String) {
+        val threadId = activeThreadId ?: return
+        viewModelScope.launch {
+            try {
+                val accessToken = sharedPreferences.getString("access_token", null) ?: return@launch
+                val replyToId = _replyToMessage.value?.id
+                
+                chatService.sendMessage(
+                    threadId = threadId,
+                    content = content,
+                    replyToId = replyToId,
+                    accessToken = accessToken
+                )
+                
+                // Clear reply-to state
+                _replyToMessage.value = null
+                
+                // Refresh messages
+                loadMessagesForThread(threadId)
+            } catch (e: Exception) {
+                _error.value = "Failed to send message: ${e.message}"
+            }
+        }
+    }
 }
