@@ -170,6 +170,7 @@ data class MessagesResponse(
 )
 
 data class SocketMessagePayload(
+    val id: String,
     val threadId: String,
     val senderId: String,
     val content: String,

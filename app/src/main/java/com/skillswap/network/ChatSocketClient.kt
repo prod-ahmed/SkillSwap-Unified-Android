@@ -119,11 +119,12 @@ class ChatSocketClient(
         chatSocket?.on("message:new") { args ->
             args.firstOrNull()?.let {
                 if (it is JSONObject) {
+                    val id = it.optString("_id", it.optString("id", ""))
                     val threadId = it.optString("threadId")
                     val senderId = it.optString("senderId")
                     val content = it.optString("content")
                     val createdAt = it.optString("createdAt")
-                    _messages.tryEmit(SocketMessagePayload(threadId, senderId, content, createdAt))
+                    _messages.tryEmit(SocketMessagePayload(id, threadId, senderId, content, createdAt))
                 }
             }
         }

@@ -194,7 +194,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     val me = currentUserId() ?: return@collectLatest
                     if (msg.threadId == threadId) {
                         _messages.value = _messages.value + Message(
-                            id = UUID.randomUUID().toString(),
+                            id = msg.id.ifBlank { UUID.randomUUID().toString() },
                             text = msg.content,
                             isMe = msg.senderId == me,
                             time = msg.createdAt,
