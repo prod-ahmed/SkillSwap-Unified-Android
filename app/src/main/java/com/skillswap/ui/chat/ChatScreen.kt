@@ -523,9 +523,7 @@ fun CallOverlay(
                         style = MaterialTheme.typography.labelSmall,
                         color = Color.Gray
                     )
-                    if (!isRinging && callDurationSec > 0) {
-                        StatusChip(text = formatDuration(callDurationSec))
-                    }
+                    StatusChip(text = if (callDurationSec > 0) formatDuration(callDurationSec) else "En cours…")
                     if (isVideo) {
                         RemoteVideoRenderer(remoteVideoTrack, eglBaseContext)
                         Spacer(Modifier.height(8.dp))
@@ -568,13 +566,16 @@ fun CallOverlay(
                                 onClick = onToggleSpeaker,
                                 modifier = Modifier.semantics { contentDescription = if (speakerOn) "Désactiver haut-parleur" else "Activer haut-parleur" }
                             ) {
-                                Icon(
+                            Icon(
                                     imageVector = if (speakerOn) Icons.AutoMirrored.Filled.VolumeUp else Icons.AutoMirrored.Filled.VolumeOff,
                                     contentDescription = null
                                 )
                             }
-                            IconButton(onClick = onHangup) {
-                                Icon(Icons.Default.CallEnd, contentDescription = "Raccrocher", tint = Color.Red)
+                            IconButton(
+                                onClick = onHangup,
+                                modifier = Modifier.semantics { contentDescription = "Raccrocher l'appel" }
+                            ) {
+                                Icon(Icons.Default.CallEnd, contentDescription = null, tint = Color.Red)
                             }
                         }
                     } else {
