@@ -194,18 +194,20 @@ data class CallIceCandidate(
 )
 data class CallOfferPayload(
     val callId: String,
-    val threadId: String,
+    val callerId: String,
     val sdp: String,
-    val isVideo: Boolean
+    val isVideo: Boolean,
+    val threadId: String? = null
 )
 data class CallAnswerPayload(
     val callId: String,
-    val threadId: String,
-    val sdp: String
+    val fromUserId: String? = null,
+    val sdp: String,
+    val threadId: String? = null
 )
 data class CallIcePayload(
     val callId: String,
-    val threadId: String,
+    val fromUserId: String? = null,
     val candidate: String,
     val sdpMid: String?,
     val sdpMLineIndex: Int
@@ -213,17 +215,17 @@ data class CallIcePayload(
 
 data class CallEndPayload(
     val callId: String,
-    val threadId: String
+    val fromUserId: String? = null
 )
 
 data class CallRejectPayload(
     val callId: String,
-    val threadId: String
+    val fromUserId: String? = null
 )
 
 data class CallBusyPayload(
     val callId: String,
-    val threadId: String
+    val fromUserId: String? = null
 )
 
 // --- Quizzes ---

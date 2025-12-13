@@ -71,27 +71,27 @@ class ChatSocketClient(
         chatSocket?.emit("chat:typing", payload)
     }
 
-    fun sendCallOffer(callId: String, threadId: String, sdp: String, isVideo: Boolean) {
-        callSocket?.emit("call:offer", mapOf("recipientId" to threadId, "sdp" to sdp, "callType" to if (isVideo) "video" else "audio"))
+    fun sendCallOffer(callId: String, recipientId: String, sdp: String, isVideo: Boolean) {
+        callSocket?.emit("call:offer", mapOf("recipientId" to recipientId, "sdp" to sdp, "callType" to if (isVideo) "video" else "audio"))
     }
 
-    fun sendCallAnswer(callId: String, threadId: String, sdp: String) {
+    fun sendCallAnswer(callId: String, sdp: String) {
         callSocket?.emit("call:answer", mapOf("callId" to callId, "sdp" to sdp))
     }
 
-    fun sendCallIce(callId: String, threadId: String, candidate: String, sdpMid: String?, sdpMLineIndex: Int) {
+    fun sendCallIce(callId: String, candidate: String, sdpMid: String?, sdpMLineIndex: Int) {
         callSocket?.emit("call:ice-candidate", mapOf("callId" to callId, "candidate" to candidate, "sdpMid" to sdpMid, "sdpMLineIndex" to sdpMLineIndex))
     }
 
-    fun sendCallEnd(callId: String, threadId: String) {
+    fun sendCallEnd(callId: String) {
         callSocket?.emit("call:end", mapOf("callId" to callId))
     }
 
-    fun sendCallReject(callId: String, threadId: String) {
+    fun sendCallReject(callId: String) {
         callSocket?.emit("call:reject", mapOf("callId" to callId))
     }
 
-    fun sendCallBusy(callId: String, threadId: String) {
+    fun sendCallBusy(callId: String) {
         callSocket?.emit("call:busy", mapOf("callId" to callId))
     }
 
@@ -184,9 +184,10 @@ class ChatSocketClient(
                     _callOffers.tryEmit(
                         CallOfferPayload(
                             callId = it.optString("callId", it.optString("_id", "")),
-                            threadId = it.optString("callerId"),
+                            callerId = it.optString("callerId"),
                             sdp = it.optString("sdp"),
-                            isVideo = it.optString("callType", "audio") == "video"
+                            isVideo = it.optString("callType", "audio") == "video",
+                            threadId = it.optString("threadId", null)
                         )
                     )
                 }
@@ -198,7 +199,7 @@ class ChatSocketClient(
                     _callAnswers.tryEmit(
                         CallAnswerPayload(
                             callId = it.optString("callId", it.optString("_id", "")),
-                            threadId = it.optString("threadId", it.optString("callerId")),
+                            fromUserId = it.optString("callerId", it.optString("senderId", "")),
                             sdp = it.optString("sdp")
                         )
                     )
@@ -211,7 +212,7 @@ class ChatSocketClient(
                     _callAnswers.tryEmit(
                         CallAnswerPayload(
                             callId = it.optString("callId", it.optString("_id", "")),
-                            threadId = it.optString("threadId", it.optString("recipientId")),
+                            fromUserId = it.optString("recipientId", it.optString("senderId", "")),
                             sdp = it.optString("sdp")
                         )
                     )
@@ -224,7 +225,7 @@ class ChatSocketClient(
                     _callIce.tryEmit(
                         CallIcePayload(
                             callId = it.optString("callId", it.optString("_id", "")),
-                            threadId = it.optString("threadId", it.optString("callerId")),
+                            fromUserId = it.optString("senderId", it.optString("callerId")),
                             candidate = it.optString("candidate"),
                             sdpMid = it.optString("sdpMid"),
                             sdpMLineIndex = it.optInt("sdpMLineIndex", 0)
@@ -239,7 +240,7 @@ class ChatSocketClient(
                     _callEnded.tryEmit(
                         CallEndPayload(
                             callId = it.optString("callId", it.optString("_id", "")),
-                            threadId = it.optString("threadId", it.optString("callerId"))
+                            fromUserId = it.optString("senderId", it.optString("callerId"))
                         )
                     )
                 }
@@ -251,7 +252,7 @@ class ChatSocketClient(
                     _callRejected.tryEmit(
                         CallRejectPayload(
                             callId = it.optString("callId", it.optString("_id", "")),
-                            threadId = it.optString("threadId", it.optString("callerId"))
+                            fromUserId = it.optString("senderId", it.optString("callerId"))
                         )
                     )
                 }
@@ -263,7 +264,7 @@ class ChatSocketClient(
                     _callBusy.tryEmit(
                         CallBusyPayload(
                             callId = it.optString("callId", it.optString("_id", "")),
-                            threadId = it.optString("threadId", it.optString("callerId"))
+                            fromUserId = it.optString("senderId", it.optString("callerId"))
                         )
                     )
                 }

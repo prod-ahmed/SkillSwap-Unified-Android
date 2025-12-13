@@ -84,6 +84,7 @@ fun ChatScreen(
     val messages by viewModel.messages.collectAsState()
     val partnerName by viewModel.activePartnerName.collectAsState()
     val partnerInitials by viewModel.activePartnerInitials.collectAsState()
+    val partnerId by viewModel.activePartnerId.collectAsState()
     val callState by callViewModel.state.collectAsState()
     val localVideo by callViewModel.localVideoTrack.collectAsState()
     val remoteVideo by callViewModel.remoteVideoTrack.collectAsState()
@@ -113,7 +114,7 @@ fun ChatScreen(
         val allow = grants.values.all { it }
         pendingVideo?.let { requestedVideo ->
             if (allow) {
-                callViewModel.startCall(partnerName ?: "", requestedVideo, conversationId)
+                callViewModel.startCall(partnerName ?: "", requestedVideo, partnerId, conversationId)
             }
         }
         pendingVideo = null
@@ -128,7 +129,7 @@ fun ChatScreen(
             ContextCompat.checkSelfPermission(context, perm) == PackageManager.PERMISSION_GRANTED
         }
         if (allGranted) {
-            callViewModel.startCall(partnerName ?: "", video, conversationId)
+            callViewModel.startCall(partnerName ?: "", video, partnerId, conversationId)
         } else {
             pendingVideo = video
             permissionLauncher.launch(required.toTypedArray())

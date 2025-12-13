@@ -40,6 +40,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private var activeThreadId: String? = null
     private val _activePartnerName = MutableStateFlow<String?>(null)
     val activePartnerName: StateFlow<String?> = _activePartnerName.asStateFlow()
+    private val _activePartnerId = MutableStateFlow<String?>(null)
+    val activePartnerId: StateFlow<String?> = _activePartnerId.asStateFlow()
     private val _activePartnerInitials = MutableStateFlow<String>("")
     val activePartnerInitials: StateFlow<String> = _activePartnerInitials.asStateFlow()
 
@@ -249,6 +251,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         val partner = thread?.participants?.firstOrNull { it.id != me } ?: thread?.participants?.firstOrNull()
         val name = partner?.username ?: "Conversation"
         _activePartnerName.value = name
+        _activePartnerId.value = partner?.id
         _activePartnerInitials.value = name.split(" ").take(2).joinToString("") { it.take(1) }.uppercase()
     }
 

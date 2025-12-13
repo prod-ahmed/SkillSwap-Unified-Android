@@ -45,6 +45,7 @@ class CallViewModel(application: Application) : AndroidViewModel(application), W
         userIdProvider = { application.getSharedPreferences("SkillSwapPrefs", android.content.Context.MODE_PRIVATE).getString("user_id", null) }
     )
     private var threadId: String? = null
+    private var partnerId: String? = null
     private var callId: String? = null
     private var role: CallRole = CallRole.CALLER
     private var pendingOffer: CallOfferPayload? = null
@@ -62,8 +63,9 @@ class CallViewModel(application: Application) : AndroidViewModel(application), W
         observeSocket()
     }
 
-    fun startCall(partnerName: String, video: Boolean, threadId: String? = null) {
+    fun startCall(partnerName: String, video: Boolean, partnerId: String? = null, threadId: String? = null) {
         this.threadId = threadId
+        this.partnerId = partnerId
         callId = java.util.UUID.randomUUID().toString()
         role = CallRole.CALLER
         _state.value = CallState(isInCall = true, isVideo = video, videoEnabled = video, partnerName = partnerName, callId = callId)
@@ -76,7 +78,7 @@ class CallViewModel(application: Application) : AndroidViewModel(application), W
 
     fun hangUp() {
         callId?.let { cid ->
-            threadId?.let { socketClient.sendCallEnd(cid, it) }
+            socketClient.sendCallEnd(cid)
         }
         callId = null
         _state.value = _state.value.copy(isInCall = false, isRinging = false, ended = true)
@@ -120,19 +122,20 @@ class CallViewModel(application: Application) : AndroidViewModel(application), W
 
     override fun onLocalSdp(sdp: CallSdp) {
         _state.value = _state.value.copy(localSdp = sdp.sdp)
-        threadId?.let {
-            when (role) {
-                CallRole.CALLER -> socketClient.sendCallOffer(callId.orEmpty(), it, sdp.sdp, _state.value.isVideo)
-                CallRole.CALLEE -> socketClient.sendCallAnswer(callId.orEmpty(), it, sdp.sdp)
+        when (role) {
+            CallRole.CALLER -> {
+                val recipient = partnerId ?: threadId
+                if (recipient != null) {
+                    socketClient.sendCallOffer(callId.orEmpty(), recipient, sdp.sdp, _state.value.isVideo)
+                }
             }
+            CallRole.CALLEE -> socketClient.sendCallAnswer(callId.orEmpty(), sdp.sdp)
         }
     }
 
     override fun onIceCandidate(candidate: CallIceCandidate) {
         _state.value = _state.value.copy(iceCandidates = _state.value.iceCandidates + candidate)
-        threadId?.let {
-            socketClient.sendCallIce(callId.orEmpty(), it, candidate.sdp, candidate.sdpMid, candidate.sdpMLineIndex)
-        }
+        socketClient.sendCallIce(callId.orEmpty(), candidate.sdp, candidate.sdpMid, candidate.sdpMLineIndex)
     }
 
     override fun onConnectionState(state: String) {
@@ -154,10 +157,11 @@ class CallViewModel(application: Application) : AndroidViewModel(application), W
     fun acceptIncomingCall() {
         val offer = pendingOffer ?: return
         threadId = offer.threadId
+        partnerId = offer.callerId
         callId = offer.callId
         role = CallRole.CALLEE
         _state.value = _state.value.copy(isRinging = false, isInCall = true, isVideo = offer.isVideo, videoEnabled = offer.isVideo, callId = callId, ended = false)
-        socketClient.joinThread(offer.threadId)
+        offer.threadId?.let { socketClient.joinThread(it) }
         applyRemoteSdp(offer.sdp, "offer")
         rtcClient.start(offer.isVideo, asAnswer = true)
         startTimer()
@@ -165,7 +169,7 @@ class CallViewModel(application: Application) : AndroidViewModel(application), W
 
     fun declineIncomingCall() {
         pendingOffer?.let { offer ->
-            socketClient.sendCallReject(offer.callId, offer.threadId)
+            socketClient.sendCallReject(offer.callId)
         }
         callId = null
         pendingOffer = null
@@ -181,11 +185,12 @@ class CallViewModel(application: Application) : AndroidViewModel(application), W
             socketClient.callOffers.collectLatest { offer ->
                 val busy = _state.value.isInCall && _state.value.callId != offer.callId
                 if (busy) {
-                    socketClient.sendCallBusy(offer.callId, offer.threadId)
+                    socketClient.sendCallBusy(offer.callId)
                     return@collectLatest
                 }
                 pendingOffer = offer
-                threadId = offer.threadId
+                threadId = offer.threadId ?: threadId
+                partnerId = offer.callerId
                 callId = offer.callId
                 role = CallRole.CALLEE
                 _state.value = _state.value.copy(
@@ -196,13 +201,13 @@ class CallViewModel(application: Application) : AndroidViewModel(application), W
                     callId = callId,
                     error = null
                 )
-                socketClient.joinThread(offer.threadId)
+                offer.threadId?.let { socketClient.joinThread(it) }
             }
         }
         viewModelScope.launch {
             socketClient.callAnswers.collectLatest { answer ->
                 val callMatches = answer.callId == callId || callId.isNullOrBlank() || answer.callId.isBlank()
-                if (answer.threadId == threadId && callMatches) {
+                if (callMatches) {
                     if (callId.isNullOrBlank()) callId = answer.callId
                     applyRemoteSdp(answer.sdp, "answer")
                 }
@@ -211,7 +216,7 @@ class CallViewModel(application: Application) : AndroidViewModel(application), W
         viewModelScope.launch {
             socketClient.callIce.collectLatest { ice ->
                 val callMatches = ice.callId == callId || callId.isNullOrBlank() || ice.callId.isBlank()
-                if (ice.threadId == threadId && callMatches) {
+                if (callMatches) {
                     if (callId.isNullOrBlank()) callId = ice.callId
                     addRemoteCandidate(CallIceCandidate(ice.candidate, ice.sdpMid, ice.sdpMLineIndex))
                 }
@@ -220,7 +225,7 @@ class CallViewModel(application: Application) : AndroidViewModel(application), W
         viewModelScope.launch {
             socketClient.callEnded.collectLatest { ended ->
                 val callMatches = ended.callId == callId || callId.isNullOrBlank() || ended.callId.isBlank()
-                if (callMatches && ended.threadId == threadId) {
+                if (callMatches) {
                     _state.value = _state.value.copy(isInCall = false, isRinging = false, ended = true)
                     rtcClient.dispose()
                     stopTimer()
@@ -231,7 +236,7 @@ class CallViewModel(application: Application) : AndroidViewModel(application), W
         viewModelScope.launch {
             socketClient.callRejected.collectLatest { rejected ->
                 val callMatches = rejected.callId == callId || callId.isNullOrBlank() || rejected.callId.isBlank()
-                if (callMatches && rejected.threadId == threadId) {
+                if (callMatches) {
                     _state.value = CallState(error = "Call rejected")
                     rtcClient.dispose()
                     callId = null
@@ -243,7 +248,7 @@ class CallViewModel(application: Application) : AndroidViewModel(application), W
         viewModelScope.launch {
             socketClient.callBusy.collectLatest { busy ->
                 val callMatches = busy.callId == callId || callId.isNullOrBlank() || busy.callId.isBlank()
-                if (callMatches && busy.threadId == threadId) {
+                if (callMatches) {
                     _state.value = CallState(error = "User busy")
                     rtcClient.dispose()
                     callId = null
