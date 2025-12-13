@@ -321,6 +321,14 @@ fun NotificationCard(
                 color = Color.Gray,
                 modifier = Modifier.padding(top = 8.dp)
             )
+            item.senderId?.let {
+                Text(
+                    "De: $it",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
             proposedDate?.let {
                 Text(
                     "Proposition: $it",
@@ -347,12 +355,12 @@ fun NotificationCard(
                         onClick = onAccept,
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF34C759))
-                    ) { Text("Accepter") }
+                    ) { Text("Accepter", modifier = Modifier.semantics { contentDescription = "Accepter la demande" }) }
                     OutlinedButton(
                         onClick = onDecline,
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Red)
-                    ) { Text("Refuser") }
+                    ) { Text("Refuser", modifier = Modifier.semantics { contentDescription = "Refuser la demande" }) }
                 }
             }
 
