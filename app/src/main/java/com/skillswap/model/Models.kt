@@ -526,7 +526,13 @@ data class NotificationItem(
     val createdAt: String,
     val actionable: Boolean? = null,
     val responded: Boolean? = null,
-    val meetingUrl: String? = null
+    val meetingUrl: String? = null,
+    // enriched for reschedule/presence
+    val sessionId: String? = null,
+    val senderId: String? = null,
+    val recipientId: String? = null,
+    val proposedDate: String? = null,
+    val reason: String? = null
 )
 
 data class NotificationsResponse(

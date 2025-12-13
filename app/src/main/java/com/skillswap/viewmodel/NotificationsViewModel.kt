@@ -94,10 +94,16 @@ class NotificationsViewModel(application: Application) : AndroidViewModel(applic
         val token = sharedPreferences.getString("auth_token", null) ?: return
         viewModelScope.launch {
             try {
+                // Include optional reschedule acceptance payload for backend parity
+                val existing = _notifications.value.firstOrNull { it.id == notificationId }
+                val basePayload = mutableMapOf<String, Any>("accepted" to accept, "message" to if (accept) "Accepté" else "Refusé")
+                existing?.sessionId?.let { basePayload["sessionId"] = it }
+                existing?.proposedDate?.let { basePayload["proposedDate"] = it }
+
                 val updated = NetworkService.api.respondNotification(
                     "Bearer $token",
                     notificationId,
-                    mapOf("accepted" to accept, "message" to if (accept) "Accepté" else "Refusé")
+                    basePayload
                 )
                 _notifications.value = _notifications.value.map { if (it.id == notificationId) updated else it }
                 _unreadCount.value = _notifications.value.count { !it.isRead }
