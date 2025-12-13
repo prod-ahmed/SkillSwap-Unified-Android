@@ -36,10 +36,11 @@ fun QuizzesScreen(
     val showResults by viewModel.showResults.collectAsState()
     val score by viewModel.score.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
+    val unlockedLevel by viewModel.unlockedLevel.collectAsState()
     
-    val subjects = listOf("Design", "Développement", "Marketing", "Photographie", "Musique", "Cuisine")
-    var selectedSubject by remember { mutableStateOf(subjects[0]) }
-    var selectedLevel by remember { mutableStateOf(1) }
+    var selectedSubject by remember { mutableStateOf("") }
+    var showRoadmap by remember { mutableStateOf(false) }
+    var showHistory by remember { mutableStateOf(false) }
     
     Scaffold(
         topBar = {
