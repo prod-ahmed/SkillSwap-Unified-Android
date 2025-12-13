@@ -535,29 +535,42 @@ fun CallOverlay(
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             StatusChip(text = connectionStatus.ifBlank { "Connexion..." })
                             StatusChip(text = if (videoEnabled) "Vidéo active" else "Vidéo coupée")
+                            StatusChip(text = if (muted) "Micro coupé" else "Micro actif")
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            IconButton(onClick = onToggleMute) {
+                            IconButton(
+                                onClick = onToggleMute,
+                                modifier = Modifier.semantics { contentDescription = if (muted) "Activer micro" else "Couper micro" }
+                            ) {
                                 Icon(
                                     if (muted) Icons.Default.MicOff else Icons.Default.Mic,
-                                    contentDescription = if (muted) "Micro coupé" else "Micro actif"
+                                    contentDescription = null
                                 )
                             }
                             if (isVideo) {
-                                IconButton(onClick = onToggleVideo) {
+                                IconButton(
+                                    onClick = onToggleVideo,
+                                    modifier = Modifier.semantics { contentDescription = if (videoEnabled) "Désactiver caméra" else "Activer caméra" }
+                                ) {
                                     Icon(
                                         imageVector = if (videoEnabled) Icons.Default.Videocam else Icons.Default.VideocamOff,
-                                        contentDescription = if (videoEnabled) "Vidéo active" else "Vidéo coupée"
+                                        contentDescription = null
                                     )
                                 }
-                                IconButton(onClick = onSwitchCamera) {
-                                    Icon(Icons.Default.Cameraswitch, contentDescription = "Basculer caméra")
+                                IconButton(
+                                    onClick = onSwitchCamera,
+                                    modifier = Modifier.semantics { contentDescription = "Basculer caméra" }
+                                ) {
+                                    Icon(Icons.Default.Cameraswitch, contentDescription = null)
                                 }
                             }
-                            IconButton(onClick = onToggleSpeaker) {
+                            IconButton(
+                                onClick = onToggleSpeaker,
+                                modifier = Modifier.semantics { contentDescription = if (speakerOn) "Désactiver haut-parleur" else "Activer haut-parleur" }
+                            ) {
                                 Icon(
                                     imageVector = if (speakerOn) Icons.AutoMirrored.Filled.VolumeUp else Icons.AutoMirrored.Filled.VolumeOff,
-                                    contentDescription = if (speakerOn) "Haut-parleur activé" else "Haut-parleur désactivé"
+                                    contentDescription = null
                                 )
                             }
                             IconButton(onClick = onHangup) {
