@@ -1,0 +1,192 @@
+package com.skillswap.viewmodel
+
+import android.app.Application
+import android.content.Context
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.skillswap.model.Annonce
+import com.skillswap.model.CreateAnnonceRequest
+import com.skillswap.model.CreatePromoRequest
+import com.skillswap.model.Promo
+import com.skillswap.model.User
+import com.skillswap.network.NetworkService
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+
+enum class DiscoverSegment {
+    PROFILS, ANNONCES, PROMOS
+}
+
+class DiscoverViewModel(application: Application) : AndroidViewModel(application) {
+    private val sharedPreferences = application.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
+    
+    private val _segment = MutableStateFlow(DiscoverSegment.PROFILS)
+    val segment: StateFlow<DiscoverSegment> = _segment.asStateFlow()
+
+    private val _users = MutableStateFlow<List<User>>(emptyList())
+    val users: StateFlow<List<User>> = _users.asStateFlow()
+    
+    // Using simple index for swipeable cards
+    private val _currentIndex = MutableStateFlow(0)
+    val currentIndex: StateFlow<Int> = _currentIndex.asStateFlow()
+
+    private val _annonces = MutableStateFlow<List<Annonce>>(emptyList())
+    val annonces: StateFlow<List<Annonce>> = _annonces.asStateFlow()
+
+    private val _promos = MutableStateFlow<List<Promo>>(emptyList())
+    val promos: StateFlow<List<Promo>> = _promos.asStateFlow()
+
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    private val _successMessage = MutableStateFlow<String?>(null)
+    val successMessage: StateFlow<String?> = _successMessage.asStateFlow()
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+
+    fun setSegment(newSegment: DiscoverSegment) {
+        _segment.value = newSegment
+        loadForCurrentSegment()
+    }
+
+    fun clearMessages() {
+        _successMessage.value = null
+        _errorMessage.value = null
+    }
+
+    fun loadForCurrentSegment() {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _errorMessage.value = null
+            try {
+                // Get real token
+                val token = sharedPreferences.getString("auth_token", null)
+                val authHeader = token?.let { "Bearer $it" }
+
+                if (authHeader == null) {
+                    _errorMessage.value = "Session expirée - veuillez vous reconnecter"
+                    return@launch
+                }
+
+                when (_segment.value) {
+                    DiscoverSegment.PROFILS -> {
+                        val fetchedUsers = NetworkService.api.getUsers(authHeader).map { withAbsoluteAvatar(it) }
+                        _users.value = fetchedUsers
+                        _currentIndex.value = 0
+                        if (fetchedUsers.isEmpty()) _errorMessage.value = "Aucun profil trouvé"
+                    }
+                    DiscoverSegment.ANNONCES -> {
+                         val fetched = NetworkService.api.getAllAnnonces(authHeader).map { withAbsoluteAnnonce(it) }
+                         _annonces.value = fetched
+                         if (fetched.isEmpty()) _errorMessage.value = "Aucune annonce disponible"
+                    }
+                    DiscoverSegment.PROMOS -> {
+                         val fetched = NetworkService.api.getAllPromos(authHeader).map { withAbsolutePromo(it) }
+                         _promos.value = fetched
+                         if (fetched.isEmpty()) _errorMessage.value = "Aucune promotion active"
+                    }
+                }
+            } catch (e: Exception) {
+                val errorMsg = "Erreur de chargement: ${e.message}"
+                _errorMessage.value = errorMsg
+                android.util.Log.e("DiscoverViewModel", errorMsg, e)
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun createAnnonce(title: String, description: String, city: String?) {
+        val token = sharedPreferences.getString("auth_token", null) ?: return
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                val created = NetworkService.api.createAnnonce(
+                    "Bearer $token",
+                    CreateAnnonceRequest(title = title, description = description, city = city, price = null, imageUrl = null)
+                )
+                _annonces.value = _annonces.value + created
+                _successMessage.value = "Annonce créée"
+            } catch (e: Exception) {
+                _errorMessage.value = e.message
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun createPromo(title: String, description: String, discount: Int, validTo: String, validFrom: String? = null, code: String? = null) {
+        val token = sharedPreferences.getString("auth_token", null) ?: return
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                val created = NetworkService.api.createPromo(
+                    "Bearer $token",
+                    CreatePromoRequest(
+                        title = title,
+                        description = description,
+                        discount = discount,
+                        validFrom = validFrom,
+                        validUntil = validTo,
+                        promoCode = code
+                    )
+                )
+                _promos.value = _promos.value + created
+                _successMessage.value = "Promo créée"
+            } catch (e: Exception) {
+                _errorMessage.value = e.message
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+    
+    fun nextProfile() {
+        if (_currentIndex.value < _users.value.size - 1) {
+            _currentIndex.value += 1
+        } else {
+             // Reset or No more profiles
+        }
+    }
+
+    fun startChatWithUser(userId: String, onThreadReady: (String) -> Unit) {
+        val token = sharedPreferences.getString("auth_token", null) ?: return
+        viewModelScope.launch {
+            try {
+                val thread = NetworkService.api.createThread(
+                    "Bearer $token",
+                    mapOf("participantId" to userId)
+                )
+                onThreadReady(thread.id)
+            } catch (_: Exception) {
+                onThreadReady(userId)
+            }
+        }
+    }
+
+    private fun withAbsoluteAnnonce(item: Annonce): Annonce {
+        val url = item.imageUrl
+        val absolute = if (!url.isNullOrBlank() && !(url.startsWith("http://") || url.startsWith("https://"))) {
+            com.skillswap.BuildConfig.API_BASE_URL.trimEnd('/') + "/uploads/annonces/" + url
+        } else url
+        return item.copy(imageUrl = absolute)
+    }
+
+    private fun withAbsolutePromo(item: Promo): Promo {
+        val url = item.imageUrl
+        val absolute = if (!url.isNullOrBlank() && !(url.startsWith("http://") || url.startsWith("https://"))) {
+            com.skillswap.BuildConfig.API_BASE_URL.trimEnd('/') + "/uploads/promos/" + url
+        } else url
+        return item.copy(imageUrl = absolute)
+    }
+
+    private fun withAbsoluteAvatar(user: User): User {
+        val url = user.avatarUrl ?: user.image
+        val absolute = if (!url.isNullOrBlank() && !(url.startsWith("http://") || url.startsWith("https://"))) {
+            com.skillswap.BuildConfig.API_BASE_URL.trimEnd('/') + "/uploads/users/" + url
+        } else url
+        return user.copy(avatarUrl = absolute ?: user.avatarUrl, image = absolute ?: user.image)
+    }
+}

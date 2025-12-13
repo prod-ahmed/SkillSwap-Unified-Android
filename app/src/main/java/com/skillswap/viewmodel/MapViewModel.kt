@@ -1,0 +1,57 @@
+package com.skillswap.viewmodel
+
+import android.app.Application
+import android.content.Context
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.skillswap.model.User
+import com.skillswap.network.NetworkService
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+
+data class UserLocationPin(
+    val id: String,
+    val name: String,
+    val lat: Double,
+    val lon: Double,
+    val city: String?
+)
+
+class MapViewModel(application: Application) : AndroidViewModel(application) {
+    private val sharedPreferences = application.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
+
+    private val _pins = MutableStateFlow<List<UserLocationPin>>(emptyList())
+    val pins: StateFlow<List<UserLocationPin>> = _pins.asStateFlow()
+    private val _cities = MutableStateFlow<List<String>>(emptyList())
+    val cities: StateFlow<List<String>> = _cities.asStateFlow()
+    private val _error = MutableStateFlow<String?>(null)
+    val error: StateFlow<String?> = _error.asStateFlow()
+
+    fun loadPins() {
+        val token = sharedPreferences.getString("auth_token", null) ?: return
+        viewModelScope.launch {
+            try {
+                val users = NetworkService.api.getUsers("Bearer $token")
+                _pins.value = users.mapNotNull { it.toPin() }
+                _cities.value = NetworkService.api.getCities("Bearer $token")
+            } catch (e: Exception) {
+                _error.value = e.message
+            }
+        }
+    }
+}
+
+private fun User.toPin(): UserLocationPin? {
+    val loc = location ?: return null
+    val lat = loc.lat ?: return null
+    val lon = loc.lon ?: return null
+    return UserLocationPin(
+        id = id,
+        name = username,
+        lat = lat,
+        lon = lon,
+        city = loc.city
+    )
+}
