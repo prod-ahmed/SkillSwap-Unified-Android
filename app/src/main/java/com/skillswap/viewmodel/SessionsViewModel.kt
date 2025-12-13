@@ -246,4 +246,65 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
         _sessions.value = _sessions.value
             .filter { it.id != updated.id } + updated
     }
+    
+    // Add missing methods for SessionDetailScreen
+    private val _selectedSession = MutableStateFlow<Session?>(null)
+    val selectedSession: StateFlow<Session?> = _selectedSession.asStateFlow()
+    
+    fun loadSessionDetail(sessionId: String) {
+        _isLoading.value = true
+        _errorMessage.value = null
+        
+        // Find session in existing list or fetch from API
+        val existingSession = _sessions.value.find { it.id == sessionId }
+        if (existingSession != null) {
+            _selectedSession.value = existingSession
+            _isLoading.value = false
+        } else {
+            // In production, fetch from API
+            viewModelScope.launch {
+                try {
+                    // For now, just set loading to false
+                    _isLoading.value = false
+                } catch (e: Exception) {
+                    _errorMessage.value = e.message
+                    _isLoading.value = false
+                }
+            }
+        }
+    }
+    
+    fun confirmSession(sessionId: String) {
+        viewModelScope.launch {
+            try {
+                val token = sharedPreferences.getString("auth_token", null) ?: return@launch
+                NetworkService.api.updateSessionStatus(
+                    "Bearer $token",
+                    sessionId,
+                    mapOf("status" to "confirmed")
+                )
+                _successMessage.value = "Session confirmée"
+                loadSessions()
+            } catch (e: Exception) {
+                _errorMessage.value = "Erreur: ${e.message}"
+            }
+        }
+    }
+    
+    fun cancelSession(sessionId: String) {
+        viewModelScope.launch {
+            try {
+                val token = sharedPreferences.getString("auth_token", null) ?: return@launch
+                NetworkService.api.updateSessionStatus(
+                    "Bearer $token",
+                    sessionId,
+                    mapOf("status" to "cancelled")
+                )
+                _successMessage.value = "Session annulée"
+                loadSessions()
+            } catch (e: Exception) {
+                _errorMessage.value = "Erreur: ${e.message}"
+            }
+        }
+    }
 }

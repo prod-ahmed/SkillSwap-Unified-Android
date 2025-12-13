@@ -228,22 +228,21 @@ fun LessonPlanHeader(plan: LessonPlan) {
                     fontSize = 16.sp
                 )
                 plan.createdAt?.let { dateStr ->
-                    try {
-                        val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
-                        val date = inputFormat.parse(dateStr)
-                        val outputFormat = SimpleDateFormat("dd/MM/yyyy", Locale.FRENCH)
-                        Text(
-                            "Généré le ${outputFormat.format(date ?: Date())}",
-                            fontSize = 12.sp,
-                            color = Color.Gray
-                        )
-                    } catch (e: Exception) {
-                        Text(
-                            "Généré récemment",
-                            fontSize = 12.sp,
-                            color = Color.Gray
-                        )
+                    val formattedDate = remember(dateStr) {
+                        try {
+                            val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
+                            val date = inputFormat.parse(dateStr)
+                            val outputFormat = SimpleDateFormat("dd/MM/yyyy", Locale.FRENCH)
+                            "Généré le ${outputFormat.format(date ?: Date())}"
+                        } catch (e: Exception) {
+                            "Généré récemment"
+                        }
                     }
+                    Text(
+                        formattedDate,
+                        fontSize = 12.sp,
+                        color = Color.Gray
+                    )
                 }
             }
         }
