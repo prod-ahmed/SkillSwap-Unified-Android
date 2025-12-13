@@ -580,10 +580,16 @@ fun CallOverlay(
                         }
                     } else {
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Button(onClick = onAccept) {
+                            Button(
+                                onClick = onAccept,
+                                modifier = Modifier.semantics { contentDescription = "Accepter l'appel" }
+                            ) {
                                 Text("Accepter")
                             }
-                            OutlinedButton(onClick = onDecline) {
+                            OutlinedButton(
+                                onClick = onDecline,
+                                modifier = Modifier.semantics { contentDescription = "Refuser l'appel" }
+                            ) {
                                 Text("Refuser")
                             }
                         }
