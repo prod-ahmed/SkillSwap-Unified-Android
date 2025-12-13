@@ -123,6 +123,9 @@ interface SkillSwapApi {
         @Header("Authorization") token: String
     ): Map<String, List<String>>
 
+    @GET("/locations/cities")
+    suspend fun getCities(): List<String>
+
     // Progress
     @GET("/progress/dashboard")
     suspend fun getProgressDashboard(@Header("Authorization") token: String): ProgressDashboardResponse
@@ -157,6 +160,13 @@ interface SkillSwapApi {
     
     @DELETE("/promos/{id}")
     suspend fun deletePromo(@Header("Authorization") token: String, @Path("id") id: String)
+
+    // AI Image Generation
+    @POST("/ai/generate-image")
+    suspend fun generateImage(
+        @Header("Authorization") token: String,
+        @Body body: Map<String, String>
+    ): Map<String, String>
 
     // Annonces
     @GET("/annonces/me")
@@ -257,6 +267,12 @@ interface SkillSwapApi {
     // Referrals
     @GET("/referrals/me")
     suspend fun getMyReferrals(@Header("Authorization") token: String): ReferralsMeResponse
+
+    @POST("/referrals/codes")
+    suspend fun createReferralCode(
+        @Header("Authorization") token: String,
+        @Body body: Map<String, @JvmSuppressWildcards Any>
+    ): ReferralCodeResponse
 
     @POST("/referrals/redeem")
     suspend fun redeemReferral(

@@ -21,7 +21,8 @@ import com.skillswap.ui.theme.OrangePrimary
 @Composable
 fun ProfileSettingsScreen(
     onBack: () -> Unit,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    onEditProfile: () -> Unit = {}
 ) {
     var showLogoutDialog by remember { mutableStateOf(false) }
     var darkMode by remember { mutableStateOf(false) }
@@ -73,7 +74,7 @@ fun ProfileSettingsScreen(
                 SettingsItem(
                     icon = Icons.Default.Person,
                     title = "Modifier le profil",
-                    onClick = { /* Navigate to edit profile */ }
+                    onClick = onEditProfile
                 )
                 SettingsItem(
                     icon = Icons.Default.Lock,

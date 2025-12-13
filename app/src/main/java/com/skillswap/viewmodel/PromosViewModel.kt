@@ -35,10 +35,41 @@ class PromosViewModel(application: Application) : AndroidViewModel(application) 
     val uploading: StateFlow<Boolean> = _uploading.asStateFlow()
     private val _uploadProgress = MutableStateFlow(0)
     val uploadProgress: StateFlow<Int> = _uploadProgress.asStateFlow()
+    
+    private val _generatingImage = MutableStateFlow(false)
+    val generatingImage: StateFlow<Boolean> = _generatingImage.asStateFlow()
+    private val _generatedImageUrl = MutableStateFlow<String?>(null)
+    val generatedImageUrl: StateFlow<String?> = _generatedImageUrl.asStateFlow()
 
     fun clearMessages() {
         _error.value = null
         _success.value = null
+    }
+    
+    fun clearGeneratedImage() {
+        _generatedImageUrl.value = null
+    }
+    
+    suspend fun generatePromoImage(prompt: String): String? {
+        val token = sharedPreferences.getString("auth_token", null) ?: return null
+        _generatingImage.value = true
+        _error.value = null
+        
+        return try {
+            val response = NetworkService.api.generateImage(
+                "Bearer $token",
+                mapOf("prompt" to prompt)
+            )
+            val imageUrl = response["url"]
+            _generatedImageUrl.value = imageUrl
+            _success.value = "Image générée avec succès!"
+            imageUrl
+        } catch (e: Exception) {
+            _error.value = "Erreur lors de la génération: ${e.message}"
+            null
+        } finally {
+            _generatingImage.value = false
+        }
     }
 
     fun loadPromos() {
