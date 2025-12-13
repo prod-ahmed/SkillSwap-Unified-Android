@@ -62,6 +62,8 @@ fun QuizzesScreen(viewModel: QuizViewModel = viewModel()) {
     ) {
         Header(subject = state.subject, onHistory = { showHistory = true })
 
+        InfoBanner(text = "Les quiz seront disponibles dès que le backend sera exposé. Aucune question générée localement pour éviter les données fictives.")
+
         Card(
             colors = CardDefaults.cardColors(containerColor = Color.White),
             shape = RoundedCornerShape(16.dp),
@@ -112,6 +114,22 @@ fun QuizzesScreen(viewModel: QuizViewModel = viewModel()) {
 }
 
 @Composable
+private fun InfoBanner(text: String) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF4E5)),
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color(0xFF8A5300),
+            modifier = Modifier.padding(12.dp)
+        )
+    }
+}
+
+@Composable
 private fun Header(subject: String, onHistory: () -> Unit) {
     Box(
         modifier = Modifier
@@ -150,8 +168,8 @@ private fun LevelRoadmap(unlockedLevel: Int, onLevel: (Int) -> Unit) {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable(enabled = isUnlocked) { onLevel(level) },
-                colors = CardDefaults.cardColors(containerColor = if (isUnlocked) Color.White else Color(0xFFE5E5EA)),
+                    .clickable(enabled = false) { },
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFE5E5EA)),
                 shape = RoundedCornerShape(14.dp)
             ) {
                 Row(
@@ -163,22 +181,14 @@ private fun LevelRoadmap(unlockedLevel: Int, onLevel: (Int) -> Unit) {
                         modifier = Modifier
                             .size(48.dp)
                             .clip(CircleShape)
-                            .background(if (level < unlockedLevel) Color(0xFF34C759) else if (isUnlocked) Color(0xFF6A4CFF) else Color.Gray),
+                            .background(Color.Gray),
                         contentAlignment = Alignment.Center
                     ) {
-                        val text = when {
-                            level < unlockedLevel -> "✓"
-                            isUnlocked -> level.toString()
-                            else -> "🔒"
-                        }
-                        Text(text, color = Color.White, fontWeight = FontWeight.Bold)
+                        Text("🔒", color = Color.White, fontWeight = FontWeight.Bold)
                     }
                     Column {
                         Text("Niveau $level", fontWeight = FontWeight.Bold)
-                        Text(
-                            if (isUnlocked) "Disponible" else "Débloquez le niveau précédent",
-                            color = Color.Gray
-                        )
+                        Text("En attente du backend", color = Color.Gray)
                     }
                 }
             }

@@ -18,7 +18,8 @@ data class QuizState(
     val currentLevel: Int? = null,
     val score: Int = 0,
     val currentIndex: Int = 0,
-    val finished: Boolean = false
+    val finished: Boolean = false,
+    val message: String? = null
 )
 
 class QuizViewModel(application: Application) : AndroidViewModel(application) {
@@ -28,19 +29,20 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setSubject(subject: String) {
         val level = repo.unlockedLevel(subject)
-        _state.value = _state.value.copy(subject = subject, unlockedLevel = level, history = repo.history(), finished = false)
+        _state.value = _state.value.copy(subject = subject, unlockedLevel = level, history = repo.history(), finished = false, message = null)
     }
 
     fun startLevel(level: Int) {
         val subject = _state.value.subject
         if (subject.isBlank()) return
-        val questions = repo.generateQuiz(subject, level)
+        // Backend-backed quizzes not yet available on Android; surface message instead of synthetic data
         _state.value = _state.value.copy(
-            questions = questions,
-            currentLevel = level,
+            message = "Les quiz seront disponibles dès que le backend sera exposé. Merci de revenir bientôt.",
+            questions = emptyList(),
+            currentLevel = null,
+            finished = false,
             score = 0,
-            currentIndex = 0,
-            finished = false
+            currentIndex = 0
         )
     }
 
@@ -74,6 +76,6 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun resetQuiz() {
-        _state.value = _state.value.copy(questions = emptyList(), currentLevel = null, finished = false, currentIndex = 0, score = 0)
+        _state.value = _state.value.copy(questions = emptyList(), currentLevel = null, finished = false, currentIndex = 0, score = 0, message = null)
     }
 }
