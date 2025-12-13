@@ -232,6 +232,20 @@ interface SkillSwapApi {
         @Body body: LessonPlanGenerateRequest
     ): LessonPlanResponse
 
+    @POST("/lesson-plan/regenerate/{sessionId}")
+    suspend fun regenerateLessonPlan(
+        @Header("Authorization") token: String,
+        @Path("sessionId") sessionId: String,
+        @Body body: LessonPlanGenerateRequest
+    ): LessonPlanResponse
+
+    @PATCH("/lesson-plan/progress/{sessionId}")
+    suspend fun updateLessonPlanProgress(
+        @Header("Authorization") token: String,
+        @Path("sessionId") sessionId: String,
+        @Body body: Map<String, @JvmSuppressWildcards Any>
+    ): LessonPlanResponse
+
     // Moderation
     @POST("/moderation/check-image")
     suspend fun checkImage(@Header("Authorization") token: String, @Body body: Map<String, String>): ModerationResult
