@@ -61,6 +61,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
