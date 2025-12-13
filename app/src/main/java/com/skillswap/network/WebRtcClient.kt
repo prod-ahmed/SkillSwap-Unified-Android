@@ -136,14 +136,27 @@ class WebRtcClient(
 
         if (isVideo) {
             videoCapturer = createVideoCapturer()
-            surfaceTextureHelper = SurfaceTextureHelper.create("CameraThread", eglBaseContext)
+            surfaceTextureHelper = runCatching { SurfaceTextureHelper.create("CameraThread", eglBaseContext) }.getOrNull()
+            if (surfaceTextureHelper == null || videoCapturer == null) {
+                videoEnabled = false
+                listener.onLocalVideoTrack(null)
+                return
+            }
             videoSource = peerConnectionFactory.createVideoSource(false)
-            videoCapturer?.initialize(surfaceTextureHelper, context, videoSource?.capturerObserver)
-            videoCapturer?.startCapture(640, 480, 30)
-            videoTrack = peerConnectionFactory.createVideoTrack("ARDAMSv0", videoSource)
-            videoTrack?.setEnabled(true)
-            peerConnection?.addTrack(videoTrack)
-            listener.onLocalVideoTrack(videoTrack)
+            val initialized = runCatching {
+                videoCapturer?.initialize(surfaceTextureHelper, context, videoSource?.capturerObserver)
+                videoCapturer?.startCapture(640, 480, 30)
+                true
+            }.getOrDefault(false)
+            if (initialized) {
+                videoTrack = peerConnectionFactory.createVideoTrack("ARDAMSv0", videoSource)
+                videoTrack?.setEnabled(true)
+                peerConnection?.addTrack(videoTrack)
+                listener.onLocalVideoTrack(videoTrack)
+            } else {
+                videoEnabled = false
+                listener.onLocalVideoTrack(null)
+            }
         } else {
             listener.onLocalVideoTrack(null)
         }
