@@ -23,6 +23,14 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.skillswap.model.Recommendation
 import com.skillswap.ui.theme.OrangePrimary
 import com.skillswap.viewmodel.RecommendationsViewModel
+import com.skillswap.BuildConfig
+import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.rememberCameraPositionState
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
+import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.compose.Marker
+import com.google.maps.android.compose.MarkerState
 
 enum class SessionMode {
     ONLINE, IN_PERSON
@@ -43,6 +51,7 @@ fun SessionsPourVousScreen(
     var sessionMode by remember { mutableStateOf(SessionMode.ONLINE) }
     
     val recommendations by viewModel.recommendations.collectAsState()
+    val coordinates by viewModel.recommendationCoordinates.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
     
@@ -144,11 +153,13 @@ fun SessionsPourVousScreen(
                     }
                 }
             } else {
-                // Map View (Placeholder for now)
+                // Map View
                 MapViewPlaceholder(
                     sessionMode = sessionMode,
                     onModeChange = { sessionMode = it },
-                    count = filteredRecommendations.size
+                    count = filteredRecommendations.size,
+                    recommendations = filteredRecommendations,
+                    coordinates = coordinates
                 )
             }
         }
@@ -513,8 +524,16 @@ fun EmptyStateView() {
 fun MapViewPlaceholder(
     sessionMode: SessionMode,
     onModeChange: (SessionMode) -> Unit,
-    count: Int
+    count: Int,
+    recommendations: List<Recommendation> = emptyList(),
+    coordinates: Map<String, LatLng> = emptyMap()
 ) {
+    val hasApiKey = BuildConfig.MAPS_API_KEY.isNotBlank()
+    val tunis = LatLng(36.8065, 10.1815)
+    val cameraPositionState = rememberCameraPositionState {
+        position = CameraPosition.fromLatLngZoom(tunis, 12f)
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -571,32 +590,56 @@ fun MapViewPlaceholder(
             }
         }
         
-        // Map placeholder
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFFE8F5E9)),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(
-                    Icons.Default.Map,
-                    contentDescription = null,
-                    modifier = Modifier.size(80.dp),
-                    tint = OrangePrimary.copy(alpha = 0.5f)
+        if (hasApiKey) {
+            GoogleMap(
+                modifier = Modifier.fillMaxSize(),
+                cameraPositionState = cameraPositionState
+            ) {
+                Marker(
+                    state = MarkerState(position = tunis),
+                    title = "Tunis",
+                    snippet = "Centre ville",
+                    icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)
                 )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    "Vue carte",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = OrangePrimary
-                )
-                Text(
-                    "Intégration Google Maps à venir",
-                    fontSize = 14.sp,
-                    color = Color.Gray
-                )
+                
+                recommendations.forEach { rec ->
+                    coordinates[rec.id]?.let { latLng ->
+                        Marker(
+                            state = MarkerState(position = latLng),
+                            title = rec.mentorName,
+                            snippet = rec.skills.firstOrNull() ?: "Mentor"
+                        )
+                    }
+                }
+            }
+        } else {
+            // Map placeholder
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xFFE8F5E9)),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        Icons.Default.Map,
+                        contentDescription = null,
+                        modifier = Modifier.size(80.dp),
+                        tint = OrangePrimary.copy(alpha = 0.5f)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        "Vue carte non disponible",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = OrangePrimary
+                    )
+                    Text(
+                        "Clé Google Maps manquante (MAPS_API_KEY)",
+                        fontSize = 14.sp,
+                        color = Color.Gray
+                    )
+                }
             }
         }
     }

@@ -299,7 +299,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     fun reactToMessage(messageId: String, emoji: String) {
         viewModelScope.launch {
             try {
-                val accessToken = sharedPreferences.getString("access_token", null) ?: return@launch
+                val accessToken = sharedPreferences.getString("auth_token", null) ?: return@launch
                 chatService.reactToMessage(messageId, emoji, accessToken)
                 // Reload messages to reflect the reaction
                 activeThreadId?.let { loadMessages(it) }
@@ -315,7 +315,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     fun deleteMessage(messageId: String) {
         viewModelScope.launch {
             try {
-                val accessToken = sharedPreferences.getString("access_token", null) ?: return@launch
+                val accessToken = sharedPreferences.getString("auth_token", null) ?: return@launch
                 chatService.deleteMessage(messageId, accessToken)
                 // Reload messages to reflect the deletion
                 activeThreadId?.let { loadMessages(it) }
@@ -339,7 +339,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         val threadId = activeThreadId ?: return
         viewModelScope.launch {
             try {
-                val accessToken = sharedPreferences.getString("access_token", null) ?: return@launch
+                val accessToken = sharedPreferences.getString("auth_token", null) ?: return@launch
                 val replyToId = _replyToMessage.value?.id
                 
                 chatService.sendMessage(

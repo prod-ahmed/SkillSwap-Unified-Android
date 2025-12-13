@@ -160,7 +160,7 @@ fun ReferralCodeGenerationScreen(
                                         type = "text/plain"
                                         putExtra(
                                             Intent.EXTRA_TEXT,
-                                            "Rejoins SkillSwap avec mon code de parrainage: $displayCode"
+                                            "Rejoins SkillSwap ! Utilise mon code $displayCode pour gagner des crédits. Télécharge l'app ici : https://skillswap.tn/app"
                                         )
                                     }
                                     context.startActivity(Intent.createChooser(shareIntent, "Partager le code"))

@@ -8,6 +8,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
+import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,217 +19,205 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import com.skillswap.ui.theme.OrangePrimary
+import com.skillswap.viewmodel.CallState
 import kotlinx.coroutines.delay
+import org.webrtc.VideoTrack
+import org.webrtc.EglBase
+import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun VideoCallScreen(
-    participantName: String,
-    callStatus: String = "En cours...",
-    isVideoEnabled: Boolean = true,
-    isAudioEnabled: Boolean = true,
-    isFrontCamera: Boolean = true,
-    onEndCall: () -> Unit,
+    callState: CallState,
+    localVideoTrack: VideoTrack?,
+    remoteVideoTrack: VideoTrack?,
+    eglBaseContext: EglBase.Context?,
+    onHangup: () -> Unit,
+    onAccept: () -> Unit,
+    onDecline: () -> Unit,
+    onToggleMute: () -> Unit,
+    onToggleSpeaker: () -> Unit,
     onToggleVideo: () -> Unit,
-    onToggleAudio: () -> Unit,
-    onSwitchCamera: () -> Unit
+    onSwitchCamera: () -> Unit,
+    onDismissEnded: () -> Unit
 ) {
     var showControls by remember { mutableStateOf(true) }
-    var callDurationSeconds by remember { mutableStateOf(0) }
     
-    // Auto-hide controls after 5 seconds
-    LaunchedEffect(showControls) {
-        if (showControls) {
+    // Auto-hide controls
+    LaunchedEffect(showControls, callState.connectionStatus) {
+        if (showControls && callState.connectionStatus == "connected") {
             delay(5000)
             showControls = false
         }
     }
-    
-    // Call duration timer
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(1000)
-            callDurationSeconds++
-        }
-    }
-    
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
+            .clickable { showControls = !showControls }
     ) {
-        // Remote Video View (Full Screen)
-        // In a real implementation, this would be a WebRTC VideoRenderer
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFF1A1A1A)),
-            contentAlignment = Alignment.Center
-        ) {
-            // Placeholder for remote video
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+        // Remote Video (Full Screen)
+        if (callState.isVideo && remoteVideoTrack != null && eglBaseContext != null) {
+            RemoteVideoRenderer(remoteVideoTrack, eglBaseContext)
+        } else {
+            // Avatar placeholder
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(120.dp)
-                        .clip(CircleShape)
-                        .background(OrangePrimary.copy(alpha = 0.2f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        Icons.Default.Person,
-                        contentDescription = null,
-                        modifier = Modifier.size(60.dp),
-                        tint = OrangePrimary
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(
+                        modifier = Modifier
+                            .size(120.dp)
+                            .clip(CircleShape)
+                            .background(Color.Gray.copy(alpha = 0.3f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            callState.partnerName.take(1).uppercase(),
+                            fontSize = 48.sp,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        callState.partnerName,
+                        fontSize = 24.sp,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        if (callState.isRinging) "Appel entrant..." else callState.connectionStatus,
+                        fontSize = 16.sp,
+                        color = Color.White.copy(alpha = 0.7f)
                     )
                 }
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    participantName,
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-                Text(
-                    callStatus,
-                    fontSize = 16.sp,
-                    color = Color.White.copy(alpha = 0.7f)
-                )
             }
         }
-        
-        // Local Video View (Picture-in-Picture)
-        if (isVideoEnabled) {
+
+        // Local Video (PIP)
+        if (callState.isVideo && callState.videoEnabled && localVideoTrack != null && eglBaseContext != null && !callState.ended) {
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                contentAlignment = Alignment.TopEnd
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp)
+                    .padding(top = 40.dp) // Avoid status bar
+                    .width(100.dp)
+                    .height(150.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color.DarkGray)
             ) {
-                Box(
-                    modifier = Modifier
-                        .width(120.dp)
-                        .height(160.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0xFF2A2A2A)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        Icons.Default.Videocam,
-                        contentDescription = "Local Video",
-                        modifier = Modifier.size(40.dp),
-                        tint = Color.White.copy(alpha = 0.5f)
-                    )
-                }
+                LocalVideoRenderer(localVideoTrack, eglBaseContext)
             }
         }
-        
+
         // Controls Overlay
         AnimatedVisibility(
-            visible = showControls,
+            visible = showControls || callState.isRinging || callState.ended,
             enter = fadeIn(),
-            exit = fadeOut()
+            exit = fadeOut(),
+            modifier = Modifier.fillMaxSize()
         ) {
             Column(
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(bottom = 48.dp),
+                verticalArrangement = Arrangement.SpaceBetween
             ) {
                 // Top Bar
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    color = Color.Black.copy(alpha = 0.5f)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 48.dp, start = 24.dp, end = 24.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(
-                                participantName,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                            Text(
-                                formatDuration(callDurationSeconds),
-                                fontSize = 12.sp,
-                                color = Color.White.copy(alpha = 0.7f)
-                            )
-                        }
-                        
-                        if (isVideoEnabled) {
-                            IconButton(
-                                onClick = onSwitchCamera
-                            ) {
-                                Icon(
-                                    Icons.Default.Cameraswitch,
-                                    contentDescription = "Switch Camera",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            }
+                    Column {
+                        Text(
+                            callState.partnerName,
+                            color = Color.White,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            if (callState.callDurationSec > 0) formatDuration(callState.callDurationSec) else "Connexion...",
+                            color = Color.White.copy(alpha = 0.8f),
+                            fontSize = 14.sp
+                        )
+                    }
+                    if (callState.isVideo) {
+                        IconButton(onClick = onSwitchCamera) {
+                            Icon(Icons.Default.Cameraswitch, null, tint = Color.White)
                         }
                     }
                 }
-                
-                Spacer(modifier = Modifier.weight(1f))
-                
+
                 // Bottom Controls
-                Surface(
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    color = Color.Black.copy(alpha = 0.5f)
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 32.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Mute/Unmute Button
-                        CallControlButton(
-                            icon = if (isAudioEnabled) Icons.Default.Mic else Icons.Default.MicOff,
-                            label = if (isAudioEnabled) "Mute" else "Unmute",
-                            backgroundColor = if (isAudioEnabled) Color.White.copy(alpha = 0.2f) else Color.Red,
-                            onClick = onToggleAudio
-                        )
-                        
-                        // End Call Button
+                    if (callState.isRinging) {
+                        // Incoming Call Controls
                         CallControlButton(
                             icon = Icons.Default.CallEnd,
-                            label = "End",
-                            backgroundColor = Color.Red,
-                            onClick = onEndCall
+                            label = "Refuser",
+                            color = Color.Red,
+                            onClick = onDecline
+                        )
+                        CallControlButton(
+                            icon = Icons.Default.Call,
+                            label = "Accepter",
+                            color = Color.Green,
+                            onClick = onAccept
+                        )
+                    } else if (callState.ended) {
+                        CallControlButton(
+                            icon = Icons.Default.Close,
+                            label = "Fermer",
+                            color = Color.Gray,
+                            onClick = onDismissEnded
+                        )
+                    } else {
+                        // Active Call Controls
+                        CallControlButton(
+                            icon = if (callState.muted) Icons.Default.MicOff else Icons.Default.Mic,
+                            label = "Micro",
+                            color = if (callState.muted) Color.White else Color.White.copy(alpha = 0.2f),
+                            contentColor = if (callState.muted) Color.Black else Color.White,
+                            onClick = onToggleMute
                         )
                         
-                        // Video On/Off Button
                         CallControlButton(
-                            icon = if (isVideoEnabled) Icons.Default.Videocam else Icons.Default.VideocamOff,
-                            label = if (isVideoEnabled) "Video" else "Video Off",
-                            backgroundColor = if (isVideoEnabled) Color.White.copy(alpha = 0.2f) else Color.Red,
+                            icon = if (callState.videoEnabled) Icons.Default.Videocam else Icons.Default.VideocamOff,
+                            label = "Vidéo",
+                            color = if (!callState.videoEnabled) Color.White else Color.White.copy(alpha = 0.2f),
+                            contentColor = if (!callState.videoEnabled) Color.Black else Color.White,
                             onClick = onToggleVideo
+                        )
+                        
+                        CallControlButton(
+                            icon = if (callState.speakerOn) Icons.AutoMirrored.Filled.VolumeUp else Icons.AutoMirrored.Filled.VolumeOff,
+                            label = "Haut-parleur",
+                            color = if (callState.speakerOn) Color.White else Color.White.copy(alpha = 0.2f),
+                            contentColor = if (callState.speakerOn) Color.Black else Color.White,
+                            onClick = onToggleSpeaker
+                        )
+                        
+                        CallControlButton(
+                            icon = Icons.Default.CallEnd,
+                            label = "Raccrocher",
+                            color = Color.Red,
+                            onClick = onHangup
                         )
                     }
                 }
             }
         }
-        
-        // Tap to toggle controls
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .then(
-                    if (!showControls) {
-                        Modifier.clickable { showControls = true }
-                    } else {
-                        Modifier
-                    }
-                )
-        )
     }
 }
 
@@ -235,34 +225,63 @@ fun VideoCallScreen(
 private fun CallControlButton(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
-    backgroundColor: Color,
+    color: Color,
+    contentColor: Color = Color.White,
     onClick: () -> Unit
 ) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        IconButton(
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Button(
             onClick = onClick,
-            modifier = Modifier
-                .size(64.dp)
-                .clip(CircleShape)
-                .background(backgroundColor)
+            shape = CircleShape,
+            colors = ButtonDefaults.buttonColors(containerColor = color, contentColor = contentColor),
+            modifier = Modifier.size(64.dp),
+            contentPadding = PaddingValues(0.dp)
         ) {
-            Icon(
-                icon,
-                contentDescription = label,
-                tint = Color.White,
-                modifier = Modifier.size(28.dp)
-            )
+            Icon(icon, contentDescription = label, modifier = Modifier.size(28.dp))
         }
-        Text(
-            label,
-            fontSize = 12.sp,
-            color = Color.White,
-            fontWeight = FontWeight.Medium
-        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(label, color = Color.White, fontSize = 12.sp)
     }
+}
+
+@Composable
+private fun RemoteVideoRenderer(track: VideoTrack?, eglBaseContext: EglBase.Context) {
+    val context = LocalContext.current
+    val renderer = remember {
+        org.webrtc.SurfaceViewRenderer(context).apply {
+            init(eglBaseContext, null)
+            setEnableHardwareScaler(true)
+        }
+    }
+    DisposableEffect(renderer, track) {
+        track?.addSink(renderer)
+        onDispose { track?.removeSink(renderer) }
+    }
+    AndroidView(
+        factory = { renderer },
+        modifier = Modifier.fillMaxSize()
+    )
+}
+
+@Composable
+private fun LocalVideoRenderer(track: VideoTrack?, eglBaseContext: EglBase.Context) {
+    val context = LocalContext.current
+    val renderer = remember {
+        org.webrtc.SurfaceViewRenderer(context).apply {
+            init(eglBaseContext, null)
+            setMirror(true)
+            setEnableHardwareScaler(true)
+            setZOrderMediaOverlay(true)
+        }
+    }
+    DisposableEffect(renderer, track) {
+        track?.addSink(renderer)
+        onDispose { track?.removeSink(renderer) }
+    }
+    AndroidView(
+        factory = { renderer },
+        modifier = Modifier.fillMaxSize()
+    )
 }
 
 private fun formatDuration(seconds: Int): String {

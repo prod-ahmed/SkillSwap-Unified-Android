@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.skillswap.model.Recommendation
 import com.skillswap.model.User
 import com.skillswap.network.NetworkService
+import com.google.android.gms.maps.model.LatLng
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,6 +20,9 @@ class RecommendationsViewModel(application: Application) : AndroidViewModel(appl
     private val _recommendations = MutableStateFlow<List<Recommendation>>(emptyList())
     val recommendations: StateFlow<List<Recommendation>> = _recommendations.asStateFlow()
     
+    private val _recommendationCoordinates = MutableStateFlow<Map<String, LatLng>>(emptyMap())
+    val recommendationCoordinates: StateFlow<Map<String, LatLng>> = _recommendationCoordinates.asStateFlow()
+
     private val _currentUser = MutableStateFlow<User?>(null)
     val currentUser: StateFlow<User?> = _currentUser.asStateFlow()
     
@@ -59,6 +63,7 @@ class RecommendationsViewModel(application: Application) : AndroidViewModel(appl
                 
                 val response = api.getSessionRecommendations("Bearer $token")
                 _recommendations.value = response.data
+                generateCoordinates(response.data)
             } catch (e: Exception) {
                 _error.value = e.message ?: "Failed to load recommendations"
                 _recommendations.value = emptyList()
@@ -70,5 +75,23 @@ class RecommendationsViewModel(application: Application) : AndroidViewModel(appl
     
     fun refresh() {
         loadRecommendations()
+    }
+
+    private fun generateCoordinates(items: List<Recommendation>) {
+        val baseLat = 36.8065
+        val baseLng = 10.1815
+        val coords = mutableMapOf<String, LatLng>()
+        
+        items.forEachIndexed { index, item ->
+            // Simple offset logic to scatter them around Tunis
+            val angle = (index * (2 * Math.PI / items.size.coerceAtLeast(1)))
+            val radius = 0.02 + (index % 3) * 0.01 // roughly 2-5km
+            
+            val lat = baseLat + radius * Math.cos(angle)
+            val lng = baseLng + radius * Math.sin(angle)
+            
+            coords[item.id] = LatLng(lat, lng)
+        }
+        _recommendationCoordinates.value = coords
     }
 }

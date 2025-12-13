@@ -8,6 +8,7 @@ import com.skillswap.model.CallSdp
 import com.skillswap.model.CallOfferPayload
 import com.skillswap.network.ChatSocketClient
 import com.skillswap.network.WebRtcClient
+import com.skillswap.utils.LocalNotificationManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -44,6 +45,7 @@ class CallViewModel(application: Application) : AndroidViewModel(application), W
     private val socketClient = ChatSocketClient(
         userIdProvider = { application.getSharedPreferences("SkillSwapPrefs", android.content.Context.MODE_PRIVATE).getString("user_id", null) }
     )
+    private val notificationManager by lazy { LocalNotificationManager.getInstance(application) }
     private var threadId: String? = null
     private var partnerId: String? = null
     private var callId: String? = null
@@ -181,6 +183,23 @@ class CallViewModel(application: Application) : AndroidViewModel(application), W
     private fun observeSocket() {
         if (observingSocket) return
         observingSocket = true
+        
+        // Chat Notifications
+        viewModelScope.launch {
+            socketClient.messages.collectLatest { msg ->
+                val prefs = getApplication<Application>().getSharedPreferences("SkillSwapPrefs", android.content.Context.MODE_PRIVATE)
+                val myId = prefs.getString("user_id", "")
+                
+                if (msg.senderId != myId) {
+                    notificationManager.showMessageNotification(
+                        threadId = msg.threadId,
+                        senderName = "Nouveau message", // Placeholder as payload lacks name
+                        messageText = msg.content
+                    )
+                }
+            }
+        }
+
         viewModelScope.launch {
             socketClient.callOffers.collectLatest { offer ->
                 val busy = _state.value.isInCall && _state.value.callId != offer.callId

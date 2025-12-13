@@ -9,7 +9,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
@@ -39,6 +42,12 @@ import com.skillswap.BuildConfig
 import com.skillswap.viewmodel.MapViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.filled.Done
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 fun MapScreen(viewModel: MapViewModel = viewModel()) {
@@ -49,7 +58,6 @@ fun MapScreen(viewModel: MapViewModel = viewModel()) {
     LaunchedEffect(Unit) {
         viewModel.loadPins()
     }
-    var expanded by remember { mutableStateOf(false) }
     var selectedCity by remember { mutableStateOf<String?>(null) }
 
     if (BuildConfig.MAPS_API_KEY.isBlank()) {
@@ -57,7 +65,16 @@ fun MapScreen(viewModel: MapViewModel = viewModel()) {
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            Text("Clé Google Maps manquante", style = MaterialTheme.typography.titleLarge)
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(
+                    Icons.Default.Map,
+                    contentDescription = null,
+                    modifier = Modifier.size(64.dp),
+                    tint = Color.Gray
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text("Clé Google Maps manquante", style = MaterialTheme.typography.titleLarge)
+            }
         }
         return
     }
@@ -81,49 +98,41 @@ fun MapScreen(viewModel: MapViewModel = viewModel()) {
                 style = MaterialTheme.typography.bodyMedium
             )
         }
-        Row(
+        
+        // Filter Chips
+        LazyRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            ExposedDropdownMenuBox(
-                expanded = expanded,
-                onExpandedChange = { expanded = !expanded }
-            ) {
-                OutlinedTextField(
-                    value = selectedCity ?: "Toutes les villes",
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Filtrer par ville") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                    modifier = Modifier
-                        .menuAnchor()
-                        .weight(1f)
-                )
-                ExposedDropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false }
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("Toutes les villes") },
-                        onClick = {
-                            selectedCity = null
-                            expanded = false
-                        }
+            item {
+                FilterChip(
+                    selected = selectedCity == null,
+                    onClick = { selectedCity = null },
+                    label = { Text("Toutes") },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Color(0xFF5C52BF).copy(alpha = 0.2f),
+                        selectedLabelColor = Color(0xFF5C52BF)
                     )
-                    cities.forEach { city ->
-                        DropdownMenuItem(
-                            text = { Text(city) },
-                            onClick = {
-                                selectedCity = city
-                                expanded = false
-                            }
-                        )
-                    }
-                }
+                )
+            }
+            items(cities) { city ->
+                FilterChip(
+                    selected = selectedCity == city,
+                    onClick = { selectedCity = if (selectedCity == city) null else city },
+                    label = { Text(city) },
+                    leadingIcon = if (selectedCity == city) {
+                        { Icon(Icons.Default.Done, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                    } else null,
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Color(0xFF5C52BF).copy(alpha = 0.2f),
+                        selectedLabelColor = Color(0xFF5C52BF)
+                    )
+                )
             }
         }
+
         GoogleMap(
             modifier = Modifier
                 .fillMaxSize(),

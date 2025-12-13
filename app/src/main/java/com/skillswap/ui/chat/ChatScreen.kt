@@ -71,6 +71,8 @@ val ChatOrangeEnd = Color(0xFFFFB347)
 fun ChatScreen(
     conversationId: String,
     onBack: () -> Unit,
+    onVideoCall: () -> Unit = {},
+    onAudioCall: () -> Unit = {},
     viewModel: ChatViewModel = viewModel(),
     callViewModel: CallViewModel = viewModel()
 ) {
@@ -298,31 +300,13 @@ fun ChatScreen(
         }
     }
 
-    if (callState.isInCall || callState.isRinging) {
-        CallOverlay(
-            partner = callState.partnerName,
-            isVideo = callState.isVideo,
-            muted = callState.muted,
-            speakerOn = callState.speakerOn,
-            isRinging = callState.isRinging,
-            ended = callState.ended,
-            connectionStatus = callState.connectionStatus,
-            localSdp = callState.localSdp,
-            iceCandidates = callState.iceCandidates,
-            localVideoTrack = localVideo,
-            remoteVideoTrack = remoteVideo,
-            callDurationSec = callState.callDurationSec,
-            eglBaseContext = callViewModel.eglBaseContext,
-            onHangup = { callViewModel.hangUp() },
-            onAccept = { callViewModel.acceptIncomingCall() },
-            onDecline = { callViewModel.declineIncomingCall() },
-            onToggleMute = { callViewModel.toggleMute() },
-            onToggleSpeaker = { callViewModel.toggleSpeaker() },
-            onToggleVideo = { callViewModel.toggleVideo() },
-            onSwitchCamera = { callViewModel.switchCamera() },
-            videoEnabled = callState.videoEnabled,
-            onDismissEnded = { callViewModel.clearEnded() }
-        )
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF2F2F7)) // System Grouped Background
+    ) {
+        HeaderIcon(Icons.Default.Videocam) { onVideoCall() }
+        HeaderIcon(Icons.Default.Call) { onAudioCall() }
     }
 }
 
@@ -468,221 +452,6 @@ fun ChatBubble(message: Message) {
                 )
             }
         }
-    }
-}
-
-@Composable
-@Suppress("UNUSED_PARAMETER")
-fun CallOverlay(
-    partner: String,
-    isVideo: Boolean,
-    muted: Boolean,
-    speakerOn: Boolean,
-    isRinging: Boolean,
-    ended: Boolean,
-    connectionStatus: String,
-    localSdp: String?, // kept for parity/debug display if needed
-    iceCandidates: List<com.skillswap.model.CallIceCandidate>, // kept for future signaling UI
-    localVideoTrack: VideoTrack?,
-    remoteVideoTrack: VideoTrack?,
-    callDurationSec: Int,
-    eglBaseContext: org.webrtc.EglBase.Context,
-    onHangup: () -> Unit,
-    onAccept: () -> Unit,
-    onDecline: () -> Unit,
-    onToggleMute: () -> Unit,
-    onToggleSpeaker: () -> Unit,
-    onToggleVideo: () -> Unit,
-    onSwitchCamera: () -> Unit,
-    videoEnabled: Boolean,
-    onDismissEnded: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.6f))
-            .semantics { contentDescription = if (ended) "Appel terminé" else "Overlay d'appel" }
-    ) {
-        Card(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(24.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            shape = RoundedCornerShape(20.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                if (ended) {
-                    Text("Appel terminé", fontWeight = FontWeight.Bold)
-                    StatusChip(text = "Déconnecté")
-                    Button(onClick = onDismissEnded) { Text("Fermer") }
-                } else {
-                    Text(
-                        text = when {
-                            isRinging && isVideo -> "Appel vidéo entrant"
-                            isRinging -> "Appel audio entrant"
-                            isVideo -> "Appel vidéo"
-                            else -> "Appel audio"
-                        },
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(partner, style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        when {
-                            isRinging -> "Sonnerie…"
-                            connectionStatus.equals("connected", ignoreCase = true) -> "Connecté"
-                            connectionStatus.equals("completed", ignoreCase = true) -> "Connecté"
-                            else -> connectionStatus
-                        },
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.Gray
-                    )
-                    StatusChip(text = if (callDurationSec > 0) formatDuration(callDurationSec) else "En cours…")
-                    if (isVideo) {
-                        RemoteVideoRenderer(remoteVideoTrack, eglBaseContext)
-                        Spacer(Modifier.height(8.dp))
-                        LocalVideoRenderer(localVideoTrack, eglBaseContext)
-                    }
-                    if (!isRinging) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            StatusChip(text = connectionStatus.ifBlank { "Connexion..." })
-                            StatusChip(text = if (videoEnabled) "Vidéo active" else "Vidéo coupée")
-                            StatusChip(text = if (muted) "Micro coupé" else "Micro actif")
-                        }
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            IconButton(
-                                onClick = onToggleMute,
-                                modifier = Modifier.semantics { contentDescription = if (muted) "Activer micro" else "Couper micro" }
-                            ) {
-                                Icon(
-                                    if (muted) Icons.Default.MicOff else Icons.Default.Mic,
-                                    contentDescription = null
-                                )
-                            }
-                            if (isVideo) {
-                                IconButton(
-                                    onClick = onToggleVideo,
-                                    modifier = Modifier.semantics { contentDescription = if (videoEnabled) "Désactiver caméra" else "Activer caméra" }
-                                ) {
-                                    Icon(
-                                        imageVector = if (videoEnabled) Icons.Default.Videocam else Icons.Default.VideocamOff,
-                                        contentDescription = null
-                                    )
-                                }
-                                IconButton(
-                                    onClick = onSwitchCamera,
-                                    modifier = Modifier.semantics { contentDescription = "Basculer caméra" }
-                                ) {
-                                    Icon(Icons.Default.Cameraswitch, contentDescription = null)
-                                }
-                            }
-                            IconButton(
-                                onClick = onToggleSpeaker,
-                                modifier = Modifier.semantics { contentDescription = if (speakerOn) "Désactiver haut-parleur" else "Activer haut-parleur" }
-                            ) {
-                            Icon(
-                                    imageVector = if (speakerOn) Icons.AutoMirrored.Filled.VolumeUp else Icons.AutoMirrored.Filled.VolumeOff,
-                                    contentDescription = null
-                                )
-                            }
-                            IconButton(
-                                onClick = onHangup,
-                                modifier = Modifier.semantics { contentDescription = "Raccrocher l'appel" }
-                            ) {
-                                Icon(Icons.Default.CallEnd, contentDescription = null, tint = Color.Red)
-                            }
-                        }
-                    } else {
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Button(
-                                onClick = onAccept,
-                                modifier = Modifier.semantics { contentDescription = "Accepter l'appel" }
-                            ) {
-                                Text("Accepter")
-                            }
-                            OutlinedButton(
-                                onClick = onDecline,
-                                modifier = Modifier.semantics { contentDescription = "Refuser l'appel" }
-                            ) {
-                                Text("Refuser")
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun RemoteVideoRenderer(track: VideoTrack?, eglBaseContext: EglBase.Context) {
-    val context = LocalContext.current
-    val renderer = remember {
-        org.webrtc.SurfaceViewRenderer(context).apply {
-            init(eglBaseContext, null)
-            setEnableHardwareScaler(true)
-        }
-    }
-    DisposableEffect(renderer, track) {
-        track?.addSink(renderer)
-        onDispose { track?.removeSink(renderer) }
-    }
-    AndroidView(
-        factory = { renderer },
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(220.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(Color.Black)
-    )
-}
-
-@Composable
-private fun LocalVideoRenderer(track: VideoTrack?, eglBaseContext: EglBase.Context) {
-    val context = LocalContext.current
-    val renderer = remember {
-        org.webrtc.SurfaceViewRenderer(context).apply {
-            init(eglBaseContext, null)
-            setMirror(true)
-            setEnableHardwareScaler(true)
-        }
-    }
-    DisposableEffect(renderer, track) {
-        track?.addSink(renderer)
-        onDispose { track?.removeSink(renderer) }
-    }
-    AndroidView(
-        factory = { renderer },
-        modifier = Modifier
-            .size(140.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(Color.Black)
-    )
-}
-
-private fun formatDuration(seconds: Int): String {
-    val mins = seconds / 60
-    val secs = seconds % 60
-    return "%02d:%02d".format(mins, secs)
-}
-
-@Composable
-private fun StatusChip(text: String) {
-    Surface(
-        color = Color(0xFFF2F2F7),
-        shape = RoundedCornerShape(50),
-        shadowElevation = 0.dp
-    ) {
-        Text(
-            text,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-            style = MaterialTheme.typography.labelSmall,
-            color = Color.Gray
-        )
     }
 }
 

@@ -5,7 +5,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.filled.Done
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -70,6 +74,8 @@ fun DiscoverScreen(
     var filterText by remember { mutableStateOf("") }
     var showAnnonceDialog by remember { mutableStateOf(false) }
     var showPromoDialog by remember { mutableStateOf(false) }
+    var showMatchDialog by remember { mutableStateOf(false) }
+    var matchedUser by remember { mutableStateOf<User?>(null) }
 
     val filteredAnnonces = remember(annonces, filterText) {
         if (filterText.isBlank()) annonces else annonces.filter {
@@ -85,7 +91,7 @@ fun DiscoverScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF2F2F7)) // System Grouped Background
+            .background(MaterialTheme.colorScheme.background)
     ) {
         // Custom Header
         Box(
@@ -211,7 +217,10 @@ fun DiscoverScreen(
                                 Spacer(Modifier.weight(1f))
                                 ActionButtons(
                                     onPass = { viewModel.nextProfile() },
-                                    onLike = { viewModel.nextProfile() },
+                                    onLike = {
+                                        matchedUser = currentUser
+                                        showMatchDialog = true
+                                    },
                                     onMessage = {
                                         viewModel.startChatWithUser(currentUser.id) { threadId ->
                                             onNavigateToChat(threadId)
@@ -273,48 +282,74 @@ fun DiscoverScreen(
         }
 
         if (segment == DiscoverSegment.PROFILS) {
-            var cityExpanded by remember { mutableStateOf(false) }
-            var skillExpanded by remember { mutableStateOf(false) }
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    .padding(vertical = 8.dp)
             ) {
-                ExposedDropdownMenuBox(expanded = cityExpanded, onExpandedChange = { cityExpanded = !cityExpanded }) {
-                    OutlinedTextField(
-                        value = selectedCity ?: "Toutes les villes",
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Ville") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = cityExpanded) },
-                        modifier = Modifier
-                            .menuAnchor()
-                            .weight(1f)
-                    )
-                    ExposedDropdownMenu(expanded = cityExpanded, onDismissRequest = { cityExpanded = false }) {
-                        DropdownMenuItem(text = { Text("Toutes") }, onClick = { viewModel.setCityFilter(null); cityExpanded = false })
-                        cities.forEach { city ->
-                            DropdownMenuItem(text = { Text(city) }, onClick = { viewModel.setCityFilter(city); cityExpanded = false })
-                        }
+                // Cities Filter
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    item {
+                        FilterChip(
+                            selected = selectedCity == null,
+                            onClick = { viewModel.setCityFilter(null) },
+                            label = { Text("Toutes villes") },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = SkillCoral.copy(alpha = 0.2f),
+                                selectedLabelColor = SkillCoral
+                            )
+                        )
+                    }
+                    items(cities) { city ->
+                        FilterChip(
+                            selected = selectedCity == city,
+                            onClick = { viewModel.setCityFilter(if (selectedCity == city) null else city) },
+                            label = { Text(city) },
+                            leadingIcon = if (selectedCity == city) {
+                                { Icon(Icons.Default.Done, null, modifier = Modifier.size(16.dp)) }
+                            } else null,
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = SkillCoral.copy(alpha = 0.2f),
+                                selectedLabelColor = SkillCoral
+                            )
+                        )
                     }
                 }
-                ExposedDropdownMenuBox(expanded = skillExpanded, onExpandedChange = { skillExpanded = !skillExpanded }) {
-                    OutlinedTextField(
-                        value = selectedSkill ?: "Toutes les compétences",
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Compétence") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = skillExpanded) },
-                        modifier = Modifier
-                            .menuAnchor()
-                            .weight(1f)
-                    )
-                    ExposedDropdownMenu(expanded = skillExpanded, onDismissRequest = { skillExpanded = false }) {
-                        DropdownMenuItem(text = { Text("Toutes") }, onClick = { viewModel.setSkillFilter(null); skillExpanded = false })
-                        skills.forEach { skill ->
-                            DropdownMenuItem(text = { Text(skill) }, onClick = { viewModel.setSkillFilter(skill); skillExpanded = false })
-                        }
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Skills Filter
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    item {
+                        FilterChip(
+                            selected = selectedSkill == null,
+                            onClick = { viewModel.setSkillFilter(null) },
+                            label = { Text("Toutes compétences") },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = SkillTurquoise.copy(alpha = 0.2f),
+                                selectedLabelColor = SkillTurquoise
+                            )
+                        )
+                    }
+                    items(skills) { skill ->
+                        FilterChip(
+                            selected = selectedSkill == skill,
+                            onClick = { viewModel.setSkillFilter(if (selectedSkill == skill) null else skill) },
+                            label = { Text(skill) },
+                            leadingIcon = if (selectedSkill == skill) {
+                                { Icon(Icons.Default.Done, null, modifier = Modifier.size(16.dp)) }
+                            } else null,
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = SkillTurquoise.copy(alpha = 0.2f),
+                                selectedLabelColor = SkillTurquoise
+                            )
+                        )
                     }
                 }
             }
@@ -338,7 +373,56 @@ fun DiscoverScreen(
                 }
             )
         }
+        
+        if (showMatchDialog && matchedUser != null) {
+            MatchDialog(
+                user = matchedUser!!,
+                onDismiss = {
+                    showMatchDialog = false
+                    viewModel.nextProfile()
+                },
+                onMessage = {
+                    showMatchDialog = false
+                    viewModel.startChatWithUser(matchedUser!!.id) { threadId ->
+                        onNavigateToChat(threadId)
+                    }
+                    viewModel.nextProfile()
+                }
+            )
+        }
     }
+}
+
+@Composable
+fun MatchDialog(user: User, onDismiss: () -> Unit, onMessage: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("C'est un Match !", fontWeight = FontWeight.Bold, color = SkillCoral) },
+        text = {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                Text("Vous avez matché avec ${user.username} !")
+                Spacer(Modifier.height(16.dp))
+                if (user.avatarUrl?.isNotBlank() == true) {
+                    AsyncImage(
+                        model = user.avatarUrl,
+                        contentDescription = null,
+                        modifier = Modifier.size(100.dp).clip(CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = onMessage, colors = ButtonDefaults.buttonColors(containerColor = SkillTurquoise)) {
+                Text("Envoyer un message")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Continuer")
+            }
+        }
+    )
 }
 
 @Composable
@@ -638,7 +722,7 @@ fun ActionButtons(onPass: () -> Unit, onLike: () -> Unit, onMessage: () -> Unit)
 fun AnnonceDiscoverCard(annonce: Annonce) {
     Card(
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -646,12 +730,12 @@ fun AnnonceDiscoverCard(annonce: Annonce) {
              Box(Modifier.height(150.dp).fillMaxWidth().background(Color.LightGray)) // Placeholder img
              Column(Modifier.padding(16.dp)) {
                  Text(annonce.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                 Text(annonce.description, color = Color.Gray, maxLines = 2, style = MaterialTheme.typography.bodyMedium)
+                 Text(annonce.description, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, style = MaterialTheme.typography.bodyMedium)
                  Spacer(Modifier.height(4.dp))
                  Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                      annonce.city?.let { city ->
-                         Surface(color = Color.Gray.copy(alpha = 0.1f), shape = RoundedCornerShape(12.dp)) {
-                             Text(city, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), color = Color.Gray, style = MaterialTheme.typography.labelSmall)
+                         Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(12.dp)) {
+                             Text(city, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
                          }
                      }
                      annonce.category?.let { category ->
@@ -669,7 +753,7 @@ fun AnnonceDiscoverCard(annonce: Annonce) {
 fun PromoDiscoverCard(promo: Promo) {
     Card(
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -684,7 +768,7 @@ fun PromoDiscoverCard(promo: Promo) {
                  }
                 if (promo.validUntil.isNotEmpty()) {
                     Spacer(Modifier.height(6.dp))
-                    Text("Valide jusqu'au ${promo.validUntil}", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                    Text("Valide jusqu'au ${promo.validUntil}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
              }
         }

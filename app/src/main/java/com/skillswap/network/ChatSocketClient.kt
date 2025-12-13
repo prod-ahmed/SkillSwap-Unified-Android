@@ -119,7 +119,8 @@ class ChatSocketClient(
             .setReconnectionDelay(1000)
             .setReconnectionDelayMax(8000)
             .build()
-        chatSocket = runCatching { IO.socket(baseUrl, opts) }.getOrNull()
+        val chatUrl = if (baseUrl.endsWith("/")) "${baseUrl}chat" else "$baseUrl/chat"
+        chatSocket = runCatching { IO.socket(chatUrl, opts) }.getOrNull()
         chatSocket?.on(Socket.EVENT_CONNECT) { _connection.tryEmit(true) }
         chatSocket?.on(Socket.EVENT_DISCONNECT) { _connection.tryEmit(false) }
         chatSocket?.on(Socket.EVENT_CONNECT_ERROR) { _connection.tryEmit(false) }

@@ -11,6 +11,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import com.google.gson.Gson
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.File
 
 class ProfileViewModel(application: Application) : AndroidViewModel(application) {
     private val sharedPreferences = application.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
@@ -135,6 +139,60 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
             } finally {
                 _isSaving.value = false
             }
+        }
+    }
+
+    fun uploadProfileImage(file: File) {
+        val token = sharedPreferences.getString("auth_token", null)
+        if (token == null) {
+            _errorMessage.value = "Non authentifié"
+            return
+        }
+
+        _isSaving.value = true
+        _errorMessage.value = null
+
+        viewModelScope.launch {
+            try {
+                if (!isImageSafe(token, file)) {
+                    return@launch
+                }
+
+                val requestFile = file.readBytes().toRequestBody("image/*".toMediaType())
+                val body = MultipartBody.Part.createFormData("image", file.name, requestFile)
+
+                val updatedUser = com.skillswap.network.NetworkService.api.uploadProfileImage(
+                    "Bearer $token",
+                    body
+                )
+                _user.value = updatedUser
+                _successMessage.value = "Photo de profil mise à jour"
+            } catch (e: Exception) {
+                _errorMessage.value = e.message ?: "Erreur lors de l'upload de l'image"
+            } finally {
+                _isSaving.value = false
+            }
+        }
+    }
+
+    private suspend fun isImageSafe(token: String, file: File): Boolean {
+        return try {
+            val bytes = file.readBytes()
+            val base64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+            val result = com.skillswap.network.NetworkService.api.checkImage(
+                "Bearer $token",
+                mapOf("imageBase64" to base64)
+            )
+            if (!result.safe) {
+                val reason = result.categories?.joinToString(", ")
+                    ?: result.reasons?.joinToString(", ")
+                    ?: "Image refusée par la modération"
+                _errorMessage.value = reason
+            }
+            result.safe
+        } catch (e: Exception) {
+            _errorMessage.value = "Vérification image impossible: ${e.message}"
+            false
         }
     }
 

@@ -21,6 +21,15 @@ import com.skillswap.viewmodel.ProfileViewModel
 import com.skillswap.ui.theme.OrangePrimary
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.text.style.TextAlign
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
+import coil.compose.AsyncImage
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import java.io.File
+import java.io.FileOutputStream
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -70,12 +79,33 @@ fun ProfileEditScreen(
         user?.let {
             username != it.username ||
             location != (it.location?.city ?: "") ||
-            teachSkills != (it.skillsTeach ?: emptyList()) ||
-            learnSkills != (it.skillsLearn ?: emptyList())
+            !teachSkills.containsAll(it.skillsTeach ?: emptyList()) || 
+            !(it.skillsTeach ?: emptyList()).containsAll(teachSkills) ||
+            !learnSkills.containsAll(it.skillsLearn ?: emptyList()) ||
+            !(it.skillsLearn ?: emptyList()).containsAll(learnSkills)
         } ?: false
     }
 
     val canSave = !username.isBlank() && hasChanges && !isSaving
+
+    val context = LocalContext.current
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let {
+            try {
+                val inputStream = context.contentResolver.openInputStream(it)
+                val file = File(context.cacheDir, "profile_image.jpg")
+                val outputStream = FileOutputStream(file)
+                inputStream?.copyTo(outputStream)
+                inputStream?.close()
+                outputStream.close()
+                viewModel.uploadProfileImage(file)
+            } catch (e: Exception) {
+                // Handle error
+            }
+        }
+    }
 
     // Add Teach Skill Dialog
     if (showTeachSkillDialog) {
@@ -207,6 +237,41 @@ fun ProfileEditScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                // Profile Image
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(100.dp)
+                            .clickable { launcher.launch("image/*") }
+                    ) {
+                        AsyncImage(
+                            model = user?.image ?: "https://via.placeholder.com/150",
+                            contentDescription = "Profile Image",
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(CircleShape)
+                                .background(Color.LightGray),
+                            contentScale = ContentScale.Crop
+                        )
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .background(OrangePrimary, CircleShape)
+                                .padding(4.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Edit,
+                                contentDescription = "Edit Image",
+                                tint = Color.White,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                }
+
                 // Personal Information Section
                 Text(
                     "Informations personnelles",
@@ -219,7 +284,7 @@ fun ProfileEditScreen(
                     value = username,
                     onValueChange = { username = it },
                     label = { Text("Nom d'utilisateur") },
-                    leadingIcon = { Icon(Icons.Default.Person, null) },
+                    leadingIcon = { Icon(Icons.Default.Person, contentDescription = "Icône utilisateur") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -228,7 +293,7 @@ fun ProfileEditScreen(
                     value = email,
                     onValueChange = { },
                     label = { Text("Email") },
-                    leadingIcon = { Icon(Icons.Default.Email, null) },
+                    leadingIcon = { Icon(Icons.Default.Email, contentDescription = "Icône email") },
                     modifier = Modifier.fillMaxWidth(),
                     enabled = false,
                     singleLine = true,
@@ -258,7 +323,7 @@ fun ProfileEditScreen(
                             showCitySuggestions = it.isNotEmpty()
                         },
                         label = { Text("Ville") },
-                        leadingIcon = { Icon(Icons.Default.LocationOn, null) },
+                        leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = "Icône localisation") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )

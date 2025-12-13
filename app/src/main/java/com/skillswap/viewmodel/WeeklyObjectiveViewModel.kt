@@ -158,7 +158,7 @@ class WeeklyObjectiveViewModel(application: Application) : AndroidViewModel(appl
     private fun notifyWidget() {
         val manager = AppWidgetManager.getInstance(appContext)
         val ids = manager.getAppWidgetIds(ComponentName(appContext, WeeklyObjectiveWidgetProvider::class.java))
-        manager.notifyAppWidgetViewDataChanged(ids, android.R.id.text1)
+        // Trigger update directly
         WeeklyObjectiveWidgetProvider.updateAll(appContext, manager, ids, prefs)
     }
 }

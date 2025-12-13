@@ -7,6 +7,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -15,6 +16,11 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.skillswap.ui.theme.OrangePrimary
 import com.skillswap.viewmodel.PromosViewModel
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,7 +34,21 @@ fun CreatePromoScreen(
     var discountPercent by remember { mutableStateOf("") }
     var validUntil by remember { mutableStateOf("") }
     var code by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
+    // var isLoading by remember { mutableStateOf(false) } // Use ViewModel state
+    
+    val isLoading by viewModel.isLoading.collectAsState()
+    val generatingImage by viewModel.generatingImage.collectAsState()
+    val generatedImageUrl by viewModel.generatedImageUrl.collectAsState()
+    val success by viewModel.success.collectAsState()
+    val scope = rememberCoroutineScope()
+    var prompt by remember { mutableStateOf("") }
+
+    LaunchedEffect(success) {
+        if (success != null) {
+            onPromoCreated()
+            viewModel.clearMessages()
+        }
+    }
     
     Scaffold(
         topBar = {
@@ -144,6 +164,65 @@ fun CreatePromoScreen(
                                 Icon(Icons.Default.DateRange, "Date")
                             }
                         )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        Text(
+                            "Image (Génération IA)",
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 14.sp
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = prompt,
+                                onValueChange = { prompt = it },
+                                placeholder = { Text("Décrivez l'image...") },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true
+                            )
+                            
+                            Button(
+                                onClick = {
+                                    if (prompt.isNotBlank()) {
+                                        scope.launch {
+                                            viewModel.generatePromoImage(prompt)
+                                        }
+                                    }
+                                },
+                                enabled = !generatingImage && prompt.isNotBlank(),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6A1B9A)),
+                                contentPadding = PaddingValues(horizontal = 12.dp)
+                            ) {
+                                if (generatingImage) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(20.dp),
+                                        color = Color.White,
+                                        strokeWidth = 2.dp
+                                    )
+                                } else {
+                                    Icon(Icons.Default.AutoAwesome, contentDescription = null)
+                                }
+                            }
+                        }
+                        
+                        if (generatedImageUrl != null) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            AsyncImage(
+                                model = generatedImageUrl,
+                                contentDescription = "Image générée",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(200.dp)
+                                    .clip(RoundedCornerShape(8.dp)),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
                     }
                 }
             }
@@ -156,14 +235,20 @@ fun CreatePromoScreen(
             ) {
                 Button(
                     onClick = {
-                        isLoading = true
-                        onPromoCreated()
+                        viewModel.createPromo(
+                            title = title,
+                            description = description,
+                            discount = discountPercent.toIntOrNull() ?: 0,
+                            validTo = validUntil,
+                            promoCode = code.ifBlank { null },
+                            imageUrl = generatedImageUrl
+                        )
                     },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary),
-                    enabled = title.isNotBlank() && description.isNotBlank()
+                    enabled = title.isNotBlank() && description.isNotBlank() && !isLoading
                 ) {
                     if (isLoading) {
                         CircularProgressIndicator(

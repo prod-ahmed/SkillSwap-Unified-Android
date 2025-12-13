@@ -4,6 +4,8 @@ import android.app.Application
 import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount
+import com.skillswap.auth.GoogleSignInHelper
 import com.skillswap.model.ForgotPasswordRequest
 import com.skillswap.network.NetworkService
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,6 +24,9 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     private val _fullName = MutableStateFlow("")
     val fullName: StateFlow<String> = _fullName.asStateFlow()
 
+    private val _referralCode = MutableStateFlow("")
+    val referralCode: StateFlow<String> = _referralCode.asStateFlow()
+
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
     
@@ -29,10 +34,12 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     private val sharedPreferences = application.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
+    val googleSignInHelper = GoogleSignInHelper(application.applicationContext)
 
     fun onEmailChange(newValue: String) { _email.value = newValue }
     fun onPasswordChange(newValue: String) { _password.value = newValue }
     fun onFullNameChange(newValue: String) { _fullName.value = newValue }
+    fun onReferralCodeChange(newValue: String) { _referralCode.value = newValue }
 
     fun login(onSuccess: () -> Unit) {
         viewModelScope.launch {
@@ -79,12 +86,16 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             _isLoading.value = true
             _errorMessage.value = null
             try {
-                val payload: Map<String, String> = mapOf(
+                val payload: MutableMap<String, String> = mutableMapOf(
                     "username" to _fullName.value,
                     "email" to _email.value,
                     "password" to _password.value,
                     "role" to "client"
                 )
+                if (_referralCode.value.isNotBlank()) {
+                    payload["referralCode"] = _referralCode.value
+                }
+                
                 val response = NetworkService.api.register(payload)
                 val token = response.accessToken
                 if (response.user != null && token != null) {
@@ -95,6 +106,49 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                 }
             } catch (e: Exception) {
                 _errorMessage.value = "Register failed: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun handleGoogleSignIn(account: GoogleSignInAccount?, onSuccess: () -> Unit) {
+        if (account == null) {
+            _errorMessage.value = "Google Sign-In failed"
+            return
+        }
+        
+        viewModelScope.launch {
+            _isLoading.value = true
+            _errorMessage.value = null
+            try {
+                // Send Google ID token to backend for verification and session creation
+                val payload = mapOf(
+                    "idToken" to (account.idToken ?: ""),
+                    "email" to (account.email ?: ""),
+                    "name" to (account.displayName ?: "")
+                )
+                
+                // TODO: Backend needs a /auth/google endpoint
+                // For now, use standard registration with Google email
+                val response = NetworkService.api.register(
+                    mapOf(
+                        "username" to (account.displayName ?: account.email ?: "User"),
+                        "email" to (account.email ?: ""),
+                        "password" to "GOOGLE_AUTH_${account.id}",
+                        "role" to "client"
+                    )
+                )
+                
+                val token = response.accessToken
+                if (response.user != null && token != null) {
+                    saveSession(token, response.user)
+                    onSuccess()
+                } else {
+                    _errorMessage.value = response.message ?: "Google Sign-In failed"
+                }
+            } catch (e: Exception) {
+                _errorMessage.value = "Google auth error: ${e.message}"
             } finally {
                 _isLoading.value = false
             }

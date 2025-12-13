@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.CardGiftcard
 import androidx.compose.material.icons.automirrored.filled.Label
@@ -154,6 +155,9 @@ fun ProfileScreen(
                 ProfileActionButton("target", "Objectif Hebdo", Color(0xFF00A8A8)) {
                     navController.navigate("weekly_objective")
                 }
+                ProfileActionButton("trophy", "Récompenses", Color(0xFFFFD700)) {
+                    // TODO: Navigate to rewards
+                }
                 ProfileActionButton("sparkles", "Sessions pour vous", Color.Magenta) {}
                 ProfileActionButton("gift.fill", "Parrainer un ami", OrangePrimary) {
                     navController.navigate("referral")
@@ -222,8 +226,17 @@ fun ProfileScreen(
             
              Spacer(Modifier.height(24.dp))
              
+             // Share Profile Button
              Button(
-                onClick = { /* Share */ },
+                onClick = { 
+                    val shareIntent = android.content.Intent().apply {
+                        action = android.content.Intent.ACTION_SEND
+                        putExtra(android.content.Intent.EXTRA_TEXT, 
+                            "Rejoignez-moi sur SkillSwap ! Utilisateur: ${user?.username ?: ""}")
+                        type = "text/plain"
+                    }
+                    context.startActivity(android.content.Intent.createChooser(shareIntent, "Partager mon profil"))
+                },
                 modifier = Modifier.fillMaxWidth().height(50.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary)
              ) {
@@ -315,6 +328,7 @@ fun ProfileActionButton(
                 // Simplified icon handling
                 val imageVector = when(icon) {
                     "target" -> androidx.compose.material.icons.Icons.Default.Star
+                    "trophy" -> androidx.compose.material.icons.Icons.Default.EmojiEvents
                     "sparkles" -> androidx.compose.material.icons.Icons.Default.Face
                     "gift.fill" -> androidx.compose.material.icons.Icons.Default.CardGiftcard
                     "tag.fill" -> Icons.AutoMirrored.Filled.Label

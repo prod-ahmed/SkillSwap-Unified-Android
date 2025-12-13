@@ -1,5 +1,7 @@
 package com.skillswap.ui.auth
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -24,6 +26,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.common.api.ApiException
 import com.skillswap.viewmodel.AuthViewModel
 
 @Composable
@@ -65,6 +69,19 @@ fun LoginView(viewModel: AuthViewModel, onSuccess: () -> Unit) {
     var isPasswordVisible by remember { mutableStateOf(false) }
     var forgotMessage by remember { mutableStateOf<String?>(null) }
     var showForgot by remember { mutableStateOf(false) }
+
+    // Google Sign-In launcher
+    val googleSignInLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+        try {
+            val account = task.getResult(ApiException::class.java)
+            viewModel.handleGoogleSignIn(account, onSuccess)
+        } catch (e: ApiException) {
+            viewModel.handleGoogleSignIn(null, onSuccess)
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -119,6 +136,25 @@ fun LoginView(viewModel: AuthViewModel, onSuccess: () -> Unit) {
             Text("Mot de passe oublié ?")
         }
 
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+        // Google Sign-In Button
+        OutlinedButton(
+            onClick = {
+                val signInIntent = viewModel.googleSignInHelper.getSignInIntent()
+                googleSignInLauncher.launch(signInIntent)
+            },
+            modifier = Modifier.fillMaxWidth().height(50.dp),
+            enabled = !isLoading
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Se connecter avec Google")
+            }
+        }
+
         if (forgotMessage != null) {
             Text(forgotMessage!!, color = Color(0xFF1B5E20), style = MaterialTheme.typography.bodySmall)
         }
@@ -145,6 +181,7 @@ fun RegisterView(viewModel: AuthViewModel, onSuccess: () -> Unit) {
     val fullName by viewModel.fullName.collectAsState()
     val email by viewModel.email.collectAsState()
     val password by viewModel.password.collectAsState()
+    val referralCode by viewModel.referralCode.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
 
@@ -182,6 +219,14 @@ fun RegisterView(viewModel: AuthViewModel, onSuccess: () -> Unit) {
             label = { Text("Mot de passe") },
             leadingIcon = { Icon(Icons.Default.Lock, contentDescription = "Mot de passe") },
             visualTransformation = PasswordVisualTransformation(),
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        OutlinedTextField(
+            value = referralCode,
+            onValueChange = { viewModel.onReferralCodeChange(it) },
+            label = { Text("Code de parrainage (optionnel)") },
+            leadingIcon = { Icon(Icons.Default.Person, contentDescription = "Code de parrainage") },
             modifier = Modifier.fillMaxWidth()
         )
 

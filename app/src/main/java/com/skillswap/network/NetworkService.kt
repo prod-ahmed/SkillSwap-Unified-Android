@@ -40,6 +40,13 @@ interface SkillSwapApi {
         @Body body: Map<String, @JvmSuppressWildcards Any>
     ): User
 
+    @Multipart
+    @PATCH("/users/me/image")
+    suspend fun uploadProfileImage(
+        @Header("Authorization") token: String,
+        @Part image: MultipartBody.Part
+    ): User
+
     @GET("/sessions/me")
     suspend fun getSessions(@Header("Authorization") token: String): List<Session>
     
@@ -325,7 +332,7 @@ interface SkillSwapApi {
 object NetworkService {
     private val BASE_URL = BuildConfig.API_BASE_URL.let { value ->
         when {
-            value.isBlank() -> "https://p8hkmhq3-3000.euw.devtunnels.ms/"
+            value.isBlank() -> "http://10.0.2.2:3000/" // Emulator localhost
             value.endsWith("/") -> value
             else -> "$value/"
         }

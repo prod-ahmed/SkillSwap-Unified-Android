@@ -102,6 +102,11 @@ fun ProfileSettingsScreen(
                     checked = darkMode,
                     onCheckedChange = { darkMode = it }
                 )
+                SettingsItem(
+                    icon = Icons.Default.Language,
+                    title = "Langue",
+                    onClick = { /* Show language picker */ }
+                )
             }
             
             // Privacy Section

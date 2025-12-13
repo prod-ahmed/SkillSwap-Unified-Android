@@ -7,9 +7,40 @@ import android.content.Context
 import android.widget.RemoteViews
 import com.skillswap.R
 
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineScope
+import com.skillswap.network.NetworkService
+
 class WeeklyObjectiveWidgetProvider : AppWidgetProvider() {
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
+        // First update with cached data
         updateAll(context, appWidgetManager, appWidgetIds, context.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE))
+        
+        // Fetch fresh data
+        val prefs = context.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
+        val token = prefs.getString("auth_token", null)
+        
+        if (token != null) {
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    val objective = NetworkService.api.getCurrentWeeklyObjective("Bearer $token")
+                    val progress = if (objective.targetHours > 0) {
+                        ((objective.completedHours / objective.targetHours) * 100).toInt()
+                    } else 0
+                    
+                    prefs.edit()
+                        .putString("widget_objective_title", objective.title)
+                        .putInt("widget_objective_progress", progress)
+                        .apply()
+                    
+                    // Update widget again
+                    updateAll(context, appWidgetManager, appWidgetIds, prefs)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
     }
 
     companion object {

@@ -38,9 +38,17 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.skillswap.viewmodel.ReferralViewModel
 
+import androidx.compose.material.icons.filled.CardGiftcard
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.ButtonDefaults
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ReferralScreen(viewModel: ReferralViewModel = viewModel(), onBack: (() -> Unit)? = null) {
+fun ReferralScreen(
+    viewModel: ReferralViewModel = viewModel(),
+    onBack: (() -> Unit)? = null,
+    onNavigateToCodeGeneration: () -> Unit = {}
+) {
     LaunchedEffect(Unit) { viewModel.loadReferrals() }
     val state by viewModel.state.collectAsState()
     val error by viewModel.error.collectAsState()
@@ -84,6 +92,17 @@ fun ReferralScreen(viewModel: ReferralViewModel = viewModel(), onBack: (() -> Un
             ) {
                 Text("Appliquer le code")
             }
+
+            Button(
+                onClick = onNavigateToCodeGeneration,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6A1B9A))
+            ) {
+                Icon(Icons.Default.CardGiftcard, null)
+                Spacer(Modifier.width(8.dp))
+                Text("Mon Code & Partage")
+            }
+
             if (loading) {
                 CircularProgressIndicator()
             }

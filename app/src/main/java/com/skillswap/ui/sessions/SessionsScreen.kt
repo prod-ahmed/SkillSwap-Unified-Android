@@ -386,7 +386,7 @@ fun FilterTab(text: String, index: Int, selectedIndex: Int, onClick: () -> Unit)
     ) {
         Text(
             text = text,
-            color = if (isSelected) Color.White else Color.Gray,
+            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
         )
@@ -409,7 +409,7 @@ fun SessionCard(
     Card(
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -435,14 +435,14 @@ fun SessionCard(
                 Spacer(Modifier.width(12.dp))
                 Column {
                     Text(session.teacher.username, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Text(session.title, style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+                    Text(session.title, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             androidx.compose.material3.HorizontalDivider(Modifier.padding(vertical = 12.dp))
             Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                 Column {
                     Text(formattedDate, style = MaterialTheme.typography.bodyMedium)
-                    Text(formattedTime, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                    Text(formattedTime, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text("${session.duration} min", style = MaterialTheme.typography.bodyMedium)
@@ -455,10 +455,10 @@ fun SessionCard(
                 Text(
                     "Proposé: ${req.proposedDate ?: ""} ${req.proposedTime ?: ""}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 req.note?.let {
-                    Text(it, style = MaterialTheme.typography.bodySmall, color = Color.DarkGray)
+                    Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface)
                 }
                 if (req.isActive == true) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -531,7 +531,7 @@ private fun StatusChip(status: String) {
         "upcoming" -> "À venir" to Color(0xFF12947D)
         "completed" -> "Terminée" to Color(0xFF34C759)
         "reportee", "postponed" -> "Reportée" to Color(0xFFF28F24)
-        else -> status.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() } to Color.Gray
+        else -> status.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() } to MaterialTheme.colorScheme.onSurfaceVariant
     }
     AssistChip(
         onClick = {},

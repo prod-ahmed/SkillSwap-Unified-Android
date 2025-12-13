@@ -26,6 +26,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.skillswap.ui.auth.AuthScreen
+import com.skillswap.ui.call.VideoCallScreen
 import com.skillswap.ui.chat.ChatScreen
 import com.skillswap.ui.chat.ConversationsScreen
 import com.skillswap.ui.profile.ProfileScreen
@@ -37,6 +38,7 @@ import com.skillswap.ui.sessions.SessionsScreen
 import com.skillswap.ui.theme.OrangePrimary
 import com.skillswap.ui.theme.SkillSwapTheme
 import com.skillswap.ui.profile.ReferralScreen
+import com.skillswap.ui.profile.ReferralCodeGenerationScreen
 import com.skillswap.ui.auth.OnboardingScreen
 import com.skillswap.ui.auth.ProfileSetupScreen
 import com.skillswap.ui.progress.WeeklyObjectiveScreen
@@ -78,6 +80,7 @@ sealed class Screen(val route: String, val title: String, val icon: String) {
     }
     object MyPromos : Screen("my_promos", "Mes Promos", "")
     object MyAnnonces : Screen("my_annonces", "Mes Annonces", "")
+    object ReferralCodeGeneration : Screen("referral_code_generation", "Code Parrainage", "")
 }
 
 @Composable
@@ -189,7 +192,16 @@ fun SkillSwapApp() {
                         com.skillswap.ui.quizzes.QuizzesScreen()
                     }
                     composable("referral") {
-                        ReferralScreen()
+                        ReferralScreen(
+                            onNavigateToCodeGeneration = {
+                                navController.navigate(Screen.ReferralCodeGeneration.route)
+                            }
+                        )
+                    }
+                    composable(Screen.ReferralCodeGeneration.route) {
+                        ReferralCodeGenerationScreen(
+                            onBack = { navController.popBackStack() }
+                        )
                     }
                     composable(Screen.Notifications.route) {
                         com.skillswap.ui.notifications.NotificationsScreen(
@@ -296,19 +308,10 @@ fun SkillSwapApp() {
 
                 val callState = callViewModel.state.collectAsState().value
                 if (callState.isInCall || callState.isRinging || callState.ended) {
-                        com.skillswap.ui.chat.CallOverlay(
-                        partner = callState.partnerName,
-                        isVideo = callState.isVideo,
-                        muted = callState.muted,
-                        speakerOn = callState.speakerOn,
-                        isRinging = callState.isRinging,
-                        ended = callState.ended,
-                        connectionStatus = callState.connectionStatus,
-                        localSdp = callState.localSdp,
-                        iceCandidates = callState.iceCandidates,
+                    VideoCallScreen(
+                        callState = callState,
                         localVideoTrack = callViewModel.localVideoTrack.collectAsState().value,
                         remoteVideoTrack = callViewModel.remoteVideoTrack.collectAsState().value,
-                        callDurationSec = callState.callDurationSec,
                         eglBaseContext = callViewModel.eglBaseContext,
                         onHangup = { callViewModel.hangUp() },
                         onAccept = { callViewModel.acceptIncomingCall() },
@@ -317,7 +320,6 @@ fun SkillSwapApp() {
                         onToggleSpeaker = { callViewModel.toggleSpeaker() },
                         onToggleVideo = { callViewModel.toggleVideo() },
                         onSwitchCamera = { callViewModel.switchCamera() },
-                        videoEnabled = callState.videoEnabled,
                         onDismissEnded = { callViewModel.clearEnded() }
                     )
                 }

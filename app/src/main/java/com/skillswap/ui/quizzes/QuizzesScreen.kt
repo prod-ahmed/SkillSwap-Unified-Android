@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -21,8 +22,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.skillswap.data.QuizQuestion
+import com.skillswap.data.QuizResult
 import com.skillswap.ui.theme.OrangePrimary
 import com.skillswap.viewmodel.QuizViewModel
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,6 +44,7 @@ fun QuizzesScreen(
     val unlockedLevel by viewModel.unlockedLevel.collectAsState()
     val subjects by viewModel.subjects.collectAsState()
     val selectedLevel by viewModel.selectedLevel.collectAsState()
+    val quizHistory by viewModel.quizHistory.collectAsState()
     
     var selectedSubject by remember { mutableStateOf("") }
     var showRoadmap by remember { mutableStateOf(false) }
@@ -60,13 +66,31 @@ fun QuizzesScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            if (quizQuestions.isEmpty() && !isGenerating) {
+            if (showHistory) {
+                HistoryScreen(
+                    history = quizHistory,
+                    onBack = { showHistory = false }
+                )
+            } else if (quizQuestions.isEmpty() && !isGenerating) {
                 // Quiz setup screen
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            TextButton(onClick = { showHistory = true }) {
+                                Icon(Icons.Default.History, null)
+                                Spacer(Modifier.width(4.dp))
+                                Text("Historique")
+                            }
+                        }
+                    }
+
                     item {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -200,6 +224,76 @@ fun QuizzesScreen(
                     onAnswerSelected = { index -> viewModel.selectAnswer(index) },
                     onNext = { viewModel.nextQuestion() },
                     onSubmit = { viewModel.submitQuiz(selectedSubject, selectedLevel ?: 1) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun HistoryScreen(
+    history: List<QuizResult>,
+    onBack: () -> Unit
+) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Header with back button
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(Icons.Default.ArrowBack, contentDescription = "Retour")
+            }
+            Text(
+                "Historique des Quiz",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        
+        if (history.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("Aucun historique disponible", color = Color.Gray)
+            }
+        } else {
+            LazyColumn(
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(history) { result ->
+                    HistoryItem(result)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun HistoryItem(result: QuizResult) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column {
+                Text(result.subject, fontWeight = FontWeight.Bold)
+                Text("Niveau ${result.level}", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    "${result.score}/${result.totalQuestions}",
+                    fontWeight = FontWeight.Bold,
+                    color = if (result.score >= result.totalQuestions / 2) Color(0xFF4CAF50) else Color(0xFFE53935)
+                )
+                Text(
+                    SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(result.date)),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
                 )
             }
         }
