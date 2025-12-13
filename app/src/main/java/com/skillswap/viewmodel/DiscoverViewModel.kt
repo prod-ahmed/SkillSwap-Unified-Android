@@ -45,6 +45,14 @@ class DiscoverViewModel(application: Application) : AndroidViewModel(application
     val successMessage: StateFlow<String?> = _successMessage.asStateFlow()
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+    private val _cities = MutableStateFlow<List<String>>(emptyList())
+    val cities: StateFlow<List<String>> = _cities.asStateFlow()
+    private val _skills = MutableStateFlow<List<String>>(emptyList())
+    val skills: StateFlow<List<String>> = _skills.asStateFlow()
+    private val _cityFilter = MutableStateFlow<String?>(null)
+    val cityFilter: StateFlow<String?> = _cityFilter.asStateFlow()
+    private val _skillFilter = MutableStateFlow<String?>(null)
+    val skillFilter: StateFlow<String?> = _skillFilter.asStateFlow()
 
     fun setSegment(newSegment: DiscoverSegment) {
         _segment.value = newSegment
@@ -69,10 +77,20 @@ class DiscoverViewModel(application: Application) : AndroidViewModel(application
                     _errorMessage.value = "Session expirée - veuillez vous reconnecter"
                     return@launch
                 }
+                runCatching {
+                    val filters = NetworkService.api.getLocationFilters(authHeader)
+                    _cities.value = filters["cities"] ?: emptyList()
+                    _skills.value = filters["skills"] ?: emptyList()
+                }
 
                 when (_segment.value) {
                     DiscoverSegment.PROFILS -> {
-                        val fetchedUsers = NetworkService.api.getUsers(authHeader).map { withAbsoluteAvatar(it) }
+                        val fetchedUsers = NetworkService.api.getRecommendations(
+                            authHeader,
+                            city = _cityFilter.value,
+                            skill = _skillFilter.value,
+                            limit = 50
+                        ).map { withAbsoluteAvatar(it) }
                         _users.value = fetchedUsers
                         _currentIndex.value = 0
                         if (fetchedUsers.isEmpty()) _errorMessage.value = "Aucun profil trouvé"
@@ -164,6 +182,16 @@ class DiscoverViewModel(application: Application) : AndroidViewModel(application
                 onThreadReady(userId)
             }
         }
+    }
+
+    fun setCityFilter(city: String?) {
+        _cityFilter.value = city
+        loadForCurrentSegment()
+    }
+
+    fun setSkillFilter(skill: String?) {
+        _skillFilter.value = skill
+        loadForCurrentSegment()
     }
 
     private fun withAbsoluteAnnonce(item: Annonce): Annonce {

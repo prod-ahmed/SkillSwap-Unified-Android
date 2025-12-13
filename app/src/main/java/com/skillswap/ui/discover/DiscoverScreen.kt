@@ -32,6 +32,11 @@ import com.skillswap.ui.theme.OrangePrimary
 import com.skillswap.viewmodel.DiscoverSegment
 import com.skillswap.viewmodel.DiscoverViewModel
 import kotlin.math.roundToInt
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.OutlinedTextField
 
 // Colors matching iOS
 val SkillCoral = Color(0xFFFF6B6B)
@@ -39,6 +44,7 @@ val SkillCoralLight = Color(0xFFFF8E8E)
 val SkillTurquoise = Color(0xFF4ECDC4)
 val SkillGold = Color(0xFFFFD166)
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DiscoverScreen(
     onNavigateToChat: (String) -> Unit = {},
@@ -56,6 +62,10 @@ fun DiscoverScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     val successMessage by viewModel.successMessage.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
+    val cities by viewModel.cities.collectAsState()
+    val skills by viewModel.skills.collectAsState()
+    val selectedCity by viewModel.cityFilter.collectAsState()
+    val selectedSkill by viewModel.skillFilter.collectAsState()
 
     var filterText by remember { mutableStateOf("") }
     var showAnnonceDialog by remember { mutableStateOf(false) }
@@ -256,6 +266,54 @@ fun DiscoverScreen(
                                     PromoDiscoverCard(promo)
                                 }
                             }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (segment == DiscoverSegment.PROFILS) {
+            var cityExpanded by remember { mutableStateOf(false) }
+            var skillExpanded by remember { mutableStateOf(false) }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                ExposedDropdownMenuBox(expanded = cityExpanded, onExpandedChange = { cityExpanded = !cityExpanded }) {
+                    OutlinedTextField(
+                        value = selectedCity ?: "Toutes les villes",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Ville") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = cityExpanded) },
+                        modifier = Modifier
+                            .menuAnchor()
+                            .weight(1f)
+                    )
+                    ExposedDropdownMenu(expanded = cityExpanded, onDismissRequest = { cityExpanded = false }) {
+                        DropdownMenuItem(text = { Text("Toutes") }, onClick = { viewModel.setCityFilter(null); cityExpanded = false })
+                        cities.forEach { city ->
+                            DropdownMenuItem(text = { Text(city) }, onClick = { viewModel.setCityFilter(city); cityExpanded = false })
+                        }
+                    }
+                }
+                ExposedDropdownMenuBox(expanded = skillExpanded, onExpandedChange = { skillExpanded = !skillExpanded }) {
+                    OutlinedTextField(
+                        value = selectedSkill ?: "Toutes les compétences",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Compétence") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = skillExpanded) },
+                        modifier = Modifier
+                            .menuAnchor()
+                            .weight(1f)
+                    )
+                    ExposedDropdownMenu(expanded = skillExpanded, onDismissRequest = { skillExpanded = false }) {
+                        DropdownMenuItem(text = { Text("Toutes") }, onClick = { viewModel.setSkillFilter(null); skillExpanded = false })
+                        skills.forEach { skill ->
+                            DropdownMenuItem(text = { Text(skill) }, onClick = { viewModel.setSkillFilter(skill); skillExpanded = false })
                         }
                     }
                 }

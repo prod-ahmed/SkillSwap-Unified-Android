@@ -17,7 +17,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import org.json.JSONObject
 
 class ChatSocketClient(
-    private val tokenProvider: () -> String?
+    private val userIdProvider: () -> String?
 ) {
     private var chatSocket: Socket? = null
     private var callSocket: Socket? = null
@@ -41,6 +41,10 @@ class ChatSocketClient(
     val callRejected = _callRejected.asSharedFlow()
     private val _callBusy = MutableSharedFlow<CallBusyPayload>(replay = 0, extraBufferCapacity = 4, onBufferOverflow = BufferOverflow.DROP_OLDEST)
     val callBusy = _callBusy.asSharedFlow()
+    private val _presence = MutableSharedFlow<Map<String, String>>(replay = 0, extraBufferCapacity = 16, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+    val presence = _presence.asSharedFlow()
+    private val _readReceipts = MutableSharedFlow<Map<String, Any>>(replay = 0, extraBufferCapacity = 16, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+    val readReceipts = _readReceipts.asSharedFlow()
 
     fun connect() {
         if (chatSocket?.connected() == true) return
@@ -100,9 +104,9 @@ class ChatSocketClient(
     }
 
     private fun buildChatSocket() {
-        val token = tokenProvider() ?: return
+        val userId = userIdProvider() ?: return
         val opts = IO.Options.builder()
-            .setQuery("token=$token")
+            .setQuery("userId=$userId")
             .setReconnection(true)
             .setReconnectionAttempts(8)
             .setReconnectionDelay(1000)
@@ -133,12 +137,37 @@ class ChatSocketClient(
                 }
             }
         }
+        chatSocket?.on("chat:presence") { args ->
+            args.firstOrNull()?.let {
+                if (it is JSONObject) {
+                    val userIdPresence = it.optString("userId")
+                    val status = it.optString("status")
+                    _presence.tryEmit(mapOf("userId" to userIdPresence, "status" to status))
+                }
+            }
+        }
+        chatSocket?.on("chat:read") { args ->
+            args.firstOrNull()?.let {
+                if (it is JSONObject) {
+                    val threadId = it.optString("threadId")
+                    val readerId = it.optString("readerId")
+                    val messageIds = it.optJSONArray("messageIds") ?: org.json.JSONArray()
+                    _readReceipts.tryEmit(
+                        mapOf(
+                            "threadId" to threadId,
+                            "readerId" to readerId,
+                            "messageIds" to List(messageIds.length()) { idx -> messageIds.optString(idx) }
+                        )
+                    )
+                }
+            }
+        }
     }
 
     private fun buildCallSocket() {
-        val token = tokenProvider() ?: return
+        val userId = userIdProvider() ?: return
         val opts = IO.Options.builder()
-            .setAuth(mapOf("userId" to token)) // backend expects userId; adapt if token != userId
+            .setAuth(mapOf("userId" to userId)) // backend expects userId
             .setReconnection(true)
             .setReconnectionAttempts(8)
             .setReconnectionDelay(1000)

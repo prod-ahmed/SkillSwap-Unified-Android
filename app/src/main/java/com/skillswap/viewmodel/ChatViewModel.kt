@@ -20,7 +20,7 @@ import kotlinx.coroutines.flow.collectLatest
 
 class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private val sharedPreferences = application.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
-    private val socketClient = ChatSocketClient(tokenProvider = { sharedPreferences.getString("auth_token", null) })
+    private val socketClient = ChatSocketClient(userIdProvider = { sharedPreferences.getString("user_id", null) })
 
     private val _conversations = MutableStateFlow<List<Conversation>>(emptyList())
     val conversations: StateFlow<List<Conversation>> = _conversations.asStateFlow()
@@ -45,6 +45,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     private var pollingJob: Job? = null
     private var socketJob: Job? = null
+    private var presenceJob: Job? = null
     private val _partnerTyping = MutableStateFlow(false)
     val partnerTyping: StateFlow<Boolean> = _partnerTyping.asStateFlow()
     private val _socketConnected = MutableStateFlow(false)
@@ -57,6 +58,39 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun currentUserId(): String? = sharedPreferences.getString("user_id", null)
 
+    private fun ensurePresenceListener() {
+        if (presenceJob != null) return
+        socketClient.connect()
+        presenceJob = viewModelScope.launch {
+            launch {
+                socketClient.connection.collectLatest { connected ->
+                    _socketConnected.value = connected
+                    if (!connected && activeThreadId != null) {
+                        delay(1500)
+                        socketClient.reconnect()
+                        activeThreadId?.let { socketClient.joinThread(it) }
+                    } else if (connected && activeThreadId != null) {
+                        socketClient.joinThread(activeThreadId!!)
+                    }
+                }
+            }
+            launch {
+                socketClient.presence.collectLatest { presenceEvent ->
+                    val userId = presenceEvent["userId"]
+                    val status = presenceEvent["status"]
+                    if (userId != null && status != null) {
+                        _presence.value = _presence.value + (userId to (status == "online"))
+                    }
+                }
+            }
+            launch {
+                socketClient.readReceipts.collectLatest {
+                    // placeholder: messages UI not yet showing read state
+                }
+            }
+        }
+    }
+
     fun loadConversations() {
         val header = authHeader()
         val me = currentUserId()
@@ -65,6 +99,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
 
+        ensurePresenceListener()
         viewModelScope.launch {
             _isLoading.value = true
             try {
@@ -142,39 +177,31 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private fun startSocket(threadId: String) {
         socketJob?.cancel()
         socketClient.reconnect()
-        socketClient.joinThread(threadId)
+        ensurePresenceListener()
         socketJob = viewModelScope.launch {
-            socketClient.messages.collectLatest { msg ->
-                val me = currentUserId() ?: return@collectLatest
-                if (msg.threadId == threadId) {
-                    _messages.value = _messages.value + Message(
-                        id = UUID.randomUUID().toString(),
-                        text = msg.content,
-                        isMe = msg.senderId == me,
-                        time = msg.createdAt
-                    )
-                    // Mark as read for partner messages
-                    if (msg.senderId != me) {
-                        markThreadRead(threadId, null)
+            socketClient.joinThread(threadId)
+            launch {
+                socketClient.messages.collectLatest { msg ->
+                    val me = currentUserId() ?: return@collectLatest
+                    if (msg.threadId == threadId) {
+                        _messages.value = _messages.value + Message(
+                            id = UUID.randomUUID().toString(),
+                            text = msg.content,
+                            isMe = msg.senderId == me,
+                            time = msg.createdAt
+                        )
+                        if (msg.senderId != me) {
+                            markThreadRead(threadId, null)
+                        }
                     }
                 }
             }
-        }
-        viewModelScope.launch {
-            socketClient.typing.collectLatest { typing ->
-                val me = currentUserId() ?: return@collectLatest
-                if (typing.threadId == threadId && typing.userId != me) {
-                    _partnerTyping.value = typing.isTyping
-                }
-            }
-        }
-        viewModelScope.launch {
-            socketClient.connection.collectLatest { connected ->
-                _socketConnected.value = connected
-                if (!connected && activeThreadId != null) {
-                    delay(1500)
-                    socketClient.reconnect()
-                    activeThreadId?.let { socketClient.joinThread(it) }
+            launch {
+                socketClient.typing.collectLatest { typing ->
+                    val me = currentUserId() ?: return@collectLatest
+                    if (typing.threadId == threadId && typing.userId != me) {
+                        _partnerTyping.value = typing.isTyping
+                    }
                 }
             }
         }
@@ -206,6 +233,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         socketClient.disconnect()
         pollingJob?.cancel()
         socketJob?.cancel()
+        presenceJob?.cancel()
     }
 
     private fun loadMockConversations() {

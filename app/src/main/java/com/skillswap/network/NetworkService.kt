@@ -105,6 +105,20 @@ interface SkillSwapApi {
         @Body body: Map<String, List<String>?>
     ): Map<String, Any>
 
+    // Matching / discovery
+    @GET("/matching/recommendations")
+    suspend fun getRecommendations(
+        @Header("Authorization") token: String,
+        @Query("city") city: String? = null,
+        @Query("skill") skill: String? = null,
+        @Query("limit") limit: Int? = null
+    ): List<User>
+
+    @GET("/locations/filters")
+    suspend fun getLocationFilters(
+        @Header("Authorization") token: String
+    ): Map<String, List<String>>
+
     // Progress
     @GET("/progress/dashboard")
     suspend fun getProgressDashboard(@Header("Authorization") token: String): ProgressDashboardResponse

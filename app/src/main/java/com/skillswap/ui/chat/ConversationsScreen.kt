@@ -1,6 +1,7 @@
 package com.skillswap.ui.chat
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -18,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.skillswap.model.Conversation
+import kotlinx.coroutines.flow.StateFlow
 import com.skillswap.ui.theme.OrangePrimary
 import com.skillswap.viewmodel.ChatViewModel
 
@@ -31,6 +33,7 @@ fun ConversationsScreen(
     }
     
     val conversations by viewModel.conversations.collectAsState()
+    val presence by viewModel.presence.collectAsState()
 
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp)
@@ -44,7 +47,10 @@ fun ConversationsScreen(
         
         LazyColumn {
             items(conversations) { conversation ->
-                ConversationItem(conversation) {
+                ConversationItem(
+                    conversation = conversation,
+                    isOnline = presence[conversation.partnerId] == true
+                ) {
                     onNavigateToChat(conversation.id)
                 }
                 HorizontalDivider(color = Color.LightGray.copy(alpha = 0.5f))
@@ -54,7 +60,7 @@ fun ConversationsScreen(
 }
 
 @Composable
-fun ConversationItem(conversation: Conversation, onClick: () -> Unit) {
+fun ConversationItem(conversation: Conversation, isOnline: Boolean = false, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -75,7 +81,16 @@ fun ConversationItem(conversation: Conversation, onClick: () -> Unit) {
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.titleMedium
             )
-            
+            if (isOnline) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .size(12.dp)
+                        .background(Color.Green, CircleShape)
+                        .border(width = 2.dp, color = Color.White, shape = CircleShape)
+                )
+            }
+
             if (conversation.unreadCount > 0) {
                  Box(
                     modifier = Modifier
