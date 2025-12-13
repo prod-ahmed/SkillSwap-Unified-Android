@@ -85,6 +85,7 @@ fun ChatScreen(
     val partnerName by viewModel.activePartnerName.collectAsState()
     val partnerInitials by viewModel.activePartnerInitials.collectAsState()
     val partnerId by viewModel.activePartnerId.collectAsState()
+    val presence by viewModel.presence.collectAsState()
     val callState by callViewModel.state.collectAsState()
     val localVideo by callViewModel.localVideoTrack.collectAsState()
     val remoteVideo by callViewModel.remoteVideoTrack.collectAsState()
@@ -96,6 +97,7 @@ fun ChatScreen(
     val listState = rememberLazyListState()
     val context = LocalContext.current
     var pendingVideo by remember { mutableStateOf<Boolean?>(null) }
+    val isPartnerOnline = partnerId?.let { presence[it] == true } ?: false
     LaunchedEffect(callState.error) {
         callState.error?.let {
             Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
@@ -193,15 +195,25 @@ fun ChatScreen(
                 // Name & Status
                 Column(modifier = Modifier.weight(1f)) {
                     Text(partnerName ?: "Conversation", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
-                    Text(
-                        when {
-                            callState.isInCall -> "En appel"
-                            partnerTyping -> "Écrit..."
-                            else -> if (socketConnected) "En ligne" else "Reconnexion…"
-                        },
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.White.copy(alpha = 0.8f)
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            when {
+                                callState.isInCall -> "En appel"
+                                partnerTyping -> "Écrit..."
+                                else -> if (socketConnected) "Connecté" else "Reconnexion…"
+                            },
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.White.copy(alpha = 0.8f)
+                        )
+                        if (partnerId != null) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(if (isPartnerOnline) Color(0xFF34C759) else Color.Gray.copy(alpha = 0.6f))
+                            )
+                        }
+                    }
                 }
 
                 // Actions
