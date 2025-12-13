@@ -1,12 +1,12 @@
 package com.skillswap.viewmodel
 
 import android.app.Application
+import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.skillswap.model.Recommendation
 import com.skillswap.model.User
 import com.skillswap.network.NetworkService
-import com.skillswap.util.TokenManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,7 +14,7 @@ import kotlinx.coroutines.launch
 
 class RecommendationsViewModel(application: Application) : AndroidViewModel(application) {
     private val api = NetworkService.api
-    private val tokenManager = TokenManager(application)
+    private val sharedPreferences = application.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
     
     private val _recommendations = MutableStateFlow<List<Recommendation>>(emptyList())
     val recommendations: StateFlow<List<Recommendation>> = _recommendations.asStateFlow()
@@ -35,7 +35,7 @@ class RecommendationsViewModel(application: Application) : AndroidViewModel(appl
     private fun loadCurrentUser() {
         viewModelScope.launch {
             try {
-                val token = tokenManager.getToken() ?: return@launch
+                val token = sharedPreferences.getString("auth_token", null) ?: return@launch
                 val user = api.getMe("Bearer $token")
                 _currentUser.value = user
             } catch (e: Exception) {
@@ -50,7 +50,7 @@ class RecommendationsViewModel(application: Application) : AndroidViewModel(appl
             _error.value = null
             
             try {
-                val token = tokenManager.getToken()
+                val token = sharedPreferences.getString("auth_token", null)
                 if (token.isNullOrBlank()) {
                     _error.value = "Not authenticated"
                     _isLoading.value = false
