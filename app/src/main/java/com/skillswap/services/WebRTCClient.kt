@@ -278,6 +278,39 @@ class WebRTCClient(
         (videoCapturer as? CameraVideoCapturer)?.switchCamera(null)
     }
     
+    fun toggleAudio(enable: Boolean) {
+        if (enable) {
+            unmuteAudio()
+        } else {
+            muteAudio()
+        }
+    }
+    
+    fun toggleVideo(enable: Boolean) {
+        if (enable) {
+            enableVideo()
+        } else {
+            disableVideo()
+        }
+    }
+    
+    fun setVideoEnabled(enabled: Boolean) {
+        toggleVideo(enabled)
+    }
+    
+    fun setupLocalRenderer(renderer: SurfaceViewRenderer) {
+        renderLocalVideo(renderer)
+    }
+    
+    fun setupRemoteRenderer(renderer: SurfaceViewRenderer) {
+        renderRemoteVideo(renderer)
+    }
+    
+    fun initializePeerConnection() {
+        // Already initialized in constructor
+        Log.d(tag, "Peer connection already initialized")
+    }
+    
     fun close() {
         Log.d(tag, "Closing WebRTC client")
         videoCapturer?.stopCapture()

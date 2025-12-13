@@ -12,7 +12,9 @@ val Pink40 = Color(0xFF7D5260)
 
 // Custom Colors matching iOS
 val OrangePrimary = Color(0xFFFFA500)
+val PrimaryOrange = Color(0xFFFF6B35) // Alias for compatibility
 val OrangeGradientStart = Color(0xFFFF8C00) // Dark Orange
 val OrangeGradientEnd = Color(0xFFFFB84D) // Lighter Orange
 
-val BackgroundColor = Color(0xFFF2F2F7) // System Grouped Background 
+val BackgroundColor = Color(0xFFF2F2F7) // System Grouped Background
+val DarkGray = Color(0xFF424242) // Dark Gray for backgrounds 

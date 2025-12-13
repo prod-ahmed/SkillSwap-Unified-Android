@@ -68,7 +68,7 @@ class CallManager private constructor(private val context: Context) : WebRTCClie
         
         socketService.onIncomingCall { data ->
             Log.d(tag, "Incoming call: $data")
-            handleIncomingCall(data)
+            handleIncomingCall(data as? JSONObject ?: JSONObject())
         }
         
         socketService.onCallRinging { data ->
@@ -78,25 +78,25 @@ class CallManager private constructor(private val context: Context) : WebRTCClie
         
         socketService.onCallAnswered { data ->
             Log.d(tag, "Call answered: $data")
-            handleCallAnswered(data)
+            handleCallAnswered(data as? JSONObject ?: JSONObject())
         }
         
         socketService.onIceCandidate { data ->
             Log.d(tag, "ICE candidate received")
-            handleRemoteCandidate(data)
+            handleRemoteCandidate(data as? JSONObject ?: JSONObject())
         }
         
-        socketService.onCallEnded { data ->
+        socketService.onCallEnded {
             Log.d(tag, "Call ended by remote")
             endCall("Call ended")
         }
         
-        socketService.onCallRejected { data ->
+        socketService.onCallRejected {
             Log.d(tag, "Call rejected")
             endCall("Call rejected")
         }
         
-        socketService.onCallBusy { data ->
+        socketService.onCallBusy {
             Log.d(tag, "User busy")
             endCall("User is busy")
         }
@@ -111,7 +111,7 @@ class CallManager private constructor(private val context: Context) : WebRTCClie
     fun startCall(recipientId: String, recipientName: String, isVideo: Boolean = false) {
         if (isCallActive) return
         
-        if (!socketService.isConnected.value) {
+        if (!socketService.isConnected) {
             Log.e(tag, "Cannot start call: socket not connected")
             callStatus = "Connection Error"
             return
@@ -124,7 +124,15 @@ class CallManager private constructor(private val context: Context) : WebRTCClie
         this.isVideoCall = isVideo
         this.isVideoEnabled = isVideo
         callStatus = "Calling..."
-        remoteUser = User(id = recipientId, username = recipientName, email = "")
+        remoteUser = User(
+            id = recipientId, 
+            username = recipientName, 
+            email = "", 
+            role = "user",
+            credits = null,
+            ratingAvg = null,
+            isVerified = null
+        )
         
         webRTCClient = WebRTCClient(context, iceServers, isVideo, this)
         
@@ -138,8 +146,8 @@ class CallManager private constructor(private val context: Context) : WebRTCClie
             Log.d(tag, "Offer created, emitting to socket")
             socketService.emitCallOffer(
                 recipientId = recipientId,
-                callType = if (isVideo) "video" else "audio",
-                sdp = sdp.description
+                offer = sdp.description,
+                isVideo = isVideo
             )
         }
     }
@@ -220,7 +228,15 @@ class CallManager private constructor(private val context: Context) : WebRTCClie
         isInitiator = false
         this.isVideoCall = isVideo
         this.isVideoEnabled = isVideo
-        remoteUser = User(id = callerId, username = "Incoming Call", email = "")
+        remoteUser = User(
+            id = callerId,
+            username = "Incoming Call",
+            email = "",
+            role = "user",
+            credits = null,
+            ratingAvg = null,
+            isVerified = null
+        )
         isCallActive = true
         callStatus = "Incoming call..."
         

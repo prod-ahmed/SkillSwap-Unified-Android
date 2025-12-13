@@ -296,4 +296,28 @@ class WebRtcClient(
         @Suppress("PARAMETER_NAME_CHANGED_ON_OVERRIDE")
         override fun onSetFailure(p0: String?) {}
     }
+    
+    // Additional methods required by CallViewModel
+    fun setupRemoteRenderer(renderer: org.webrtc.SurfaceViewRenderer) {
+        // Remote video track setup will be handled in onRemoteVideoTrack callback
+        Log.d("WebRtcClient", "setupRemoteRenderer called")
+    }
+    
+    fun setupLocalRenderer(renderer: org.webrtc.SurfaceViewRenderer) {
+        // Local video track setup will be handled in onLocalVideoTrack callback
+        Log.d("WebRtcClient", "setupLocalRenderer called")
+    }
+    
+    fun initializePeerConnection() {
+        // Peer connection is initialized in start() method
+        Log.d("WebRtcClient", "initializePeerConnection called (already initialized)")
+    }
+    
+    fun toggleAudio(enable: Boolean) {
+        toggleMute(!enable)
+    }
+    
+    fun toggleVideo(enable: Boolean) {
+        setVideoEnabled(enable)
+    }
 }

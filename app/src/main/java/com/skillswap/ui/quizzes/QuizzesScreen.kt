@@ -37,6 +37,8 @@ fun QuizzesScreen(
     val score by viewModel.score.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
     val unlockedLevel by viewModel.unlockedLevel.collectAsState()
+    val subjects by viewModel.subjects.collectAsState()
+    val selectedLevel by viewModel.selectedLevel.collectAsState()
     
     var selectedSubject by remember { mutableStateOf("") }
     var showRoadmap by remember { mutableStateOf(false) }
@@ -117,7 +119,7 @@ fun QuizzesScreen(
                     item {
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            "Niveau de difficulté: $selectedLevel/10",
+                            "Niveau de difficulté: ${selectedLevel ?: 1}/10",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -125,15 +127,15 @@ fun QuizzesScreen(
                     
                     item {
                         LevelSlider(
-                            level = selectedLevel,
-                            onLevelChange = { selectedLevel = it }
+                            level = selectedLevel ?: 1,
+                            onLevelChange = { viewModel.selectLevel(it) }
                         )
                     }
                     
                     item {
                         Button(
                             onClick = {
-                                viewModel.generateQuiz(selectedSubject, selectedLevel)
+                                viewModel.generateQuiz(selectedSubject, selectedLevel ?: 1)
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -197,7 +199,7 @@ fun QuizzesScreen(
                     selectedAnswers = selectedAnswers,
                     onAnswerSelected = { index -> viewModel.selectAnswer(index) },
                     onNext = { viewModel.nextQuestion() },
-                    onSubmit = { viewModel.submitQuiz() }
+                    onSubmit = { viewModel.submitQuiz(selectedSubject, selectedLevel ?: 1) }
                 )
             }
         }

@@ -45,7 +45,7 @@ fun EditPromoScreen(
     // Parse existing validTo date
     val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
     val initialDate = try {
-        promo.validTo?.let { dateFormat.parse(it) } ?: Date()
+        promo.validUntil.let { dateFormat.parse(it) } ?: Date()
     } catch (e: Exception) {
         Date()
     }
