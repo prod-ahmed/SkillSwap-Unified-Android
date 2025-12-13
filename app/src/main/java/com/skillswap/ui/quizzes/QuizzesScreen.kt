@@ -2,251 +2,480 @@ package com.skillswap.ui.quizzes
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.skillswap.model.QuizQuestion
-import com.skillswap.model.QuizResult
+import com.skillswap.data.QuizQuestion
+import com.skillswap.ui.theme.OrangePrimary
 import com.skillswap.viewmodel.QuizViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun QuizzesScreen(viewModel: QuizViewModel = viewModel()) {
-    val state by viewModel.state.collectAsState()
-    var showHistory by remember { mutableStateOf(false) }
-    var subjectInput by remember { mutableStateOf(state.subject) }
+fun QuizzesScreen(
+    viewModel: QuizViewModel = viewModel()
+) {
+    val isGenerating by viewModel.isGenerating.collectAsState()
+    val quizQuestions by viewModel.quizQuestions.collectAsState()
+    val currentQuestionIndex by viewModel.currentQuestionIndex.collectAsState()
+    val selectedAnswers by viewModel.selectedAnswers.collectAsState()
+    val showResults by viewModel.showResults.collectAsState()
+    val score by viewModel.score.collectAsState()
+    val errorMessage by viewModel.errorMessage.collectAsState()
+    
+    val subjects = listOf("Design", "Développement", "Marketing", "Photographie", "Musique", "Cuisine")
+    var selectedSubject by remember { mutableStateOf(subjects[0]) }
+    var selectedLevel by remember { mutableStateOf(1) }
+    
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Quizzes IA") },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = OrangePrimary,
+                    titleContentColor = Color.White
+                )
+            )
+        }
+    ) { padding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            if (quizQuestions.isEmpty() && !isGenerating) {
+                // Quiz setup screen
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFFFE082))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Default.Psychology,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(48.dp),
+                                    tint = OrangePrimary
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column {
+                                    Text(
+                                        "Quizzes générés par IA",
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        "Testez vos connaissances",
+                                        fontSize = 14.sp,
+                                        color = Color.Black.copy(alpha = 0.7f)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    
+                    item {
+                        Text(
+                            "Choisissez un sujet",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    
+                    items(subjects.size) { index ->
+                        val subject = subjects[index]
+                        SubjectCard(
+                            subject = subject,
+                            isSelected = selectedSubject == subject,
+                            onClick = { selectedSubject = subject }
+                        )
+                    }
+                    
+                    item {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            "Niveau de difficulté: $selectedLevel/10",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    
+                    item {
+                        LevelSlider(
+                            level = selectedLevel,
+                            onLevelChange = { selectedLevel = it }
+                        )
+                    }
+                    
+                    item {
+                        Button(
+                            onClick = {
+                                viewModel.generateQuiz(selectedSubject, selectedLevel)
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary)
+                        ) {
+                            Icon(Icons.Default.PlayArrow, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Générer le quiz", fontSize = 16.sp)
+                        }
+                    }
+                    
+                    errorMessage?.let { error ->
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE))
+                            ) {
+                                Text(
+                                    error,
+                                    modifier = Modifier.padding(16.dp),
+                                    color = Color(0xFFD32F2F)
+                                )
+                            }
+                        }
+                    }
+                }
+            } else if (isGenerating) {
+                // Loading state
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator(color = OrangePrimary)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            "Génération du quiz en cours...",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            "Cela peut prendre quelques secondes",
+                            fontSize = 14.sp,
+                            color = Color.Gray
+                        )
+                    }
+                }
+            } else if (showResults) {
+                // Results screen
+                ResultsScreen(
+                    score = score,
+                    totalQuestions = quizQuestions.size,
+                    onRetry = { viewModel.resetQuiz() }
+                )
+            } else {
+                // Quiz questions screen
+                QuizQuestionsScreen(
+                    questions = quizQuestions,
+                    currentIndex = currentQuestionIndex,
+                    selectedAnswers = selectedAnswers,
+                    onAnswerSelected = { index -> viewModel.selectAnswer(index) },
+                    onNext = { viewModel.nextQuestion() },
+                    onSubmit = { viewModel.submitQuiz() }
+                )
+            }
+        }
+    }
+}
 
+@Composable
+fun SubjectCard(
+    subject: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) OrangePrimary.copy(alpha = 0.1f) else Color.White
+        ),
+        border = if (isSelected) androidx.compose.foundation.BorderStroke(2.dp, OrangePrimary) else null
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                Icons.Default.School,
+                contentDescription = null,
+                tint = if (isSelected) OrangePrimary else Color.Gray
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                subject,
+                fontSize = 16.sp,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                color = if (isSelected) OrangePrimary else Color.Black
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            if (isSelected) {
+                Icon(
+                    Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    tint = OrangePrimary
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun LevelSlider(
+    level: Int,
+    onLevelChange: (Int) -> Unit
+) {
+    Column {
+        Slider(
+            value = level.toFloat(),
+            onValueChange = { onLevelChange(it.toInt()) },
+            valueRange = 1f..10f,
+            steps = 8,
+            colors = SliderDefaults.colors(
+                thumbColor = OrangePrimary,
+                activeTrackColor = OrangePrimary
+            )
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("Débutant", fontSize = 12.sp, color = Color.Gray)
+            Text("Intermédiaire", fontSize = 12.sp, color = Color.Gray)
+            Text("Expert", fontSize = 12.sp, color = Color.Gray)
+        }
+    }
+}
+
+@Composable
+fun QuizQuestionsScreen(
+    questions: List<QuizQuestion>,
+    currentIndex: Int,
+    selectedAnswers: Map<Int, Int>,
+    onAnswerSelected: (Int) -> Unit,
+    onNext: () -> Unit,
+    onSubmit: () -> Unit
+) {
+    if (currentIndex >= questions.size) return
+    
+    val question = questions[currentIndex]
+    val selectedAnswer = selectedAnswers[currentIndex]
+    
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF2F2F7))
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Header(subject = state.subject, onHistory = { showHistory = true })
-
-        InfoBanner(text = "Les quiz seront disponibles dès que le backend sera exposé. Aucune question générée localement pour éviter les données fictives.")
-
-        Card(
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            shape = RoundedCornerShape(16.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Sujet", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                OutlinedTextField(
-                    value = subjectInput,
-                    onValueChange = { subjectInput = it },
-                    label = { Text("Ex: Swift, UI/UX, Histoire") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Button(
-                    onClick = { viewModel.setSubject(subjectInput) },
-                    enabled = subjectInput.isNotBlank(),
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text("Valider le sujet") }
-                Text("Niveau débloqué: ${state.unlockedLevel}", color = Color.Gray)
-            }
-        }
-
-        Text("Parcours", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-        LevelRoadmap(
-            unlockedLevel = state.unlockedLevel,
-            onLevel = { level -> viewModel.startLevel(level) }
-        )
-
-        state.currentLevel?.let { level ->
-            if (state.questions.isNotEmpty()) {
-            QuizDialog(
-                level = level,
-                question = state.questions[state.currentIndex.coerceAtMost(state.questions.lastIndex)],
-                index = state.currentIndex,
-                total = state.questions.size,
-                score = state.score,
-                finished = state.finished,
-                onAnswer = { viewModel.answer(it) },
-                onDismiss = { viewModel.resetQuiz() }
-            )
-            }
-        }
-    }
-
-    if (showHistory) {
-        HistoryDialog(history = state.history, onDismiss = { showHistory = false })
-    }
-}
-
-@Composable
-private fun InfoBanner(text: String) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF4E5)),
-        shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyMedium,
-            color = Color(0xFF8A5300),
-            modifier = Modifier.padding(12.dp)
-        )
-    }
-}
-
-@Composable
-private fun Header(subject: String, onHistory: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(
-                Brush.linearGradient(listOf(Color(0xFF6A4CFF), Color(0xFF9C6BFF)))
-            )
             .padding(16.dp)
     ) {
-        Column {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("AI Quiz Roadmap", color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.weight(1f))
-                IconButton(onClick = onHistory) {
-                    Icon(Icons.Default.History, contentDescription = "Historique de quiz", tint = Color.White)
-                }
-            }
+        // Progress indicator
+        LinearProgressIndicator(
+            progress = (currentIndex + 1) / questions.size.toFloat(),
+            modifier = Modifier.fillMaxWidth(),
+            color = OrangePrimary
+        )
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        Text(
+            "Question ${currentIndex + 1}/${questions.size}",
+            fontSize = 14.sp,
+            color = Color.Gray
+        )
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = OrangePrimary.copy(alpha = 0.1f))
+        ) {
             Text(
-                if (subject.isBlank()) "Choisissez un sujet pour démarrer" else "Sujet: $subject",
-                color = Color.White.copy(alpha = 0.9f)
+                question.question,
+                modifier = Modifier.padding(16.dp),
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        question.options.forEachIndexed { index, option ->
+            AnswerOption(
+                text = option,
+                index = index,
+                isSelected = selectedAnswer == index,
+                onClick = { onAnswerSelected(index) }
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+        
+        Spacer(modifier = Modifier.weight(1f))
+        
+        Button(
+            onClick = {
+                if (currentIndex == questions.size - 1) {
+                    onSubmit()
+                } else {
+                    onNext()
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            enabled = selectedAnswer != null,
+            colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary)
+        ) {
+            Text(
+                if (currentIndex == questions.size - 1) "Terminer" else "Suivant",
+                fontSize = 16.sp
             )
         }
     }
 }
 
 @Composable
-private fun LevelRoadmap(unlockedLevel: Int, onLevel: (Int) -> Unit) {
-    val levels = (1..10).toList()
-    LazyColumn(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+fun AnswerOption(
+    text: String,
+    index: Int,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) OrangePrimary else Color.White
+        ),
+        border = androidx.compose.foundation.BorderStroke(
+            width = 2.dp,
+            color = if (isSelected) OrangePrimary else Color.LightGray
+        )
     ) {
-        items(levels) { level ->
-            val isUnlocked = level <= unlockedLevel
-            Card(
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(enabled = false) { },
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFE5E5EA)),
-                shape = RoundedCornerShape(14.dp)
+                    .size(24.dp)
+                    .clip(CircleShape)
+                    .background(if (isSelected) Color.White else Color.LightGray),
+                contentAlignment = Alignment.Center
             ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(CircleShape)
-                            .background(Color.Gray),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("🔒", color = Color.White, fontWeight = FontWeight.Bold)
-                    }
-                    Column {
-                        Text("Niveau $level", fontWeight = FontWeight.Bold)
-                        Text("En attente du backend", color = Color.Gray)
-                    }
+                if (isSelected) {
+                    Icon(
+                        Icons.Default.Check,
+                        contentDescription = null,
+                        tint = OrangePrimary,
+                        modifier = Modifier.size(16.dp)
+                    )
                 }
             }
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text,
+                fontSize = 16.sp,
+                color = if (isSelected) Color.White else Color.Black
+            )
         }
     }
 }
 
 @Composable
-private fun QuizDialog(
-    level: Int,
-    question: QuizQuestion,
-    index: Int,
-    total: Int,
+fun ResultsScreen(
     score: Int,
-    finished: Boolean,
-    onAnswer: (Int) -> Unit,
-    onDismiss: () -> Unit
+    totalQuestions: Int,
+    onRetry: () -> Unit
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {},
-        title = { Text("Niveau $level") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Question ${index + 1} / $total")
-                Text(question.question, fontWeight = FontWeight.Bold)
-                question.options.forEachIndexed { idx, opt ->
-                    OutlinedButton(
-                        onClick = { onAnswer(idx) },
-                        modifier = Modifier.fillMaxWidth()
-                    ) { Text(opt) }
-                }
-                Text("Score: $score", color = Color.Gray)
-                if (finished) {
-                    Text("Terminé !", fontWeight = FontWeight.Bold, color = Color(0xFF34C759))
-                    TextButton(onClick = onDismiss) { Text("Fermer") }
-                }
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            Icons.Default.EmojiEvents,
+            contentDescription = null,
+            modifier = Modifier.size(120.dp),
+            tint = OrangePrimary
+        )
+        
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        Text(
+            "Résultat final",
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold
+        )
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = OrangePrimary.copy(alpha = 0.1f))
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    "$score / $totalQuestions",
+                    fontSize = 48.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = OrangePrimary
+                )
+                Text(
+                    "${(score * 100 / totalQuestions)}% de réussite",
+                    fontSize = 18.sp,
+                    color = Color.Gray
+                )
             }
         }
-    )
-}
-
-@Composable
-private fun HistoryDialog(history: List<QuizResult>, onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Fermer") } },
-        title = { Text("Historique") },
-        text = {
-            if (history.isEmpty()) {
-                Text("Aucun quiz effectué.")
-            } else {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    history.forEach {
-                        Text("${it.subject} - L${it.level} - ${it.score}/${it.totalQuestions}")
-                    }
-                }
-            }
+        
+        Spacer(modifier = Modifier.height(32.dp))
+        
+        Button(
+            onClick = onRetry,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary)
+        ) {
+            Icon(Icons.Default.Refresh, contentDescription = null)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Nouveau quiz", fontSize = 16.sp)
         }
-    )
+    }
 }

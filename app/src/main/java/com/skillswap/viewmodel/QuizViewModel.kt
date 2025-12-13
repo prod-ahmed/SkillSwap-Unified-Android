@@ -1,81 +1,89 @@
 package com.skillswap.viewmodel
 
-import android.app.Application
-import android.content.Context
-import androidx.lifecycle.AndroidViewModel
-import com.skillswap.data.QuizRepository
-import com.skillswap.model.QuizQuestion
-import com.skillswap.model.QuizResult
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.skillswap.data.QuizQuestion
+import com.skillswap.data.QuizService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
-data class QuizState(
-    val subject: String = "",
-    val unlockedLevel: Int = 1,
-    val history: List<QuizResult> = emptyList(),
-    val questions: List<QuizQuestion> = emptyList(),
-    val currentLevel: Int? = null,
-    val score: Int = 0,
-    val currentIndex: Int = 0,
-    val finished: Boolean = false,
-    val message: String? = null
-)
-
-class QuizViewModel(application: Application) : AndroidViewModel(application) {
-    private val repo = QuizRepository(application.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE))
-    private val _state = MutableStateFlow(QuizState())
-    val state: StateFlow<QuizState> = _state.asStateFlow()
-
-    fun setSubject(subject: String) {
-        val level = repo.unlockedLevel(subject)
-        _state.value = _state.value.copy(subject = subject, unlockedLevel = level, history = repo.history(), finished = false, message = null)
-    }
-
-    fun startLevel(level: Int) {
-        val subject = _state.value.subject
-        if (subject.isBlank()) return
-        // Backend-backed quizzes not yet available on Android; surface message instead of synthetic data
-        _state.value = _state.value.copy(
-            message = "Les quiz seront disponibles dès que le backend sera exposé. Merci de revenir bientôt.",
-            questions = emptyList(),
-            currentLevel = null,
-            finished = false,
-            score = 0,
-            currentIndex = 0
-        )
-    }
-
-    fun answer(optionIndex: Int) {
-        val current = _state.value
-        val questions = current.questions
-        val idx = current.currentIndex
-        if (idx >= questions.size) return
-        val isCorrect = questions[idx].correctAnswerIndex == optionIndex
-        val newScore = current.score + if (isCorrect) 1 else 0
-        val nextIndex = idx + 1
-        if (nextIndex >= questions.size) {
-            val result = QuizResult(
-                subject = current.subject,
-                level = current.currentLevel ?: 1,
-                score = newScore,
-                totalQuestions = questions.size
-            )
-            repo.saveResult(result)
-            val level = repo.unlockedLevel(current.subject)
-            _state.value = current.copy(
-                score = newScore,
-                currentIndex = nextIndex,
-                finished = true,
-                unlockedLevel = level,
-                history = repo.history()
-            )
-        } else {
-            _state.value = current.copy(score = newScore, currentIndex = nextIndex)
+class QuizViewModel : ViewModel() {
+    private val quizService = QuizService.instance
+    
+    private val _isGenerating = MutableStateFlow(false)
+    val isGenerating: StateFlow<Boolean> = _isGenerating.asStateFlow()
+    
+    private val _quizQuestions = MutableStateFlow<List<QuizQuestion>>(emptyList())
+    val quizQuestions: StateFlow<List<QuizQuestion>> = _quizQuestions.asStateFlow()
+    
+    private val _currentQuestionIndex = MutableStateFlow(0)
+    val currentQuestionIndex: StateFlow<Int> = _currentQuestionIndex.asStateFlow()
+    
+    private val _selectedAnswers = MutableStateFlow<Map<Int, Int>>(emptyMap())
+    val selectedAnswers: StateFlow<Map<Int, Int>> = _selectedAnswers.asStateFlow()
+    
+    private val _showResults = MutableStateFlow(false)
+    val showResults: StateFlow<Boolean> = _showResults.asStateFlow()
+    
+    private val _score = MutableStateFlow(0)
+    val score: StateFlow<Int> = _score.asStateFlow()
+    
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+    
+    fun generateQuiz(subject: String, level: Int) {
+        viewModelScope.launch {
+            _isGenerating.value = true
+            _errorMessage.value = null
+            
+            try {
+                val questions = quizService.generateQuiz(subject, level)
+                _quizQuestions.value = questions
+                _currentQuestionIndex.value = 0
+                _selectedAnswers.value = emptyMap()
+                _showResults.value = false
+                _score.value = 0
+            } catch (e: Exception) {
+                _errorMessage.value = "Erreur lors de la génération: ${e.message}"
+                _quizQuestions.value = emptyList()
+            } finally {
+                _isGenerating.value = false
+            }
         }
     }
-
+    
+    fun selectAnswer(answerIndex: Int) {
+        _selectedAnswers.value = _selectedAnswers.value.toMutableMap().apply {
+            put(_currentQuestionIndex.value, answerIndex)
+        }
+    }
+    
+    fun nextQuestion() {
+        if (_currentQuestionIndex.value < _quizQuestions.value.size - 1) {
+            _currentQuestionIndex.value += 1
+        }
+    }
+    
+    fun submitQuiz() {
+        var correctAnswers = 0
+        _quizQuestions.value.forEachIndexed { index, question ->
+            val selectedAnswer = _selectedAnswers.value[index]
+            if (selectedAnswer == question.correctAnswerIndex) {
+                correctAnswers++
+            }
+        }
+        _score.value = correctAnswers
+        _showResults.value = true
+    }
+    
     fun resetQuiz() {
-        _state.value = _state.value.copy(questions = emptyList(), currentLevel = null, finished = false, currentIndex = 0, score = 0, message = null)
+        _quizQuestions.value = emptyList()
+        _currentQuestionIndex.value = 0
+        _selectedAnswers.value = emptyMap()
+        _showResults.value = false
+        _score.value = 0
+        _errorMessage.value = null
     }
 }
