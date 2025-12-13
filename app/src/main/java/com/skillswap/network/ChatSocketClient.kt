@@ -19,6 +19,12 @@ import org.json.JSONObject
 class ChatSocketClient(
     private val userIdProvider: () -> String?
 ) {
+    private fun normalizedBaseUrl(): String? {
+        val raw = BuildConfig.API_BASE_URL?.trim()
+        if (raw.isNullOrBlank()) return null
+        return if (raw.startsWith("http")) raw else "https://$raw"
+    }
+
     private var chatSocket: Socket? = null
     private var callSocket: Socket? = null
 
@@ -105,6 +111,7 @@ class ChatSocketClient(
 
     private fun buildChatSocket() {
         val userId = userIdProvider() ?: return
+        val baseUrl = normalizedBaseUrl() ?: return
         val opts = IO.Options.builder()
             .setQuery("userId=$userId")
             .setReconnection(true)
@@ -112,7 +119,7 @@ class ChatSocketClient(
             .setReconnectionDelay(1000)
             .setReconnectionDelayMax(8000)
             .build()
-        chatSocket = IO.socket(BuildConfig.API_BASE_URL, opts)
+        chatSocket = runCatching { IO.socket(baseUrl, opts) }.getOrNull()
         chatSocket?.on(Socket.EVENT_CONNECT) { _connection.tryEmit(true) }
         chatSocket?.on(Socket.EVENT_DISCONNECT) { _connection.tryEmit(false) }
         chatSocket?.on(Socket.EVENT_CONNECT_ERROR) { _connection.tryEmit(false) }
@@ -167,6 +174,7 @@ class ChatSocketClient(
 
     private fun buildCallSocket() {
         val userId = userIdProvider() ?: return
+        val baseUrl = normalizedBaseUrl() ?: return
         val opts = IO.Options.builder()
             .setAuth(mapOf("userId" to userId)) // backend expects userId
             .setReconnection(true)
@@ -174,7 +182,8 @@ class ChatSocketClient(
             .setReconnectionDelay(1000)
             .setReconnectionDelayMax(8000)
             .build()
-        callSocket = IO.socket(BuildConfig.API_BASE_URL + "calling", opts)
+        val callUrl = if (baseUrl.endsWith("/")) "${baseUrl}calling" else "$baseUrl/calling"
+        callSocket = runCatching { IO.socket(callUrl, opts) }.getOrNull()
         callSocket?.on(Socket.EVENT_CONNECT) { _connection.tryEmit(true) }
         callSocket?.on(Socket.EVENT_DISCONNECT) { _connection.tryEmit(false) }
         callSocket?.on(Socket.EVENT_CONNECT_ERROR) { _connection.tryEmit(false) }
