@@ -184,12 +184,13 @@ fun NotificationsScreen(
                         onOpen = {
                             viewModel.markRead(notif.id)
                             when {
-                                meetingLink?.isNotBlank() == true -> openUrl(context, meetingLink)
-                                threadId != null -> onNavigateToChat(threadId)
-                                sessionId != null -> onNavigateToSession(sessionId)
-                            }
+                        meetingLink?.isNotBlank() == true -> openUrl(context, meetingLink)
+                        threadId != null -> onNavigateToChat(threadId)
+                        sessionId != null -> onNavigateToSession(sessionId)
+                    }
                         },
-                        proposedDate = proposedDate
+                        proposedDate = proposedDate,
+                        reason = notif.reason ?: notif.payload?.get("reason")?.toString()
                     )
                 }
             }
@@ -247,7 +248,8 @@ fun NotificationCard(
     onDecline: () -> Unit,
     onMarkRead: () -> Unit,
     onOpen: () -> Unit,
-    proposedDate: String? = null
+    proposedDate: String? = null,
+    reason: String? = null
 ) {
     val accent = when (item.type) {
         "match" -> Color(0xFFFA5940)
@@ -324,6 +326,14 @@ fun NotificationCard(
                     "Proposition: $it",
                     style = MaterialTheme.typography.bodySmall,
                     color = Color(0xFF5C52BF),
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+            reason?.takeIf { it.isNotBlank() }?.let {
+                Text(
+                    "Motif: $it",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.DarkGray,
                     modifier = Modifier.padding(top = 4.dp)
                 )
             }
