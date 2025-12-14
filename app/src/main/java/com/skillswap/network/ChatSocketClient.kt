@@ -1,5 +1,6 @@
 package com.skillswap.network
 
+import android.content.Context
 import com.skillswap.BuildConfig
 import com.skillswap.model.SocketMessagePayload
 import com.skillswap.model.SocketTypingPayload
@@ -17,6 +18,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import org.json.JSONObject
 
 class ChatSocketClient(
+    private val context: Context,
     private val userIdProvider: () -> String?
 ) {
     private fun normalizedBaseUrl(): String? {
@@ -112,8 +114,21 @@ class ChatSocketClient(
     private fun buildChatSocket() {
         val userId = userIdProvider() ?: return
         val baseUrl = normalizedBaseUrl() ?: return
+        
+        // Get auth token from SharedPreferences
+        val sharedPrefs = context.getSharedPreferences(
+            "SkillSwapPrefs",
+            Context.MODE_PRIVATE
+        )
+        val authToken = sharedPrefs.getString("auth_token", null)
+        
+        val authMap = mutableMapOf<String, String>("userId" to userId)
+        if (authToken != null) {
+            authMap["token"] = authToken
+        }
+        
         val opts = IO.Options.builder()
-            .setQuery("userId=$userId")
+            .setAuth(authMap)
             .setReconnection(true)
             .setReconnectionAttempts(8)
             .setReconnectionDelay(1000)

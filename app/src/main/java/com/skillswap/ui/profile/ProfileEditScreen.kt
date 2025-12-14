@@ -30,6 +30,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import java.io.File
 import java.io.FileOutputStream
+import com.skillswap.ui.components.SkillSelectionComposable
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,9 +51,6 @@ fun ProfileEditScreen(
     var teachSkills by remember { mutableStateOf<List<String>>(emptyList()) }
     var learnSkills by remember { mutableStateOf<List<String>>(emptyList()) }
     var showCitySuggestions by remember { mutableStateOf(false) }
-    var showTeachSkillDialog by remember { mutableStateOf(false) }
-    var showLearnSkillDialog by remember { mutableStateOf(false) }
-    var newSkillText by remember { mutableStateOf("") }
 
     // Initialize from user data
     LaunchedEffect(user) {
@@ -105,90 +103,6 @@ fun ProfileEditScreen(
                 // Handle error
             }
         }
-    }
-
-    // Add Teach Skill Dialog
-    if (showTeachSkillDialog) {
-        AlertDialog(
-            onDismissRequest = { 
-                showTeachSkillDialog = false
-                newSkillText = ""
-            },
-            title = { Text("Ajouter une compétence à enseigner") },
-            text = {
-                OutlinedTextField(
-                    value = newSkillText,
-                    onValueChange = { newSkillText = it },
-                    label = { Text("Compétence") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        if (newSkillText.isNotBlank() && !teachSkills.contains(newSkillText)) {
-                            teachSkills = teachSkills + newSkillText
-                        }
-                        showTeachSkillDialog = false
-                        newSkillText = ""
-                    },
-                    enabled = newSkillText.isNotBlank()
-                ) {
-                    Text("Ajouter")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { 
-                    showTeachSkillDialog = false
-                    newSkillText = ""
-                }) {
-                    Text("Annuler")
-                }
-            }
-        )
-    }
-
-    // Add Learn Skill Dialog
-    if (showLearnSkillDialog) {
-        AlertDialog(
-            onDismissRequest = { 
-                showLearnSkillDialog = false
-                newSkillText = ""
-            },
-            title = { Text("Ajouter une compétence à apprendre") },
-            text = {
-                OutlinedTextField(
-                    value = newSkillText,
-                    onValueChange = { newSkillText = it },
-                    label = { Text("Compétence") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        if (newSkillText.isNotBlank() && !learnSkills.contains(newSkillText)) {
-                            learnSkills = learnSkills + newSkillText
-                        }
-                        showLearnSkillDialog = false
-                        newSkillText = ""
-                    },
-                    enabled = newSkillText.isNotBlank()
-                ) {
-                    Text("Ajouter")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { 
-                    showLearnSkillDialog = false
-                    newSkillText = ""
-                }) {
-                    Text("Annuler")
-                }
-            }
-        )
     }
 
     Scaffold(
@@ -375,59 +289,27 @@ fun ProfileEditScreen(
                     color = OrangePrimary
                 )
 
-                // Teach Skills
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            "Je peux enseigner",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color.Gray
-                        )
-                        IconButton(onClick = { showTeachSkillDialog = true }) {
-                            Icon(Icons.Default.Add, "Ajouter", tint = OrangePrimary)
-                        }
-                    }
+                Spacer(modifier = Modifier.height(8.dp))
 
-                    SkillChipsDisplay(
-                        skills = teachSkills,
-                        onRemove = { skill -> teachSkills = teachSkills - skill },
-                        chipColor = OrangePrimary
-                    )
-                }
+                // Teach Skills
+                SkillSelectionComposable(
+                    selectedSkills = teachSkills,
+                    onSkillsChanged = { teachSkills = it },
+                    title = "Je peux enseigner",
+                    placeholder = "Rechercher des compétences à enseigner...",
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
 
                 // Learn Skills
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            "Je veux apprendre",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color.Gray
-                        )
-                        IconButton(onClick = { showLearnSkillDialog = true }) {
-                            Icon(Icons.Default.Add, "Ajouter", tint = Color(0xFF26A69A))
-                        }
-                    }
-
-                    SkillChipsDisplay(
-                        skills = learnSkills,
-                        onRemove = { skill -> learnSkills = learnSkills - skill },
-                        chipColor = Color(0xFF26A69A)
-                    )
-                }
+                SkillSelectionComposable(
+                    selectedSkills = learnSkills,
+                    onSkillsChanged = { learnSkills = it },
+                    title = "Je veux apprendre",
+                    placeholder = "Rechercher des compétences à apprendre...",
+                    modifier = Modifier.fillMaxWidth()
+                )
 
                 // Messages
                 errorMessage?.let {

@@ -89,6 +89,8 @@ dependencies {
     // Maps
     implementation("com.google.maps.android:maps-compose:4.3.0")
     implementation("com.google.android.gms:play-services-maps:18.2.0")
+    implementation("com.google.android.gms:play-services-location:21.1.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
 
     // Retrofit
     implementation("com.squareup.retrofit2:retrofit:2.9.0")

@@ -12,6 +12,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import retrofit2.HttpException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import java.util.UUID
@@ -152,12 +153,45 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 startSocket(conversationId)
                 markThreadRead(conversationId, response.items.map { it.id })
             } catch (e: Exception) {
-                _messages.value = emptyList()
-                _error.value = "Impossible de charger les messages"
+                val recovered = if (e is HttpException && (e.code() == 404 || e.code() == 403)) {
+                    // If the passed id was actually a userId, create (or fetch) the thread then retry
+                    tryRecoverThreadAndReload(conversationId, header, me)
+                } else false
+
+                if (!recovered) {
+                    _messages.value = emptyList()
+                    _error.value = "Impossible de charger les messages"
+                }
             } finally {
                 _isLoading.value = false
             }
         }
+    }
+
+    private suspend fun tryRecoverThreadAndReload(
+        participantId: String,
+        header: String,
+        me: String
+    ): Boolean {
+        val thread = runCatching {
+            NetworkService.api.createThread(
+                header,
+                mapOf("participantId" to participantId)
+            )
+        }.getOrNull() ?: return false
+
+        activeThreadId = thread.id
+        // Keep thread metadata for header rendering
+        _threads.value = (_threads.value + thread).distinctBy { it.id }
+        hydrateActivePartner(thread.id, me)
+
+        return runCatching {
+            val response = NetworkService.api.getMessages(header, thread.id)
+            _messages.value = response.items.map { it.toUiMessage(me) }
+            startSocket(thread.id)
+            markThreadRead(thread.id, response.items.map { it.id })
+            true
+        }.getOrElse { false }
     }
     
     fun sendMessage(text: String) {

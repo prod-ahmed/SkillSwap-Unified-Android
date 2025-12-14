@@ -60,6 +60,7 @@ class CallManager private constructor(private val context: Context) : WebRTCClie
     
     init {
         Log.d(tag, "Initializing CallManager")
+        socketService.connect()
         setupSocketListeners()
     }
     

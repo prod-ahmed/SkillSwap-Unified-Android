@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.skillswap.ui.theme.OrangePrimary
 import com.skillswap.viewmodel.AnnoncesViewModel
+import com.skillswap.ui.components.SkillSelectionComposable
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -26,6 +27,7 @@ fun CreateAnnonceScreen(
 ) {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
+    var skills by remember { mutableStateOf<List<String>>(emptyList()) }
     var category by remember { mutableStateOf("") }
     var price by remember { mutableStateOf("") }
     var location by remember { mutableStateOf("") }
@@ -91,6 +93,16 @@ fun CreateAnnonceScreen(
                                 .fillMaxWidth()
                                 .height(120.dp),
                             maxLines = 5
+                        )
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        SkillSelectionComposable(
+                            selectedSkills = skills,
+                            onSkillsChanged = { skills = it },
+                            title = "Compétences associées",
+                            placeholder = "Rechercher des compétences...",
+                            maxSelections = 5
                         )
                         
                         Spacer(modifier = Modifier.height(16.dp))

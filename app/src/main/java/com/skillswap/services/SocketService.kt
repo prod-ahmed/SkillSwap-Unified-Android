@@ -1,7 +1,13 @@
 package com.skillswap.services
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.util.Log
+import com.skillswap.BuildConfig
+import io.socket.client.IO
+import io.socket.client.Socket
+import org.json.JSONObject
+import java.net.URISyntaxException
 
 class SocketService private constructor(private val context: Context) {
     
@@ -17,10 +23,65 @@ class SocketService private constructor(private val context: Context) {
     }
     
     private val tag = "SocketService"
+    private var socket: Socket? = null
+    private val sharedPreferences: SharedPreferences = 
+        context.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
+    
+    init {
+        try {
+            val opts = IO.Options().apply {
+                reconnection = true
+                reconnectionAttempts = Int.MAX_VALUE
+                reconnectionDelay = 1000
+                reconnectionDelayMax = 5000
+                timeout = 10000
+            }
+            
+            val baseUrl = BuildConfig.API_BASE_URL.replace("/api", "")
+            socket = IO.socket("$baseUrl/calling", opts)
+            
+            socket?.on(Socket.EVENT_CONNECT) {
+                Log.d(tag, "Socket connected to /calling namespace")
+                isConnected = true
+                authenticateSocket()
+            }
+            
+            socket?.on(Socket.EVENT_DISCONNECT) {
+                Log.d(tag, "Socket disconnected")
+                isConnected = false
+            }
+            
+            socket?.on(Socket.EVENT_CONNECT_ERROR) { args ->
+                Log.e(tag, "Socket connection error: ${args.joinToString()}")
+                isConnected = false
+            }
+            
+        } catch (e: URISyntaxException) {
+            Log.e(tag, "Socket URI error", e)
+        }
+    }
+    
+    private fun authenticateSocket() {
+        val userId = sharedPreferences.getString("user_id", null)
+        val authToken = sharedPreferences.getString("auth_token", null)
+        
+        if (userId != null && authToken != null) {
+            val authData = JSONObject().apply {
+                put("userId", userId)
+                put("token", authToken)
+            }
+            socket?.emit("authenticate", authData)
+            Log.d(tag, "Sent authentication with userId: $userId")
+        } else {
+            Log.w(tag, "Missing userId or authToken for socket authentication")
+        }
+    }
     
     fun on(event: String, callback: (Array<Any>) -> Unit) {
-        Log.d(tag, "Socket event listener registered: $event")
-        // TODO: Implement socket.io event handling
+        socket?.on(event) { args ->
+            Log.d(tag, "Socket event received: $event")
+            callback(args)
+        }
     }
     
     fun onCallError(callback: (Any) -> Unit) {
@@ -66,46 +127,73 @@ class SocketService private constructor(private val context: Context) {
     }
     
     fun emit(event: String, vararg args: Any?) {
-        Log.d(tag, "Socket emit: $event")
-        // TODO: Implement socket.io emission
+        if (socket?.connected() == true) {
+            socket?.emit(event, *args)
+            Log.d(tag, "Socket emit: $event")
+        } else {
+            Log.w(tag, "Cannot emit $event - socket not connected")
+        }
     }
     
     fun emitIceCandidate(callId: String, candidateData: Any) {
-        emit("ice-candidate", callId, candidateData)
+        val data = JSONObject().apply {
+            put("callId", callId)
+            put("candidate", candidateData)
+        }
+        emit("ice-candidate", data)
     }
     
-    fun emitCallAnswer(callId: String, answer: Any) {
-        emit("call:answer", callId, answer)
+    fun emitCallAnswer(callId: String, answer: String) {
+        val data = JSONObject().apply {
+            put("callId", callId)
+            put("sdp", answer)
+        }
+        emit("call:answer", data)
     }
     
     fun emitCallEnd(callId: String) {
-        emit("call:end", callId)
+        val data = JSONObject().apply {
+            put("callId", callId)
+        }
+        emit("call:end", data)
     }
     
     fun emitCallReject(callId: String) {
-        emit("call:reject", callId)
+        val data = JSONObject().apply {
+            put("callId", callId)
+        }
+        emit("call:reject", data)
     }
     
     fun emitCallBusy(callId: String) {
-        emit("call:busy", callId)
+        val data = JSONObject().apply {
+            put("callId", callId)
+        }
+        emit("call:busy", data)
     }
     
-    fun emitCallOffer(recipientId: String, offer: Any, isVideo: Boolean) {
-        emit("call:offer", recipientId, offer, isVideo)
+    fun emitCallOffer(recipientId: String, sdp: String, isVideo: Boolean) {
+        val data = JSONObject().apply {
+            put("recipientId", recipientId)
+            put("sdp", sdp)
+            put("callType", if (isVideo) "video" else "audio")
+        }
+        emit("call:offer", data)
     }
     
     var isConnected: Boolean = false
         private set
     
     fun connect() {
-        Log.d(tag, "Socket connect")
-        isConnected = true
-        // TODO: Implement socket.io connection
+        if (socket?.connected() == false) {
+            socket?.connect()
+            Log.d(tag, "Connecting socket...")
+        }
     }
     
     fun disconnect() {
-        Log.d(tag, "Socket disconnect")
+        socket?.disconnect()
         isConnected = false
-        // TODO: Implement socket.io disconnection
+        Log.d(tag, "Socket disconnected")
     }
 }

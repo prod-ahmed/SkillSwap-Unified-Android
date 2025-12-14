@@ -34,6 +34,8 @@ fun ConversationsScreen(
     
     val conversations by viewModel.conversations.collectAsState()
     val presence by viewModel.presence.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val error by viewModel.error.collectAsState()
 
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp)
@@ -45,15 +47,72 @@ fun ConversationsScreen(
             modifier = Modifier.padding(bottom = 16.dp)
         )
         
-        LazyColumn {
-            items(conversations) { conversation ->
-                ConversationItem(
-                    conversation = conversation,
-                    isOnline = presence[conversation.partnerId] == true
+        // Show error if present
+        error?.let { errorMessage ->
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE))
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    onNavigateToChat(conversation.id)
+                    Text(
+                        "⚠️ $errorMessage",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(0xFFC62828)
+                    )
                 }
-                HorizontalDivider(color = Color.LightGray.copy(alpha = 0.5f))
+            }
+        }
+        
+        when {
+            isLoading && conversations.isEmpty() -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = OrangePrimary)
+                }
+            }
+            conversations.isEmpty() -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            "Aucune conversation",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Gray
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            "Commencez une nouvelle conversation",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.Gray
+                        )
+                    }
+                }
+            }
+            else -> {
+                LazyColumn {
+                    items(conversations) { conversation ->
+                        ConversationItem(
+                            conversation = conversation,
+                            isOnline = presence[conversation.partnerId] == true
+                        ) {
+                            onNavigateToChat(conversation.id)
+                        }
+                        HorizontalDivider(color = Color.LightGray.copy(alpha = 0.5f))
+                    }
+                }
             }
         }
     }

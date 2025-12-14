@@ -299,15 +299,6 @@ fun ChatScreen(
             }
         }
     }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFF2F2F7)) // System Grouped Background
-    ) {
-        HeaderIcon(Icons.Default.Videocam) { onVideoCall() }
-        HeaderIcon(Icons.Default.Call) { onAudioCall() }
-    }
 }
 
 @Composable

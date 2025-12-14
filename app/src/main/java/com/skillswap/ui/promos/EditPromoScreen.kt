@@ -24,6 +24,7 @@ import com.skillswap.viewmodel.PromosViewModel
 import java.io.InputStream
 import java.text.SimpleDateFormat
 import java.util.*
+import com.skillswap.ui.components.SkillSelectionComposable
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,6 +38,7 @@ fun EditPromoScreen(
     
     var title by remember { mutableStateOf(promo.title) }
     var description by remember { mutableStateOf(promo.description ?: "") }
+    var skills by remember { mutableStateOf<List<String>>(emptyList()) }
     var discountText by remember { mutableStateOf(promo.discount.toString()) }
     var promoCode by remember { mutableStateOf(promo.promoCode ?: "") }
     var imageUri by remember { mutableStateOf<Uri?>(null) }
@@ -160,6 +162,15 @@ fun EditPromoScreen(
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3,
                 maxLines = 6
+            )
+            
+            // Skills
+            SkillSelectionComposable(
+                selectedSkills = skills,
+                onSkillsChanged = { skills = it },
+                title = "Compétences concernées",
+                placeholder = "Rechercher des compétences...",
+                maxSelections = 3
             )
             
             // Discount

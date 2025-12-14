@@ -21,6 +21,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import kotlinx.coroutines.launch
+import com.skillswap.ui.components.SkillSelectionComposable
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,10 +32,10 @@ fun CreatePromoScreen(
 ) {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
+    var skills by remember { mutableStateOf<List<String>>(emptyList()) }
     var discountPercent by remember { mutableStateOf("") }
     var validUntil by remember { mutableStateOf("") }
     var code by remember { mutableStateOf("") }
-    // var isLoading by remember { mutableStateOf(false) } // Use ViewModel state
     
     val isLoading by viewModel.isLoading.collectAsState()
     val generatingImage by viewModel.generatingImage.collectAsState()
@@ -108,6 +109,16 @@ fun CreatePromoScreen(
                                 .fillMaxWidth()
                                 .height(100.dp),
                             maxLines = 4
+                        )
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        SkillSelectionComposable(
+                            selectedSkills = skills,
+                            onSkillsChanged = { skills = it },
+                            title = "Compétences concernées",
+                            placeholder = "Rechercher des compétences...",
+                            maxSelections = 3
                         )
                         
                         Spacer(modifier = Modifier.height(16.dp))

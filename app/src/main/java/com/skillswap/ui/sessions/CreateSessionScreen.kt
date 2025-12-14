@@ -23,6 +23,7 @@ import com.skillswap.ui.theme.OrangePrimary
 import com.skillswap.viewmodel.SessionsViewModel
 import java.text.SimpleDateFormat
 import java.util.*
+import com.skillswap.ui.components.SkillSelectionComposable
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,8 +35,7 @@ fun CreateSessionScreen(
     var currentStep by remember { mutableStateOf(1) }
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
-    var selectedSkills by remember { mutableStateOf(setOf<String>()) }
-    var customSkill by remember { mutableStateOf("") }
+    var selectedSkills by remember { mutableStateOf<List<String>>(emptyList()) }
     
     var selectedDate by remember { mutableStateOf(Date()) }
     var selectedTime by remember { mutableStateOf(Date()) }
@@ -44,7 +44,6 @@ fun CreateSessionScreen(
     var studentEmail by remember { mutableStateOf("") }
     var meetingLink by remember { mutableStateOf("") }
     
-    val availableSkills = listOf("Design", "Développement", "Marketing", "Photoshop", "Musique", "Autre")
     val durationOptions = listOf(30, 60, 90, 120)
     val stepTitles = listOf("Session", "Planning", "Invitations")
     
@@ -198,47 +197,13 @@ fun CreateSessionScreen(
                                 
                                 Spacer(modifier = Modifier.height(16.dp))
                                 
-                                Text(
-                                    "Compétence",
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 14.sp
+                                SkillSelectionComposable(
+                                    selectedSkills = selectedSkills,
+                                    onSkillsChanged = { selectedSkills = it },
+                                    title = "Compétences de la session",
+                                    placeholder = "Rechercher des compétences...",
+                                    maxSelections = 3
                                 )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                
-                                availableSkills.chunked(2).forEach { rowSkills ->
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        rowSkills.forEach { skill ->
-                                            val isSelected = selectedSkills.contains(skill)
-                                            Button(
-                                                onClick = {
-                                                    selectedSkills = if (isSelected) {
-                                                        selectedSkills - skill
-                                                    } else {
-                                                        selectedSkills + skill
-                                                    }
-                                                },
-                                                colors = ButtonDefaults.buttonColors(
-                                                    containerColor = if (isSelected) OrangePrimary
-                                                    else Color(0xFFF5F5F5)
-                                                ),
-                                                modifier = Modifier.weight(1f)
-                                            ) {
-                                                Text(
-                                                    skill,
-                                                    color = if (isSelected) Color.White else Color.Black,
-                                                    fontSize = 14.sp
-                                                )
-                                            }
-                                        }
-                                        if (rowSkills.size == 1) {
-                                            Spacer(modifier = Modifier.weight(1f))
-                                        }
-                                    }
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                }
                             }
                         }
                     }

@@ -22,6 +22,7 @@ import com.skillswap.model.MediaPayload
 import com.skillswap.ui.theme.OrangePrimary
 import com.skillswap.viewmodel.AnnoncesViewModel
 import java.io.InputStream
+import com.skillswap.ui.components.SkillSelectionComposable
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,6 +36,7 @@ fun EditAnnonceScreen(
     
     var title by remember { mutableStateOf(annonce.title) }
     var description by remember { mutableStateOf(annonce.description ?: "") }
+    var skills by remember { mutableStateOf<List<String>>(emptyList()) }
     var city by remember { mutableStateOf(annonce.city ?: "") }
     var category by remember { mutableStateOf(annonce.category ?: "") }
     var imageUri by remember { mutableStateOf<Uri?>(null) }
@@ -141,6 +143,15 @@ fun EditAnnonceScreen(
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3,
                 maxLines = 6
+            )
+            
+            // Skills
+            SkillSelectionComposable(
+                selectedSkills = skills,
+                onSkillsChanged = { skills = it },
+                title = "Compétences associées",
+                placeholder = "Rechercher des compétences...",
+                maxSelections = 5
             )
             
             // City
