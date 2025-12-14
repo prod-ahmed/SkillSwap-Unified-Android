@@ -146,33 +146,26 @@ fun MyPromosScreenContent(
     }
 
     if (showCreate) {
-        PromoEditorDialog(
-            initial = null,
+        CreatePromoBottomSheet(
             onDismiss = { showCreate = false },
-            onSave = { title, desc, discount, validTo, validFrom, code, image ->
-                viewModel.createPromo(title, desc, discount, validTo, validFrom, code, pendingImage?.let { null }, pendingImage)
-                pendingImage = null
-                imageError = null
+            onPromoCreated = {
                 showCreate = false
-            },
-            onPickImage = { imagePicker.launch("image/*") },
-            imageError = imageError,
-            uploading = uploading
+                viewModel.loadPromos()
+            }
         )
     }
+    
     editingPromo?.let { promo ->
-        PromoEditorDialog(
-            initial = promo,
+        EditPromoBottomSheet(
+            promo = promo,
             onDismiss = { editingPromo = null },
-            onSave = { title, desc, discount, validTo, validFrom, code, image ->
-                viewModel.updatePromo(promo.id, title, desc, discount, validTo, validFrom, code, pendingImage?.let { null }, pendingImage)
-                pendingImage = null
-                imageError = null
+            onPromoUpdated = {
                 editingPromo = null
-            },
-            onPickImage = { imagePicker.launch("image/*") },
-            imageError = imageError,
-            uploading = uploading
+                viewModel.loadPromos()
+            }
+        )
+    }
+}
         )
     }
 }

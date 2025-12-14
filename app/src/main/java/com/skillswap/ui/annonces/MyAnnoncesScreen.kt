@@ -290,22 +290,22 @@ fun MyAnnoncesScreenContent(
     }
 
     if (showCreate) {
-        AnnonceEditorDialog(
-            initial = null,
+        CreateAnnonceBottomSheet(
             onDismiss = { showCreate = false },
-            onSave = { title, desc, city, category, image ->
-                viewModel.createAnnonce(title, desc, city, category, image)
-                if (!uploading) showCreate = false
+            onAnnonceCreated = { 
+                showCreate = false
+                viewModel.loadAnnonces()
             }
         )
     }
+    
     editingAnnonce?.let { annonce ->
-        AnnonceEditorDialog(
-            initial = annonce,
+        EditAnnonceBottomSheet(
+            annonce = annonce,
             onDismiss = { editingAnnonce = null },
-            onSave = { title, desc, city, category, image ->
-                viewModel.updateAnnonce(annonce.id, title, desc, city, category, image)
-                if (!uploading) editingAnnonce = null
+            onAnnonceUpdated = {
+                editingAnnonce = null
+                viewModel.loadAnnonces()
             }
         )
     }
