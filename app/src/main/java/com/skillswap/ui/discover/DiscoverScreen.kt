@@ -42,6 +42,9 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
 
+import com.skillswap.ui.annonces.CreateAnnonceBottomSheet
+import com.skillswap.ui.promos.CreatePromoBottomSheet
+
 // Colors matching iOS
 val SkillCoral = Color(0xFFFF6B6B)
 val SkillCoralLight = Color(0xFFFF8E8E)
@@ -52,6 +55,8 @@ val SkillGold = Color(0xFFFFD166)
 @Composable
 fun DiscoverScreen(
     onNavigateToChat: (String) -> Unit = {},
+    onNavigateToAnnonceDetail: (String) -> Unit = {},
+    onNavigateToPromoDetail: (String) -> Unit = {},
     viewModel: DiscoverViewModel = viewModel()
 ) {
     LaunchedEffect(Unit) {
@@ -245,7 +250,7 @@ fun DiscoverScreen(
                         }
                     }
                     DiscoverSegment.ANNONCES -> {
-                        Column {
+                        Column(modifier = Modifier.fillMaxSize()) {
                             OutlinedTextField(
                                 value = filterText,
                                 onValueChange = { filterText = it },
@@ -318,23 +323,26 @@ fun DiscoverScreen(
                                     )
                                 }
                             }
-                        }
-                        
-                        if (filteredAnnonces.isEmpty()) {
-                            EmptyDiscoverState(message = "Aucune annonce trouvée", action = { viewModel.loadForCurrentSegment() })
-                        } else {
-                            LazyColumn(
-                                contentPadding = PaddingValues(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(16.dp)
-                            ) {
-                                items(filteredAnnonces) { annonce ->
-                                    AnnonceDiscoverCard(annonce)
+                            
+                            if (filteredAnnonces.isEmpty()) {
+                                Box(modifier = Modifier.weight(1f)) {
+                                    EmptyDiscoverState(message = "Aucune annonce trouvée", action = { viewModel.loadForCurrentSegment() })
+                                }
+                            } else {
+                                LazyColumn(
+                                    contentPadding = PaddingValues(16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    items(filteredAnnonces) { annonce ->
+                                        AnnonceDiscoverCard(annonce, onClick = { onNavigateToAnnonceDetail(annonce.id) })
+                                    }
                                 }
                             }
                         }
                     }
                     DiscoverSegment.PROMOS -> {
-                        Column {
+                        Column(modifier = Modifier.fillMaxSize()) {
                             OutlinedTextField(
                                 value = filterText,
                                 onValueChange = { filterText = it },
@@ -415,14 +423,17 @@ fun DiscoverScreen(
                             }
                             
                             if (discountFilteredPromos.isEmpty()) {
-                                EmptyDiscoverState(message = "Aucune promotion active", action = { viewModel.loadForCurrentSegment() })
+                                Box(modifier = Modifier.weight(1f)) {
+                                    EmptyDiscoverState(message = "Aucune promotion active", action = { viewModel.loadForCurrentSegment() })
+                                }
                             } else {
                                 LazyColumn(
                                     contentPadding = PaddingValues(16.dp),
-                                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                                    modifier = Modifier.weight(1f)
                                 ) {
                                     items(discountFilteredPromos) { promo ->
-                                        PromoDiscoverCard(promo)
+                                        PromoDiscoverCard(promo, onClick = { onNavigateToPromoDetail(promo.id) })
                                     }
                                 }
                             }
@@ -432,94 +443,20 @@ fun DiscoverScreen(
             }
         }
 
-        if (segment == DiscoverSegment.PROFILS) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp)
-            ) {
-                // Cities Filter
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    item {
-                        FilterChip(
-                            selected = selectedCity == null,
-                            onClick = { viewModel.setCityFilter(null) },
-                            label = { Text("Toutes villes") },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = SkillCoral.copy(alpha = 0.2f),
-                                selectedLabelColor = SkillCoral
-                            )
-                        )
-                    }
-                    items(cities) { city ->
-                        FilterChip(
-                            selected = selectedCity == city,
-                            onClick = { viewModel.setCityFilter(if (selectedCity == city) null else city) },
-                            label = { Text(city) },
-                            leadingIcon = if (selectedCity == city) {
-                                { Icon(Icons.Default.Done, null, modifier = Modifier.size(16.dp)) }
-                            } else null,
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = SkillCoral.copy(alpha = 0.2f),
-                                selectedLabelColor = SkillCoral
-                            )
-                        )
-                    }
-                }
-                
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                // Skills Filter
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    item {
-                        FilterChip(
-                            selected = selectedSkill == null,
-                            onClick = { viewModel.setSkillFilter(null) },
-                            label = { Text("Toutes compétences") },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = SkillTurquoise.copy(alpha = 0.2f),
-                                selectedLabelColor = SkillTurquoise
-                            )
-                        )
-                    }
-                    items(skills) { skill ->
-                        FilterChip(
-                            selected = selectedSkill == skill,
-                            onClick = { viewModel.setSkillFilter(if (selectedSkill == skill) null else skill) },
-                            label = { Text(skill) },
-                            leadingIcon = if (selectedSkill == skill) {
-                                { Icon(Icons.Default.Done, null, modifier = Modifier.size(16.dp)) }
-                            } else null,
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = SkillTurquoise.copy(alpha = 0.2f),
-                                selectedLabelColor = SkillTurquoise
-                            )
-                        )
-                    }
-                }
-            }
-        }
-
         if (showAnnonceDialog) {
-            CreateAnnonceDialog(
+            CreateAnnonceBottomSheet(
                 onDismiss = { showAnnonceDialog = false },
-                onCreate = { title, desc, city ->
-                    viewModel.createAnnonce(title, desc, city)
+                onAnnonceCreated = {
+                    viewModel.loadForCurrentSegment()
                     showAnnonceDialog = false
                 }
             )
         }
         if (showPromoDialog) {
-            CreatePromoDialog(
+            CreatePromoBottomSheet(
                 onDismiss = { showPromoDialog = false },
-                onCreate = { title, desc, discount, validTo, validFrom, code ->
-                    viewModel.createPromo(title, desc, discount, validTo, validFrom, code)
+                onPromoCreated = {
+                    viewModel.loadForCurrentSegment()
                     showPromoDialog = false
                 }
             )
@@ -542,68 +479,6 @@ fun DiscoverScreen(
             )
         }
     }
-}
-
-@Composable
-fun CreateAnnonceDialog(onDismiss: () -> Unit, onCreate: (String, String, String?) -> Unit) {
-    var title by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var city by remember { mutableStateOf("") }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(onClick = { onCreate(title, description, city.ifBlank { null }) }) {
-                Text("Publier")
-            }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Annuler") } },
-        title = { Text("Nouvelle annonce") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Titre") })
-                OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Description") })
-                OutlinedTextField(value = city, onValueChange = { city = it }, label = { Text("Ville") })
-            }
-        }
-    )
-}
-
-@Composable
-fun CreatePromoDialog(onDismiss: () -> Unit, onCreate: (String, String, Int, String, String?, String?) -> Unit) {
-    var title by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var discount by remember { mutableStateOf("10") }
-    var validFrom by remember { mutableStateOf("") }
-    var validTo by remember { mutableStateOf("") }
-    var code by remember { mutableStateOf("") }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(onClick = {
-                onCreate(
-                    title,
-                    description,
-                    discount.toIntOrNull() ?: 0,
-                    validTo,
-                    validFrom.ifBlank { null },
-                    code.ifBlank { null }
-                )
-            }) { Text("Publier") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Annuler") } },
-        title = { Text("Nouvelle promo") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Titre") })
-                OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Description") })
-                OutlinedTextField(value = discount, onValueChange = { discount = it }, label = { Text("Réduction (%)") })
-                OutlinedTextField(value = validFrom, onValueChange = { validFrom = it }, label = { Text("Début (ISO)") })
-                OutlinedTextField(value = validTo, onValueChange = { validTo = it }, label = { Text("Fin (ISO)") })
-                OutlinedTextField(value = code, onValueChange = { code = it }, label = { Text("Code promo (optionnel)") })
-            }
-        }
-    )
 }
 
 @Composable
@@ -838,15 +713,26 @@ fun ActionButtons(onPass: () -> Unit, onLike: () -> Unit, onMessage: () -> Unit)
 
 // Reusable Cards for Lists
 @Composable
-fun AnnonceDiscoverCard(annonce: Annonce) {
+fun AnnonceDiscoverCard(annonce: Annonce, onClick: () -> Unit = {}) {
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column {
-             Box(Modifier.height(150.dp).fillMaxWidth().background(Color.LightGray)) // Placeholder img
+             if (annonce.imageUrl?.isNotBlank() == true) {
+                 AsyncImage(
+                     model = annonce.imageUrl,
+                     contentDescription = annonce.title,
+                     modifier = Modifier.height(150.dp).fillMaxWidth(),
+                     contentScale = ContentScale.Crop
+                 )
+             } else {
+                 Box(Modifier.height(150.dp).fillMaxWidth().background(Color.LightGray))
+             }
              Column(Modifier.padding(16.dp)) {
                  Text(annonce.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                  Text(annonce.description, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, style = MaterialTheme.typography.bodyMedium)
@@ -869,15 +755,26 @@ fun AnnonceDiscoverCard(annonce: Annonce) {
 }
 
 @Composable
-fun PromoDiscoverCard(promo: Promo) {
+fun PromoDiscoverCard(promo: Promo, onClick: () -> Unit = {}) {
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
          Column {
-             Box(Modifier.height(150.dp).fillMaxWidth().background(Color.LightGray)) // Placeholder img
+             if (promo.imageUrl?.isNotBlank() == true) {
+                 AsyncImage(
+                     model = promo.imageUrl,
+                     contentDescription = promo.title,
+                     modifier = Modifier.height(150.dp).fillMaxWidth(),
+                     contentScale = ContentScale.Crop
+                 )
+             } else {
+                 Box(Modifier.height(150.dp).fillMaxWidth().background(Color.LightGray))
+             }
              Column(Modifier.padding(16.dp)) {
                  Text(promo.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                  Row {
@@ -893,7 +790,3 @@ fun PromoDiscoverCard(promo: Promo) {
         }
     }
 }
-
-// Extension to support spacing in Row (since we don't have Arragement.spacedBy inside Row constructor easily without modifier)
-// wait, Row has horizontalArrangement. We used Row(spacing=8.dp) which is invalid compose syntax.
-// I must fix `Row(spacing = 8.dp)` to standard Row with Arrangement.

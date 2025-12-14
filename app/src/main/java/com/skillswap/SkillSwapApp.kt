@@ -304,7 +304,7 @@ fun SkillSwapApp() {
                 NavHost(
                     navController = navController, 
                     startDestination = startDestination,
-                    modifier = Modifier.padding(bottom = if (showBottomBar) 0.dp else 0.dp) // Handle padding manually if needed, or let content flow behind
+                    modifier = Modifier.padding(bottom = if (showBottomBar) 100.dp else 0.dp)
                 ) {
                     composable("auth") {
                         AuthScreen(onLoginSuccess = {
@@ -506,9 +506,10 @@ fun SkillSwapApp() {
                         arguments = listOf(navArgument("promoId") { type = NavType.StringType })
                     ) { backStackEntry ->
                         val promoId = backStackEntry.arguments?.getString("promoId") ?: return@composable
-                        // Load promo and show detail screen
-                        // For now, we need to pass the promo object - this is a placeholder
-                        // In production, you'd fetch the promo by ID from the viewModel
+                        com.skillswap.ui.promos.PromoDetailScreen(
+                            promoId = promoId,
+                            onBack = { navController.popBackStack() }
+                        )
                     }
                     
                     composable(
@@ -516,8 +517,10 @@ fun SkillSwapApp() {
                         arguments = listOf(navArgument("annonceId") { type = NavType.StringType })
                     ) { backStackEntry ->
                         val annonceId = backStackEntry.arguments?.getString("annonceId") ?: return@composable
-                        // Load annonce and show detail screen
-                        // Similar to promo detail
+                        com.skillswap.ui.annonces.AnnonceDetailScreen(
+                            annonceId = annonceId,
+                            onBack = { navController.popBackStack() }
+                        )
                     }
                 }
 

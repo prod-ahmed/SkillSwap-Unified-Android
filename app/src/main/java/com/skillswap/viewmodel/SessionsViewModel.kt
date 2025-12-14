@@ -303,13 +303,19 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
             _selectedSession.value = existingSession
             _isLoading.value = false
         } else {
-            // In production, fetch from API
+            val token = sharedPreferences.getString("auth_token", null)
+            if (token == null) {
+                _errorMessage.value = "User not logged in"
+                _isLoading.value = false
+                return
+            }
             viewModelScope.launch {
                 try {
-                    // For now, just set loading to false
-                    _isLoading.value = false
+                    val session = NetworkService.api.getSession("Bearer $token", sessionId)
+                    _selectedSession.value = session
                 } catch (e: Exception) {
                     _errorMessage.value = e.message
+                } finally {
                     _isLoading.value = false
                 }
             }

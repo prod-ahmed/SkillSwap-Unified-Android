@@ -190,6 +190,16 @@ class AnnoncesViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    suspend fun getAnnonceById(id: String): Annonce? {
+        val token = sharedPreferences.getString("auth_token", null) ?: return null
+        return try {
+            val annonce = NetworkService.api.getAnnonce("Bearer $token", id)
+            withAbsoluteImage(annonce)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     private fun withAbsoluteImage(annonce: Annonce): Annonce {
         val url = annonce.imageUrl
         val absolute = if (!url.isNullOrBlank() && !(url.startsWith("http://") || url.startsWith("https://"))) {

@@ -50,6 +50,12 @@ interface SkillSwapApi {
         @Part image: MultipartBody.Part
     ): User
 
+    @GET("/sessions/{id}")
+    suspend fun getSession(
+        @Header("Authorization") token: String,
+        @Path("id") id: String
+    ): Session
+
     @GET("/sessions/me")
     suspend fun getSessions(@Header("Authorization") token: String): List<Session>
     
@@ -252,8 +258,20 @@ interface SkillSwapApi {
     @GET("/users")
     suspend fun getUsers(@Header("Authorization") token: String): List<User>
     
+    @GET("/annonces/{id}")
+    suspend fun getAnnonce(
+        @Header("Authorization") token: String,
+        @Path("id") id: String
+    ): Annonce
+
     @GET("/annonces")
     suspend fun getAllAnnonces(@Header("Authorization") token: String): List<Annonce>
+
+    @GET("/promos/{id}")
+    suspend fun getPromo(
+        @Header("Authorization") token: String,
+        @Path("id") id: String
+    ): Promo
 
     @GET("/promos")
     suspend fun getAllPromos(@Header("Authorization") token: String): List<Promo>

@@ -192,6 +192,16 @@ class PromosViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    suspend fun getPromoById(id: String): Promo? {
+        val token = sharedPreferences.getString("auth_token", null) ?: return null
+        return try {
+            val promo = NetworkService.api.getPromo("Bearer $token", id)
+            withAbsoluteImage(promo)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     private suspend fun isImageSafe(token: String, media: MediaPayload): Boolean {
         return try {
             val base64 = android.util.Base64.encodeToString(media.bytes, android.util.Base64.NO_WRAP)
