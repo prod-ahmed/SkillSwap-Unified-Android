@@ -31,10 +31,12 @@ import com.skillswap.ui.theme.OrangePrimary
 fun SettingsScreen(navController: NavController) {
     val context = LocalContext.current
     val sharedPrefs = context.getSharedPreferences("SkillSwapPrefs", android.content.Context.MODE_PRIVATE)
+    val themeManager = remember { com.skillswap.util.ThemeManager.getInstance(context) }
+    val localizationManager = remember { com.skillswap.util.LocalizationManager.getInstance(context) }
     
-    var currentLanguage by remember { 
-        mutableStateOf(sharedPrefs.getString("app_language", "fr") ?: "fr") 
-    }
+    val currentTheme by themeManager.themePreference
+    val currentLanguage by localizationManager.currentLanguage
+    
     var notificationsEnabled by remember { 
         mutableStateOf(sharedPrefs.getBoolean("notifications_enabled", true)) 
     }
@@ -120,19 +122,56 @@ fun SettingsScreen(navController: NavController) {
                 SettingsItem(
                     icon = Icons.Default.Language,
                     title = "Langue",
-                    subtitle = when(currentLanguage) {
-                        "fr" -> "Français"
-                        "ar" -> "العربية"
-                        else -> "English"
-                    },
+                    subtitle = currentLanguage.displayName,
                     onClick = { showLanguagePicker = true }
                 )
-                SettingsItem(
-                    icon = Icons.Default.ExitToApp,
-                    title = "Déconnexion",
-                    subtitle = "Se déconnecter du compte",
-                    onClick = { showLogoutDialog = true }
-                )
+            }
+            
+            Spacer(Modifier.height(24.dp))
+            
+            SettingsSection("Apparence") {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Text(
+                        "Thème",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "Choisissez un thème clair, sombre ou suivez le système",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Gray
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        ThemeOption(
+                            title = "Système",
+                            isSelected = currentTheme == com.skillswap.util.ThemePreference.SYSTEM,
+                            onClick = { themeManager.setTheme(com.skillswap.util.ThemePreference.SYSTEM) },
+                            modifier = Modifier.weight(1f)
+                        )
+                        ThemeOption(
+                            title = "Clair",
+                            isSelected = currentTheme == com.skillswap.util.ThemePreference.LIGHT,
+                            onClick = { themeManager.setTheme(com.skillswap.util.ThemePreference.LIGHT) },
+                            modifier = Modifier.weight(1f)
+                        )
+                        ThemeOption(
+                            title = "Sombre",
+                            isSelected = currentTheme == com.skillswap.util.ThemePreference.DARK,
+                            onClick = { themeManager.setTheme(com.skillswap.util.ThemePreference.DARK) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
             }
             
             Spacer(Modifier.height(24.dp))
@@ -195,6 +234,17 @@ fun SettingsScreen(navController: NavController) {
             
             Spacer(Modifier.height(24.dp))
             
+            SettingsSection("Compte") {
+                SettingsItem(
+                    icon = Icons.Default.ExitToApp,
+                    title = "Déconnexion",
+                    subtitle = "Se déconnecter du compte",
+                    onClick = { showLogoutDialog = true }
+                )
+            }
+            
+            Spacer(Modifier.height(24.dp))
+            
             SettingsSection("À propos") {
                 SettingsItem(
                     icon = Icons.Default.Info,
@@ -211,13 +261,38 @@ fun SettingsScreen(navController: NavController) {
             currentLanguage = currentLanguage,
             onDismiss = { showLanguagePicker = false },
             onLanguageSelected = { lang ->
-                currentLanguage = lang
-                sharedPrefs.edit()
-                    .putString("app_language", lang)
-                    .apply()
+                localizationManager.setLanguage(lang)
                 showLanguagePicker = false
             }
         )
+    }
+}
+
+@Composable
+fun ThemeOption(
+    title: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(8.dp),
+        color = if (isSelected) OrangePrimary.copy(alpha = 0.15f) else Color(0xFFF2F2F7),
+        border = if (isSelected) androidx.compose.foundation.BorderStroke(2.dp, OrangePrimary) else null,
+        onClick = onClick
+    ) {
+        Box(
+            modifier = Modifier.padding(vertical = 12.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                title,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                color = if (isSelected) OrangePrimary else Color.Gray
+            )
+        }
     }
 }
 
@@ -281,18 +356,41 @@ fun SettingsItem(
 
 @Composable
 fun LanguagePickerDialog(
-    currentLanguage: String,
+    currentLanguage: com.skillswap.util.AppLanguage,
     onDismiss: () -> Unit,
-    onLanguageSelected: (String) -> Unit
+    onLanguageSelected: (com.skillswap.util.AppLanguage) -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Choisir la langue") },
         text = {
             Column {
-                LanguageOption("fr", "Français", currentLanguage, onLanguageSelected)
-                LanguageOption("en", "English", currentLanguage, onLanguageSelected)
-                LanguageOption("ar", "العربية", currentLanguage, onLanguageSelected)
+                com.skillswap.util.AppLanguage.values().forEach { lang ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { 
+                                onLanguageSelected(lang)
+                                onDismiss()
+                            }
+                            .padding(vertical = 12.dp, horizontal = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(lang.flag, style = MaterialTheme.typography.headlineSmall)
+                            Spacer(Modifier.width(12.dp))
+                            Text(lang.displayName, style = MaterialTheme.typography.bodyLarge)
+                        }
+                        if (lang == currentLanguage) {
+                            Icon(
+                                Icons.Default.Check,
+                                contentDescription = "Selected",
+                                tint = OrangePrimary
+                            )
+                        }
+                    }
+                }
             }
         },
         confirmButton = {
@@ -301,30 +399,4 @@ fun LanguagePickerDialog(
             }
         }
     )
-}
-
-@Composable
-fun LanguageOption(
-    code: String,
-    name: String,
-    currentLanguage: String,
-    onSelect: (String) -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onSelect(code) }
-            .padding(vertical = 12.dp, horizontal = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(name, style = MaterialTheme.typography.bodyLarge)
-        if (code == currentLanguage) {
-            Icon(
-                Icons.Default.Check,
-                contentDescription = "Selected",
-                tint = OrangePrimary
-            )
-        }
-    }
 }
