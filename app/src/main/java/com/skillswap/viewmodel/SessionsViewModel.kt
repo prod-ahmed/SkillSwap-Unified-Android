@@ -75,10 +75,12 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
     fun createSession(
         title: String,
         skill: String,
-        studentEmail: String,
+        studentEmail: String? = null,
+        studentEmails: List<String>? = null,
         date: String,
         duration: Int,
         meetingLink: String?,
+        location: String? = null,
         notes: String?,
         addToCalendar: Boolean = true
     ) {
@@ -94,9 +96,11 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
                         title = title,
                         skill = skill,
                         studentEmail = studentEmail,
+                        studentEmails = studentEmails,
                         date = date,
                         duration = duration,
                         meetingLink = meetingLink,
+                        location = location,
                         notes = notes
                     )
                 )
@@ -113,13 +117,21 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
                             } else date
                         }
                         
+                        val participants = when {
+                            studentEmails != null -> studentEmails
+                            studentEmail != null -> listOf(studentEmail)
+                            else -> emptyList()
+                        }
+                        
                         NetworkService.api.createCalendarEvent(
                             "Bearer $token",
                             com.skillswap.model.CreateEventRequest(
                                 title = "Session: $title",
-                                description = "Session de $skill avec $studentEmail. ${notes ?: ""}",
+                                description = "Session de $skill. ${notes ?: ""}",
                                 startTime = date,
                                 endTime = endTime,
+                                location = location,
+                                participants = participants.ifEmpty { null },
                                 sessionId = created.id,
                                 syncToGoogle = true
                             )

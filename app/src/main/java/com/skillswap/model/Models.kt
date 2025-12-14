@@ -92,10 +92,12 @@ data class RateSessionRequest(
 data class CreateSessionRequest(
     val title: String,
     val skill: String,
-    val studentEmail: String,
+    val studentEmail: String? = null,
+    val studentEmails: List<String>? = null,
     val date: String,
     val duration: Int,
     val meetingLink: String? = null,
+    val location: String? = null,
     val notes: String? = null
 )
 
