@@ -91,6 +91,43 @@ sealed class Screen(val route: String, val title: String, val icon: String) {
     object ReferralCodeGeneration : Screen("referral_code_generation", "Code Parrainage", "")
     object ProfileEdit : Screen("profile_edit", "Modifier Profil", "")
 }
+@Composable
+fun RowScope.CustomBottomNavigationItem(
+    screen: Screen,
+    isSelected: Boolean,
+    activeColor: Color,
+    icon: ImageVector,
+    onClick: () -> Unit
+) {
+    androidx.compose.material3.TextButton(
+        onClick = onClick,
+        colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
+            contentColor = if (isSelected) activeColor else Color.Gray,
+            containerColor = if (isSelected) activeColor.copy(alpha = 0.12f) else Color.Transparent
+        ),
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(18.dp),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 10.dp, horizontal = 0.dp),
+        modifier = Modifier.defaultMinSize(minWidth = 1.dp).weight(1f)
+    ) {
+        androidx.compose.foundation.layout.Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = screen.title,
+                modifier = Modifier.size(20.dp)
+            )
+            androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = screen.title,
+                style = MaterialTheme.typography.labelSmall,
+                fontSize = 10.sp,
+                fontWeight = if (isSelected) androidx.compose.ui.text.font.FontWeight.SemiBold else androidx.compose.ui.text.font.FontWeight.Normal
+            )
+        }
+    }
+}
 
 @Composable
 fun SkillSwapApp() {
@@ -435,45 +472,4 @@ fun SkillSwapApp() {
     }
 }
 
-@Composable
-private fun RowScope.CustomBottomNavigationItem(
-    screen: Screen,
-    isSelected: Boolean,
-    activeColor: Color,
-    icon: ImageVector,
-    onClick: () -> Unit
-) {
-    // val background = if (isSelected) activeColor.copy(alpha = 0.12f) else Color.Transparent
-    // Fix: Color.Transparent
-    
-    androidx.compose.material3.TextButton(
-        onClick = onClick,
-        colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
-            contentColor = if (isSelected) activeColor else Color.Gray,
-            containerColor = if (isSelected) activeColor.copy(alpha = 0.12f) else Color.Transparent
-        ),
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(18.dp),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 10.dp, horizontal = 0.dp),
-        modifier = Modifier.defaultMinSize(minWidth = 1.dp) // Hug content better?
-            .weight(1f) // Distribute evenly
-    ) {
-         androidx.compose.foundation.layout.Column(
-             horizontalAlignment = Alignment.CenterHorizontally,
-             verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center
-         ) {
-             Icon(
-                 imageVector = icon,
-                 contentDescription = screen.title,
-                 modifier = Modifier.size(20.dp)
-             )
-             androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(4.dp))
-             Text(
-                 text = screen.title,
-                 style = MaterialTheme.typography.labelSmall,
-                 fontSize = 10.sp,
-                 fontWeight = if (isSelected) androidx.compose.ui.text.font.FontWeight.SemiBold else androidx.compose.ui.text.font.FontWeight.Normal
-             )
-         }
-    }
-}
 }
