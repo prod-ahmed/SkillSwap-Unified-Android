@@ -37,6 +37,8 @@ android {
         buildConfigField("String", "GOOGLE_CLIENT_ID", "\"${envValue("GOOGLE_CLIENT_ID", "")}\"")
         buildConfigField("String", "OPENAI_API_KEY", "\"${envValue("OPENAI_API_KEY", "")}\"")
         buildConfigField("String", "GEMINI_API_KEY", "\"${envValue("GEMINI_API_KEY", "")}\"")
+        buildConfigField("String", "CLOUDFLARE_WORKERS_AI_API_KEY", "\"${envValue("CLOUDFLARE_WORKERS_AI_API_KEY", "")}\"")
+        buildConfigField("String", "CLOUDFLARE_ACCOUNT_ID", "\"${envValue("CLOUDFLARE_ACCOUNT_ID", "")}\"")
         manifestPlaceholders["MAPS_API_KEY"] = envValue("SKILLSWAP_MAPS_API_KEY", "")
     }
 
