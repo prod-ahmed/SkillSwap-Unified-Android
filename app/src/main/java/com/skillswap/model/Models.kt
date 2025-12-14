@@ -42,7 +42,7 @@ data class UserLocation(
 
 data class Session(
     @SerializedName("_id") val id: String,
-    val teacher: SessionUserSummary,
+    val teacher: SessionUserSummary?,
     val student: SessionUserSummary?,
     val students: List<SessionUserSummary>?,
     val skill: String,
@@ -61,14 +61,14 @@ data class Session(
     val members: List<SessionUserSummary>
         get() {
             val membersList = mutableListOf<SessionUserSummary>()
-            membersList.add(teacher)
+            teacher?.let { membersList.add(it) }
             student?.let { membersList.add(it) }
             students?.let { membersList.addAll(it) }
             return membersList.distinctBy { it.id }
         }
         
     val displayImage: String?
-        get() = teacher.avatarUrl ?: teacher.image
+        get() = teacher?.avatarUrl ?: teacher?.image
 }
 
 data class SessionUserSummary(

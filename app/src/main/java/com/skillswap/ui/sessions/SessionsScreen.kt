@@ -151,7 +151,7 @@ fun SessionsScreen(
                         val context = LocalContext.current
                         val prefs = context.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
                         val currentUserId = prefs.getString("user_id", "") ?: ""
-                        val isCreator = session.teacher.id == currentUserId
+                        val isCreator = session.teacher?.id == currentUserId
                         
                         com.skillswap.ui.sessions.SessionCard(
                             session = session,
@@ -422,7 +422,7 @@ fun SessionCard(
     val context = LocalContext.current
     val formattedDate = remember(session.date) { formatSessionDate(session.date) }
     val formattedTime = remember(session.date) { formatSessionTime(session.date) }
-    val teacherInitial = session.teacher.username.firstOrNull()?.uppercaseChar()?.toString() ?: "?"
+    val teacherInitial = session.teacher?.username?.firstOrNull()?.uppercaseChar()?.toString() ?: "?"
     Card(
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
@@ -438,10 +438,10 @@ fun SessionCard(
                         .background(Color(0xFF5C52BF).copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (session.teacher.avatarUrl?.isNotBlank() == true) {
+                    if (session.teacher?.avatarUrl?.isNotBlank() == true) {
                         AsyncImage(
                             model = session.teacher.avatarUrl,
-                            contentDescription = "Avatar de ${session.teacher.username}",
+                            contentDescription = "Avatar de ${session.teacher?.username ?: ""}",
                             modifier = Modifier.fillMaxSize().clip(CircleShape),
                             contentScale = ContentScale.Crop
                         )
@@ -451,7 +451,7 @@ fun SessionCard(
                 }
                 Spacer(Modifier.width(12.dp))
                 Column {
-                    Text(session.teacher.username, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(session.teacher?.username ?: "Inconnu", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Text(session.title, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }

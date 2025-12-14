@@ -215,10 +215,10 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
     fun rateSession(session: Session, rating: Int, comment: String?) {
         val token = sharedPreferences.getString("auth_token", null) ?: return
         val me = sharedPreferences.getString("user_id", null)
-        val ratedUserId = if (me == session.teacher.id) {
+        val ratedUserId = if (me == session.teacher?.id) {
             session.student?.id
         } else {
-            session.teacher.id
+            session.teacher?.id
         }
         if (ratedUserId == null) {
             _errorMessage.value = "Impossible d'identifier l'utilisateur à noter"

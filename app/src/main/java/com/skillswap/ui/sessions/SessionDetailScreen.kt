@@ -206,11 +206,13 @@ fun SessionDetailScreen(
                             )
                             Spacer(modifier = Modifier.height(12.dp))
                             
-                            ParticipantRow(
-                                name = sess.teacher.username,
-                                role = "Enseignant",
-                                imageUrl = sess.teacher.avatarUrl
-                            )
+                            sess.teacher?.let { teacher ->
+                                ParticipantRow(
+                                    name = teacher.username,
+                                    role = "Enseignant",
+                                    imageUrl = teacher.avatarUrl
+                                )
+                            }
                             
                             sess.student?.let { student ->
                                 Spacer(modifier = Modifier.height(8.dp))
