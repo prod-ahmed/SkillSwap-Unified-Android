@@ -363,6 +363,23 @@ fun SkillSwapApp() {
                     }
                     
                     composable(
+                        route = "session_detail/{sessionId}",
+                        arguments = listOf(navArgument("sessionId") { type = NavType.StringType })
+                    ) { backStackEntry ->
+                        val sessionId = backStackEntry.arguments?.getString("sessionId") ?: return@composable
+                        com.skillswap.ui.sessions.SessionDetailScreen(
+                            sessionId = sessionId,
+                            onBack = { navController.popBackStack() },
+                            onOpenLessonPlan = { sessionId ->
+                                navController.navigate("lesson_plan/$sessionId")
+                            },
+                            onRate = { session ->
+                                // Handle rating
+                            }
+                        )
+                    }
+                    
+                    composable(
                         route = Screen.ChatDetail.route,
                         arguments = listOf(navArgument("conversationId") { type = NavType.StringType })
                     ) { backStackEntry ->
