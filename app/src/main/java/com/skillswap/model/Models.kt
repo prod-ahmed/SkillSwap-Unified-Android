@@ -46,14 +46,30 @@ data class Session(
     val student: SessionUserSummary?,
     val students: List<SessionUserSummary>?,
     val skill: String,
+    val skills: List<String> = listOf(),
     val title: String,
     val date: String, // Keep as String to avoid parsing issues, parse in UI
     val duration: Int,
     val status: String,
     val location: String?,
+    val mode: String? = "in-person", // online or in-person
+    val link: String? = null, // meeting link for online sessions
     val rescheduleRequest: RescheduleStatus?,
     val meetingLink: String? = null
-)
+) {
+    // Computed property for members list
+    val members: List<SessionUserSummary>
+        get() {
+            val membersList = mutableListOf<SessionUserSummary>()
+            membersList.add(teacher)
+            student?.let { membersList.add(it) }
+            students?.let { membersList.addAll(it) }
+            return membersList.distinctBy { it.id }
+        }
+        
+    val displayImage: String?
+        get() = teacher.avatarUrl ?: teacher.image
+}
 
 data class SessionUserSummary(
     @SerializedName("_id") val id: String,
@@ -61,7 +77,10 @@ data class SessionUserSummary(
     val email: String,
     val image: String?,
     val avatarUrl: String?
-)
+) {
+    val displayImage: String?
+        get() = avatarUrl ?: image
+}
 
 data class RescheduleStatus(
     val proposedDate: String?,
