@@ -114,7 +114,9 @@ fun ProgressScreen(
                         }
                     } else {
                         data.goals.forEach { goal ->
-                            GoalCard(goal, onDelete = { viewModel.deleteGoal(goal.id) })
+                            GoalCard(goal, onDelete = { 
+                                goal.id?.let { viewModel.deleteGoal(it) }
+                            })
                             Spacer(Modifier.height(8.dp))
                         }
                     }

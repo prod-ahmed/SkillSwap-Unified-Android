@@ -435,7 +435,7 @@ data class ProgressStats(
 )
 
 data class ProgressGoalItem(
-    @SerializedName("_id") val id: String,
+    @SerializedName("_id") val id: String?,
     val title: String,
     val targetHours: Double,
     val currentHours: Double,
