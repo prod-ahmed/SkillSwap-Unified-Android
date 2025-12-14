@@ -179,7 +179,17 @@ fun SessionsScreen(
         CreateSessionDialog(
             onDismiss = { showCreate = false },
             onCreate = { title, skill, studentEmail, date, duration, meetingLink, notes ->
-                viewModel.createSession(title, skill, studentEmail, date, duration, meetingLink, notes)
+                viewModel.createSession(
+                    title = title,
+                    skill = skill,
+                    studentEmail = studentEmail,
+                    studentEmails = null,
+                    date = date,
+                    duration = duration,
+                    meetingLink = meetingLink,
+                    location = null,
+                    notes = notes
+                )
                 showCreate = false
             }
         )
