@@ -286,7 +286,13 @@ fun CreateSessionScreen(
                     }
                     
                     3 -> {
-                        // Step 3: Invitations
+                        // Step 3: Invitations with User Search
+                        val searchResults by viewModel.searchResults.collectAsState()
+                        val isSearching by viewModel.isSearching.collectAsState()
+                        val availabilityStatus by viewModel.availabilityStatus.collectAsState()
+                        var selectedUserId by remember { mutableStateOf<String?>(null) }
+                        var searchQuery by remember { mutableStateOf("") }
+                        
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -294,7 +300,106 @@ fun CreateSessionScreen(
                         ) {
                             Column(modifier = Modifier.padding(16.dp)) {
                                 Text(
-                                    "Email de l'étudiant",
+                                    "Rechercher un participant",
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 14.sp
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                OutlinedTextField(
+                                    value = searchQuery,
+                                    onValueChange = { 
+                                        searchQuery = it
+                                        viewModel.searchUsers(it)
+                                    },
+                                    placeholder = { Text("Nom ou email...") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    trailingIcon = {
+                                        if (isSearching) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(20.dp),
+                                                strokeWidth = 2.dp
+                                            )
+                                        }
+                                    }
+                                )
+                                
+                                // Search Results
+                                if (searchResults.isNotEmpty()) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .background(Color(0xFFF5F5F5), RoundedCornerShape(8.dp))
+                                            .padding(8.dp)
+                                    ) {
+                                        searchResults.take(5).forEach { user ->
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clickable {
+                                                        studentEmail = user.email
+                                                        selectedUserId = user.id
+                                                        searchQuery = user.username
+                                                        viewModel.clearSearchResults()
+                                                        // Check availability
+                                                        val dateFormat = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
+                                                        viewModel.checkAvailability(user.id, dateFormat.format(selectedDate))
+                                                    }
+                                                    .padding(vertical = 8.dp, horizontal = 4.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(32.dp)
+                                                        .clip(CircleShape)
+                                                        .background(OrangePrimary.copy(alpha = 0.1f)),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(
+                                                        user.username.take(1).uppercase(),
+                                                        color = OrangePrimary,
+                                                        fontWeight = FontWeight.Bold
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.width(12.dp))
+                                                Column {
+                                                    Text(user.username, fontWeight = FontWeight.Medium)
+                                                    Text(user.email, fontSize = 12.sp, color = Color.Gray)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                // Availability Status
+                                availabilityStatus?.let { status ->
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .background(
+                                                if (status.available) Color(0xFFE8F5E9) else Color(0xFFFFEBEE),
+                                                RoundedCornerShape(8.dp)
+                                            )
+                                            .padding(12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            if (status.available) Icons.Default.CheckCircle else Icons.Default.Cancel,
+                                            contentDescription = null,
+                                            tint = if (status.available) Color(0xFF4CAF50) else Color(0xFFF44336)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            status.message ?: if (status.available) "Disponible" else "Non disponible",
+                                            color = if (status.available) Color(0xFF2E7D32) else Color(0xFFC62828)
+                                        )
+                                    }
+                                }
+                                
+                                Spacer(modifier = Modifier.height(16.dp))
+                                
+                                Text(
+                                    "Ou entrer l'email directement",
                                     fontWeight = FontWeight.SemiBold,
                                     fontSize = 14.sp
                                 )

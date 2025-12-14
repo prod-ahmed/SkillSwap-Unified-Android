@@ -61,6 +61,21 @@ interface SkillSwapApi {
         @Header("Authorization") token: String,
         @Body body: CreateSessionRequest
     ): Session
+    
+    @GET("/sessions/availability")
+    suspend fun checkAvailability(
+        @Header("Authorization") token: String,
+        @Query("userId") userId: String,
+        @Query("date") date: String
+    ): AvailabilityResponse
+    
+    @GET("/users/search")
+    suspend fun searchUsers(
+        @Header("Authorization") token: String,
+        @Query("q") query: String,
+        @Query("limit") limit: Int? = 10
+    ): List<User>
+    
     @PATCH("/sessions/{id}/status")
     suspend fun updateSessionStatus(
         @Header("Authorization") token: String,

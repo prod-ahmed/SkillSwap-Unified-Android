@@ -307,4 +307,56 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
             }
         }
     }
+    
+    // --- User Search & Availability ---
+    private val _searchResults = MutableStateFlow<List<com.skillswap.model.User>>(emptyList())
+    val searchResults: StateFlow<List<com.skillswap.model.User>> = _searchResults.asStateFlow()
+    
+    private val _isSearching = MutableStateFlow(false)
+    val isSearching: StateFlow<Boolean> = _isSearching.asStateFlow()
+    
+    private val _availabilityStatus = MutableStateFlow<com.skillswap.model.AvailabilityResponse?>(null)
+    val availabilityStatus: StateFlow<com.skillswap.model.AvailabilityResponse?> = _availabilityStatus.asStateFlow()
+    
+    fun searchUsers(query: String) {
+        if (query.length < 2) {
+            _searchResults.value = emptyList()
+            return
+        }
+        val token = sharedPreferences.getString("auth_token", null) ?: return
+        viewModelScope.launch {
+            _isSearching.value = true
+            try {
+                val results = NetworkService.api.searchUsers("Bearer $token", query, 10)
+                _searchResults.value = results
+            } catch (e: Exception) {
+                _searchResults.value = emptyList()
+            } finally {
+                _isSearching.value = false
+            }
+        }
+    }
+    
+    fun clearSearchResults() {
+        _searchResults.value = emptyList()
+    }
+    
+    fun checkAvailability(userId: String, date: String) {
+        val token = sharedPreferences.getString("auth_token", null) ?: return
+        viewModelScope.launch {
+            try {
+                val result = NetworkService.api.checkAvailability("Bearer $token", userId, date)
+                _availabilityStatus.value = result
+            } catch (e: Exception) {
+                _availabilityStatus.value = com.skillswap.model.AvailabilityResponse(
+                    available = false,
+                    message = "Impossible de vérifier: ${e.message}"
+                )
+            }
+        }
+    }
+    
+    fun clearAvailability() {
+        _availabilityStatus.value = null
+    }
 }

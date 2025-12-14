@@ -73,11 +73,47 @@ class QuizService {
         isLenient = true
     }
     
-    suspend fun generateQuiz(subject: String, level: Int): List<QuizQuestion> = withContext(Dispatchers.IO) {
+    // Simple in-memory cache
+    private val cache = mutableMapOf<String, Pair<Long, List<QuizQuestion>>>()
+    private val cacheTTL = 10 * 60 * 1000L // 10 minutes
+    
+    private fun cacheKey(subject: String, level: Int) = "$subject-$level"
+    
+    suspend fun generateQuiz(subject: String, level: Int, forceRefresh: Boolean = false): List<QuizQuestion> = withContext(Dispatchers.IO) {
         if (apiKey.isBlank()) {
             throw Exception("OpenAI API Key is missing. Please add SKILLSWAP_OPENAI_API_KEY to your .env file.")
         }
-
+        
+        val key = cacheKey(subject, level)
+        
+        // Check cache first
+        if (!forceRefresh) {
+            cache[key]?.let { (timestamp, questions) ->
+                if (System.currentTimeMillis() - timestamp < cacheTTL) {
+                    return@withContext questions
+                }
+            }
+        }
+        
+        // Retry logic
+        var lastException: Exception? = null
+        repeat(3) { attempt ->
+            try {
+                val questions = fetchQuizFromApi(subject, level)
+                cache[key] = System.currentTimeMillis() to questions
+                return@withContext questions
+            } catch (e: Exception) {
+                lastException = e
+                if (attempt < 2) {
+                    kotlinx.coroutines.delay(1000L * (attempt + 1)) // Exponential backoff
+                }
+            }
+        }
+        
+        throw lastException ?: Exception("Failed to generate quiz after 3 attempts")
+    }
+    
+    private fun fetchQuizFromApi(subject: String, level: Int): List<QuizQuestion> {
         val prompt = """
             Generate a quiz about "$subject" for level $level (where 1 is beginner and 10 is expert).
             Create 5 multiple choice questions.
@@ -130,7 +166,11 @@ class QuizService {
             .replace("```", "")
             .trim()
         
-        json.decodeFromString<List<QuizQuestion>>(cleanContent)
+        return json.decodeFromString<List<QuizQuestion>>(cleanContent)
+    }
+    
+    fun clearCache() {
+        cache.clear()
     }
     
     companion object {

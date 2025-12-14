@@ -570,3 +570,9 @@ data class ModerationResult(
     val categories: List<String>? = null,
     val message: String? = null
 )
+
+data class AvailabilityResponse(
+    val available: Boolean,
+    val slots: List<String>? = null,
+    val message: String? = null
+)
