@@ -15,11 +15,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.navigation.NavController
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
-import androidx.navigation.NavBackStackEntry
-import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -59,7 +56,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import android.content.Context
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
@@ -67,9 +63,9 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalLayoutDirection
 import com.skillswap.network.ChatSocketClient
 import com.skillswap.auth.AuthenticationManager
+import com.skillswap.security.SecureStorage
 import com.skillswap.util.LocalizationManager
 import com.skillswap.util.ThemeManager
-import com.skillswap.util.DeepLinkHandler
 
 sealed class Screen(val route: String, val title: String, val icon: String) {
     object Discover : Screen("discover", "Découvrir", "house.fill")
@@ -137,6 +133,35 @@ fun SkillSwapApp() {
     val authManager = remember { AuthenticationManager.getInstance(context) }
     val localizationManager = remember { LocalizationManager.getInstance(context) }
     val themeManager = remember { ThemeManager.getInstance(context) }
+    val securePrefs = remember { SecureStorage.getInstance(context) }
+    val currentUser by authManager.currentUser.collectAsState()
+    val isAuthenticated by authManager.isAuthenticated
+    var hasSeenOnboarding by remember { mutableStateOf(securePrefs.getBoolean("onboarding_done", false)) }
+    var hasCompletedProfile by remember { mutableStateOf(securePrefs.getBoolean("profile_completed", false)) }
+    val hasValidSession = authManager.hasValidSession()
+    
+    LaunchedEffect(currentUser) {
+        val completedFromUser = currentUser?.let { !(it.skillsTeach.isNullOrEmpty() && it.skillsLearn.isNullOrEmpty()) }
+        val storedCompleted = securePrefs.getBoolean("profile_completed", false)
+        val resolved = completedFromUser ?: storedCompleted
+        if (hasCompletedProfile != resolved) {
+            hasCompletedProfile = resolved
+            securePrefs.edit().putBoolean("profile_completed", resolved).apply()
+        }
+    }
+    
+    LaunchedEffect(hasValidSession) {
+        if (!hasValidSession) {
+            securePrefs.edit().putBoolean("profile_completed", false).apply()
+            hasCompletedProfile = securePrefs.getBoolean("profile_completed", false)
+        }
+    }
+    
+    LaunchedEffect(isAuthenticated) {
+        if (!isAuthenticated) {
+            hasCompletedProfile = securePrefs.getBoolean("profile_completed", false)
+        }
+    }
     
     // Initialize Cloudflare AI Workers
     LaunchedEffect(Unit) {
@@ -152,14 +177,17 @@ fun SkillSwapApp() {
     }
     
     // Observe layout direction for RTL support
+    @Suppress("UNUSED_VARIABLE")
     val currentLanguage by localizationManager.currentLanguage
     val layoutDirection = localizationManager.layoutDirection
     
     // Initialize global socket listener for notifications
-    LaunchedEffect(Unit) {
-        val token = authManager.getToken()
-        if (!token.isNullOrEmpty()) {
-            ChatSocketClient.getInstance(context).connect()
+    LaunchedEffect(isAuthenticated, hasValidSession) {
+        val socketClient = ChatSocketClient.getInstance(context)
+        if (isAuthenticated && hasValidSession) {
+            socketClient.connect()
+        } else {
+            socketClient.disconnect()
         }
     }
 
@@ -168,67 +196,106 @@ fun SkillSwapApp() {
             val navController = rememberNavController()
             var showBottomBar by remember { mutableStateOf(false) }
             val callViewModel: CallViewModel = viewModel()
-            val startDestination = remember {
-                val prefs = context.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
-                val hasSeenOnboarding = prefs.getBoolean("onboarding_done", false)
-                val hasProfile = prefs.getBoolean("profile_completed", false)
-                val token = authManager.getToken()
-                
-                when {
+            val startDestination = when {
+                !hasSeenOnboarding -> "onboarding"
+                !isAuthenticated || !hasValidSession -> "auth"
+                !hasCompletedProfile -> "profile_setup"
+                else -> Screen.Discover.route
+            }
+            
+            LaunchedEffect(hasSeenOnboarding, hasCompletedProfile, hasValidSession, isAuthenticated) {
+                val target = when {
                     !hasSeenOnboarding -> "onboarding"
-                    token.isNullOrEmpty() || com.skillswap.util.TokenUtils.isTokenExpired(token) -> "auth"
-                    !hasProfile -> "profile_setup"
-                    else -> Screen.Discover.route
+                    !isAuthenticated || !hasValidSession -> "auth"
+                    !hasCompletedProfile -> "profile_setup"
+                    else -> null
                 }
-            }
-        
-        val navBackStackEntry by navController.currentBackStackEntryAsState()
-        val currentRoute = navBackStackEntry?.destination?.route
-        
-        // Handle deep links from notifications
-        val deepLinkType by MainActivity.deepLinkType
-        val deepLinkData by MainActivity.deepLinkData
-        
-        LaunchedEffect(deepLinkType, deepLinkData) {
-            if (deepLinkType != null) {
-                when (deepLinkType) {
-                    "chat" -> {
-                        val threadId = deepLinkData["threadId"]
-                        if (!threadId.isNullOrEmpty()) {
-                            navController.navigate(Screen.ChatDetail.createRoute(threadId))
-                        } else {
-                            navController.navigate(Screen.Messages.route)
+                val current = navController.currentDestination?.route
+                when {
+                    target == null -> {
+                        if (current in listOf("auth", "onboarding", "profile_setup")) {
+                            navController.navigate(Screen.Discover.route) {
+                                popUpTo(0) { inclusive = true }
+                            }
                         }
                     }
-                    "session" -> {
-                        val sessionId = deepLinkData["sessionId"]
-                        if (!sessionId.isNullOrEmpty()) {
-                            navController.navigate("session_detail/$sessionId")
-                        } else {
-                            navController.navigate(Screen.Sessions.route)
+                    current != target -> {
+                        navController.navigate(target) {
+                            popUpTo(0) { inclusive = true }
                         }
                     }
-                    "notification" -> {
-                        navController.navigate("notifications")
-                    }
                 }
-                // Clear after handling
-                MainActivity.deepLinkType.value = null
-                MainActivity.deepLinkData.value = emptyMap()
             }
-        }
-        
-        val bottomNavItems = listOf(
-            Screen.Discover,
-            Screen.Messages,
-            Screen.Sessions,
-            Screen.Progress,
-            Screen.Map,
-            Screen.Profile
-        )
+            
+            val navBackStackEntry by navController.currentBackStackEntryAsState()
+            val currentRoute = navBackStackEntry?.destination?.route
 
-        // Show BottomBar only on main screens
-        showBottomBar = currentRoute in bottomNavItems.map { it.route }
+            // Handle deep links from notifications
+            val deepLinkType by MainActivity.deepLinkType
+            val deepLinkData by MainActivity.deepLinkData
+            
+            LaunchedEffect(deepLinkType, deepLinkData, isAuthenticated, hasValidSession, hasCompletedProfile, hasSeenOnboarding) {
+                if (deepLinkType != null) {
+                    if (!hasSeenOnboarding) {
+                        navController.navigate("onboarding") {
+                            popUpTo(0) { inclusive = true }
+                        }
+                        return@LaunchedEffect
+                    }
+                    if (!isAuthenticated || !hasValidSession) {
+                        if (navController.currentDestination?.route != "auth") {
+                            navController.navigate("auth") {
+                                popUpTo(0) { inclusive = true }
+                            }
+                        }
+                        return@LaunchedEffect
+                    }
+                    if (!hasCompletedProfile) {
+                        if (navController.currentDestination?.route != "profile_setup") {
+                            navController.navigate("profile_setup") {
+                                popUpTo(0) { inclusive = true }
+                            }
+                        }
+                        return@LaunchedEffect
+                    }
+                    when (deepLinkType) {
+                        "chat" -> {
+                            val threadId = deepLinkData["threadId"]
+                            if (!threadId.isNullOrEmpty()) {
+                                navController.navigate(Screen.ChatDetail.createRoute(threadId))
+                            } else {
+                                navController.navigate(Screen.Messages.route)
+                            }
+                        }
+                        "session" -> {
+                            val sessionId = deepLinkData["sessionId"]
+                            if (!sessionId.isNullOrEmpty()) {
+                                navController.navigate("session_detail/$sessionId")
+                            } else {
+                                navController.navigate(Screen.Sessions.route)
+                            }
+                        }
+                        "notification" -> {
+                            navController.navigate("notifications")
+                        }
+                    }
+                    // Clear after handling
+                    MainActivity.deepLinkType.value = null
+                    MainActivity.deepLinkData.value = emptyMap()
+                }
+            }
+            
+            val bottomNavItems = listOf(
+                Screen.Discover,
+                Screen.Messages,
+                Screen.Sessions,
+                Screen.Progress,
+                Screen.Map,
+                Screen.Profile
+            )
+
+            // Show BottomBar only on main screens
+            showBottomBar = isAuthenticated && currentRoute in bottomNavItems.map { it.route }
 
         Scaffold(
             // Remove standard bottomBar from Scaffold as we overlay it
@@ -241,17 +308,17 @@ fun SkillSwapApp() {
                 ) {
                     composable("auth") {
                         AuthScreen(onLoginSuccess = {
-                            navController.navigate(Screen.Discover.route) {
+                            hasCompletedProfile = securePrefs.getBoolean("profile_completed", false)
+                            val destination = if (hasCompletedProfile) Screen.Discover.route else "profile_setup"
+                            navController.navigate(destination) {
                                 popUpTo("auth") { inclusive = true }
                             }
-                            context.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
-                                .edit().putBoolean("profile_completed", false).apply()
                         })
                     }
                     composable("onboarding") {
                         OnboardingScreen(onFinish = {
-                            val prefs = context.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
-                            prefs.edit().putBoolean("onboarding_done", true).apply()
+                            hasSeenOnboarding = true
+                            securePrefs.edit().putBoolean("onboarding_done", true).apply()
                             navController.navigate("auth") {
                                 popUpTo("onboarding") { inclusive = true }
                             }
@@ -259,8 +326,8 @@ fun SkillSwapApp() {
                     }
                     composable("profile_setup") {
                         ProfileSetupScreen(onDone = {
-                            val prefs = context.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
-                            prefs.edit().putBoolean("profile_completed", true).apply()
+                            hasCompletedProfile = true
+                            securePrefs.edit().putBoolean("profile_completed", true).apply()
                             navController.navigate(Screen.Discover.route) {
                                 popUpTo("profile_setup") { inclusive = true }
                             }

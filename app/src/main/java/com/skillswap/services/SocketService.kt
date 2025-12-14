@@ -3,6 +3,8 @@ package com.skillswap.services
 import android.content.Context
 import android.util.Log
 import com.skillswap.BuildConfig
+import com.skillswap.auth.AuthenticationManager
+import com.skillswap.util.TokenUtils
 import io.socket.client.IO
 import io.socket.client.Socket
 import org.json.JSONObject
@@ -21,7 +23,7 @@ class SocketService private constructor(private val context: Context) {
     }
 
     private val tag = "SocketService"
-    private val prefs = context.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
+    private val authManager = AuthenticationManager.getInstance(context)
 
     private var socket: Socket? = null
     private var hasListeners = false
@@ -45,8 +47,8 @@ class SocketService private constructor(private val context: Context) {
     }
 
     private fun buildSocket(): Socket? {
-        val userId = prefs.getString("user_id", null) ?: return null
-        val token = prefs.getString("auth_token", null)
+        val userId = authManager.getUserId() ?: return null
+        val token = authManager.getToken()?.takeUnless { TokenUtils.isTokenExpired(it) } ?: return null
         val baseUrl = normalizedBaseUrl() ?: return null
 
         val opts = IO.Options.builder()

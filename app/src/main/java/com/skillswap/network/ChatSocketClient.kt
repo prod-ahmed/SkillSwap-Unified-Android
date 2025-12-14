@@ -1,6 +1,7 @@
 package com.skillswap.network
 
 import android.content.Context
+import com.skillswap.auth.AuthenticationManager
 import com.skillswap.BuildConfig
 import com.skillswap.model.SocketMessagePayload
 import com.skillswap.model.SocketTypingPayload
@@ -20,6 +21,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import org.json.JSONObject
+import com.skillswap.util.TokenUtils
 
 class ChatSocketClient private constructor(
     private val context: Context
@@ -35,12 +37,9 @@ class ChatSocketClient private constructor(
         }
     }
 
-    private val sharedPrefs by lazy {
-        context.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
-    }
-
-    private fun userIdProvider(): String? = sharedPrefs.getString("user_id", null)
-    private fun authToken(): String? = sharedPrefs.getString("auth_token", null)
+    private val authManager by lazy { AuthenticationManager.getInstance(context) }
+    private fun userIdProvider(): String? = authManager.getUserId()
+    private fun authToken(): String? = authManager.getToken()?.takeUnless { TokenUtils.isTokenExpired(it) }
     
     private val notificationManager = LocalNotificationManager.getInstance(context)
     private fun normalizedBaseUrl(): String? {
@@ -140,14 +139,10 @@ class ChatSocketClient private constructor(
     private fun buildChatSocket() {
         val userId = userIdProvider() ?: return
         val baseUrl = normalizedBaseUrl() ?: return
-        
-        // Get auth token from SharedPreferences
-        val authToken = authToken()
+        val authToken = authToken() ?: return
         
         val authMap = mutableMapOf<String, String>("userId" to userId)
-        if (authToken != null) {
-            authMap["token"] = authToken
-        }
+        authMap["token"] = authToken
         
         val opts = IO.Options.builder()
             .setAuth(authMap)
@@ -255,12 +250,12 @@ class ChatSocketClient private constructor(
     private fun buildCallSocket() {
         val userId = userIdProvider() ?: return
         val baseUrl = normalizedBaseUrl() ?: return
-        val token = authToken()
+        val token = authToken() ?: return
         val opts = IO.Options.builder()
             .setAuth(
                 mapOf(
                     "userId" to userId,
-                    "token" to (token ?: "")
+                    "token" to token
                 )
             ) // backend expects userId (+ token if provided)
             .setReconnection(true)

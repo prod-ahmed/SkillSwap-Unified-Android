@@ -166,9 +166,6 @@ fun MyPromosScreenContent(
         )
     }
 }
-        )
-    }
-}
 
 @Composable
 private fun StatusBanner(

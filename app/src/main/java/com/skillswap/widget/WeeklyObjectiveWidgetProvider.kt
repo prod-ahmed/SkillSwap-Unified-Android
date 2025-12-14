@@ -6,22 +6,25 @@ import android.content.ComponentName
 import android.content.Context
 import android.widget.RemoteViews
 import com.skillswap.R
-
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CoroutineScope
 import com.skillswap.network.NetworkService
+import com.skillswap.auth.AuthenticationManager
+import com.skillswap.security.SecureStorage
+import com.skillswap.util.TokenUtils
 
 class WeeklyObjectiveWidgetProvider : AppWidgetProvider() {
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
         // First update with cached data for immediate display
-        updateAll(context, appWidgetManager, appWidgetIds, context.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE))
+        val securePrefs = SecureStorage.getInstance(context)
+        updateAll(context, appWidgetManager, appWidgetIds, securePrefs)
         
         // Fetch fresh data from backend
-        val prefs = context.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
-        val token = prefs.getString("auth_token", null)
+        val prefs = securePrefs
+        val token = AuthenticationManager.getInstance(context).getToken()?.takeUnless { TokenUtils.isTokenExpired(it) }
         
-        if (token != null && !com.skillswap.util.TokenUtils.isTokenExpired(token)) {
+        if (token != null) {
             CoroutineScope(Dispatchers.IO).launch {
                 try {
                     val objective = NetworkService.api.getCurrentWeeklyObjective("Bearer $token")
@@ -56,7 +59,7 @@ class WeeklyObjectiveWidgetProvider : AppWidgetProvider() {
     companion object {
         fun updateAll(context: Context, manager: AppWidgetManager, ids: IntArray? = null, prefs: android.content.SharedPreferences? = null) {
             val widgetIds = ids ?: manager.getAppWidgetIds(ComponentName(context, WeeklyObjectiveWidgetProvider::class.java))
-            val sharedPrefs = prefs ?: context.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
+            val sharedPrefs = prefs ?: SecureStorage.getInstance(context)
             val title = sharedPrefs.getString("widget_objective_title", "Objectif hebdo")
             val progress = sharedPrefs.getInt("widget_objective_progress", 0)
 

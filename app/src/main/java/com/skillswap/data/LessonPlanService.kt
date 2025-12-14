@@ -1,22 +1,26 @@
 package com.skillswap.data
 
 import android.content.Context
+import com.skillswap.auth.AuthenticationManager
 import com.skillswap.model.LessonPlan
 import com.skillswap.model.LessonPlanGenerateRequest
 import com.skillswap.network.NetworkService
+import com.skillswap.util.TokenUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 class LessonPlanService(private val context: Context) {
 
-    private fun getToken(): String {
-        val prefs = context.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
-        return prefs.getString("auth_token", "") ?: ""
+    private fun getToken(): String? {
+        return AuthenticationManager.getInstance(context).getToken()
+            ?.takeUnless { TokenUtils.isTokenExpired(it) }
+            ?: null
     }
 
     suspend fun getLessonPlan(sessionId: String): LessonPlan? = withContext(Dispatchers.IO) {
+        val token = getToken() ?: return@withContext null
         try {
-            val response = NetworkService.api.getLessonPlan("Bearer ${getToken()}", sessionId)
+            val response = NetworkService.api.getLessonPlan("Bearer $token", sessionId)
             response.data
         } catch (e: retrofit2.HttpException) {
             if (e.code() == 404) {
@@ -32,8 +36,9 @@ class LessonPlanService(private val context: Context) {
         level: String? = null,
         goal: String? = null
     ): LessonPlan = withContext(Dispatchers.IO) {
+        val token = getToken() ?: throw IllegalStateException("Authentication required")
         val request = LessonPlanGenerateRequest(level = level, goal = goal)
-        val response = NetworkService.api.generateLessonPlan("Bearer ${getToken()}", sessionId, request)
+        val response = NetworkService.api.generateLessonPlan("Bearer $token", sessionId, request)
         response.data ?: throw Exception(response.error ?: "Failed to generate lesson plan")
     }
 
@@ -42,8 +47,9 @@ class LessonPlanService(private val context: Context) {
         level: String? = null,
         goal: String? = null
     ): LessonPlan = withContext(Dispatchers.IO) {
+        val token = getToken() ?: throw IllegalStateException("Authentication required")
         val request = LessonPlanGenerateRequest(level = level, goal = goal)
-        val response = NetworkService.api.regenerateLessonPlan("Bearer ${getToken()}", sessionId, request)
+        val response = NetworkService.api.regenerateLessonPlan("Bearer $token", sessionId, request)
         response.data ?: throw Exception(response.error ?: "Failed to regenerate lesson plan")
     }
 
@@ -52,11 +58,12 @@ class LessonPlanService(private val context: Context) {
         checklistIndex: Int,
         completed: Boolean
     ): LessonPlan = withContext(Dispatchers.IO) {
+        val token = getToken() ?: throw IllegalStateException("Authentication required")
         val body = mapOf(
             "checklistIndex" to checklistIndex,
             "completed" to completed
         )
-        val response = NetworkService.api.updateLessonPlanProgress("Bearer ${getToken()}", sessionId, body)
+        val response = NetworkService.api.updateLessonPlanProgress("Bearer $token", sessionId, body)
         response.data ?: throw Exception(response.error ?: "Failed to update progress")
     }
 

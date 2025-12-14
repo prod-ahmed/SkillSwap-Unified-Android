@@ -3,8 +3,10 @@ package com.skillswap.services
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import com.skillswap.BuildConfig
+import com.skillswap.auth.AuthenticationManager
 import com.skillswap.network.NetworkService
+import com.skillswap.security.SecureStorage
+import com.skillswap.util.TokenUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -18,7 +20,8 @@ import kotlinx.coroutines.withContext
  */
 class GoogleCalendarService(private val context: Context) {
     
-    private val sharedPreferences = context.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
+    private val authManager = AuthenticationManager.getInstance(context)
+    private val sharedPreferences = SecureStorage.getInstance(context)
     
     companion object {
         private const val PREF_GOOGLE_CONNECTED = "google_calendar_connected"
@@ -47,7 +50,7 @@ class GoogleCalendarService(private val context: Context) {
      */
     suspend fun startAuthFlow(): String? = withContext(Dispatchers.IO) {
         try {
-            val token = sharedPreferences.getString("auth_token", null) ?: return@withContext null
+            val token = authManager.getToken()?.takeUnless { TokenUtils.isTokenExpired(it) } ?: return@withContext null
             val response = NetworkService.api.getGoogleCalendarAuthUrl("Bearer $token")
             response.authUrl
         } catch (e: Exception) {
@@ -70,7 +73,7 @@ class GoogleCalendarService(private val context: Context) {
      */
     suspend fun handleCallback(code: String, redirectUri: String? = null): Boolean = withContext(Dispatchers.IO) {
         try {
-            val token = sharedPreferences.getString("auth_token", null) ?: return@withContext false
+            val token = authManager.getToken()?.takeUnless { TokenUtils.isTokenExpired(it) } ?: return@withContext false
             val request = com.skillswap.model.GoogleCalendarTokenRequest(
                 code = code,
                 redirectUri = redirectUri
@@ -94,7 +97,7 @@ class GoogleCalendarService(private val context: Context) {
      */
     suspend fun syncEvents(bidirectional: Boolean = true): SyncResult = withContext(Dispatchers.IO) {
         try {
-            val token = sharedPreferences.getString("auth_token", null) 
+            val token = authManager.getToken()?.takeUnless { TokenUtils.isTokenExpired(it) }
                 ?: return@withContext SyncResult(success = false, error = "Not authenticated")
             
             val result = NetworkService.api.syncWithGoogleCalendar(
@@ -118,7 +121,7 @@ class GoogleCalendarService(private val context: Context) {
      */
     suspend fun disconnect(): Boolean = withContext(Dispatchers.IO) {
         try {
-            val token = sharedPreferences.getString("auth_token", null) ?: return@withContext false
+            val token = authManager.getToken()?.takeUnless { TokenUtils.isTokenExpired(it) } ?: return@withContext false
             NetworkService.api.disconnectGoogleCalendar("Bearer $token")
             
             // Clear connection status
@@ -138,7 +141,7 @@ class GoogleCalendarService(private val context: Context) {
      */
     suspend fun checkStatus(): Boolean = withContext(Dispatchers.IO) {
         try {
-            val token = sharedPreferences.getString("auth_token", null) ?: return@withContext false
+            val token = authManager.getToken()?.takeUnless { TokenUtils.isTokenExpired(it) } ?: return@withContext false
             val status = NetworkService.api.getGoogleCalendarStatus("Bearer $token")
             val connected = status["connected"] as? Boolean ?: false
             

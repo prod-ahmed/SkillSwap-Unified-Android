@@ -44,6 +44,7 @@ import com.skillswap.ui.theme.OrangeGradientEnd
 import com.skillswap.ui.theme.OrangeGradientStart
 import com.skillswap.ui.theme.OrangePrimary
 import com.skillswap.viewmodel.ProfileViewModel
+import com.skillswap.auth.AuthenticationManager
 
 import androidx.navigation.NavController
 
@@ -63,6 +64,7 @@ fun ProfileScreen(
     viewModel: ProfileViewModel = viewModel()
 ) {
     val context = LocalContext.current
+    val authManager = remember { AuthenticationManager.getInstance(context) }
     var showReferralModal by remember { mutableStateOf(false) }
     
     LaunchedEffect(Unit) {
@@ -224,7 +226,7 @@ fun ProfileScreen(
                 
                 OutlinedButton(
                     onClick = { 
-                        context.getSharedPreferences("SkillSwapPrefs", android.content.Context.MODE_PRIVATE).edit().clear().apply()
+                        authManager.logout()
                         navController.navigate("auth") {
                             popUpTo(0) { inclusive = true }
                         }

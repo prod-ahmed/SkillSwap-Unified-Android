@@ -54,73 +54,88 @@ fun CreateAnnonceBottomSheet(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Title
             BottomSheetTextField(
                 value = title,
                 onValueChange = { title = it },
                 label = "Titre",
                 placeholder = "Ex: Cours de guitare débutant",
-                leadingIcon = {
-                    Icon(Icons.Default.Title, contentDescription = null)
-                }
+                leadingIcon = { Icon(Icons.Default.Title, contentDescription = null) }
             )
             
-            // Description
             BottomSheetTextField(
                 value = description,
                 onValueChange = { description = it },
                 label = "Description",
                 placeholder = "Décrivez votre annonce...",
                 singleLine = false,
-                minLines = 4,
-                leadingIcon = {
-                    Icon(Icons.Default.Description, contentDescription = null)
-                }
+                maxLines = 4,
+                leadingIcon = { Icon(Icons.Default.Description, contentDescription = null) }
             )
             
-            // Category
-            GenericDropdownPicker(
-                label = "Catégorie",
-                selectedValue = category.ifEmpty { null },
-                options = categories,
-                onValueSelected = { category = it },
-                displayText = { it },
-                leadingIcon = {
-                    Icon(Icons.Default.Category, contentDescription = null, tint = OrangePrimary)
+            // Category dropdown
+            var categoryExpanded by remember { mutableStateOf(false) }
+            ExposedDropdownMenuBox(
+                expanded = categoryExpanded,
+                onExpandedChange = { categoryExpanded = !categoryExpanded }
+            ) {
+                OutlinedTextField(
+                    value = category,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Catégorie") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
+                    modifier = Modifier.fillMaxWidth().menuAnchor(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = OrangePrimary,
+                        focusedLabelColor = OrangePrimary
+                    )
+                )
+                ExposedDropdownMenu(
+                    expanded = categoryExpanded,
+                    onDismissRequest = { categoryExpanded = false }
+                ) {
+                    categories.forEach { cat ->
+                        DropdownMenuItem(
+                            text = { Text(cat) },
+                            onClick = {
+                                category = cat
+                                categoryExpanded = false
+                            }
+                        )
+                    }
                 }
-            )
+            }
             
-            // City
             BottomSheetTextField(
                 value = city,
                 onValueChange = { city = it },
                 label = "Ville",
                 placeholder = "Ex: Tunis",
-                leadingIcon = {
-                    Icon(Icons.Default.LocationOn, contentDescription = null)
-                }
+                leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null) }
             )
             
-            // Image picker
-            ImagePickerButton(
-                selectedImageUri = selectedImageUri,
-                onImageSelected = { imagePicker.launch("image/*") },
-                onImageRemoved = { selectedImageUri = null }
-            )
+            // Image picker button
+            Button(
+                onClick = { imagePicker.launch("image/*") },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.outlinedButtonColors()
+            ) {
+                Icon(if (selectedImageUri != null) Icons.Default.CheckCircle else Icons.Default.Image, null)
+                Spacer(Modifier.width(8.dp))
+                Text(if (selectedImageUri != null) "Image sélectionnée" else "Ajouter une image")
+            }
             
             Spacer(modifier = Modifier.height(8.dp))
             
-            // Submit button
             Button(
                 onClick = {
                     isSubmitting = true
                     viewModel.createAnnonce(
                         title = title,
                         description = description,
-                        category = category,
                         city = city,
-                        imageUri = selectedImageUri,
-                        context = context
+                        category = category.ifEmpty { null },
+                        media = null
                     )
                     onAnnonceCreated()
                     onDismiss()
@@ -130,10 +145,7 @@ fun CreateAnnonceBottomSheet(
                 colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary)
             ) {
                 if (isSubmitting) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MaterialTheme.colorScheme.onPrimary)
                 } else {
                     Text("Créer l'annonce")
                 }
@@ -161,7 +173,6 @@ fun EditAnnonceBottomSheet(
     var isSubmitting by remember { mutableStateOf(false) }
     
     val categories = listOf("Cours", "Formation", "Workshop", "Autre")
-    
     val imagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri -> selectedImageUri = uri }
@@ -190,18 +201,42 @@ fun EditAnnonceBottomSheet(
                 onValueChange = { description = it },
                 label = "Description",
                 singleLine = false,
-                minLines = 4,
+                maxLines = 4,
                 leadingIcon = { Icon(Icons.Default.Description, null) }
             )
             
-            GenericDropdownPicker(
-                label = "Catégorie",
-                selectedValue = category.ifEmpty { null },
-                options = categories,
-                onValueSelected = { category = it },
-                displayText = { it },
-                leadingIcon = { Icon(Icons.Default.Category, null, tint = OrangePrimary) }
-            )
+            var categoryExpanded by remember { mutableStateOf(false) }
+            ExposedDropdownMenuBox(
+                expanded = categoryExpanded,
+                onExpandedChange = { categoryExpanded = !categoryExpanded }
+            ) {
+                OutlinedTextField(
+                    value = category,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Catégorie") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
+                    modifier = Modifier.fillMaxWidth().menuAnchor(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = OrangePrimary,
+                        focusedLabelColor = OrangePrimary
+                    )
+                )
+                ExposedDropdownMenu(
+                    expanded = categoryExpanded,
+                    onDismissRequest = { categoryExpanded = false }
+                ) {
+                    categories.forEach { cat ->
+                        DropdownMenuItem(
+                            text = { Text(cat) },
+                            onClick = {
+                                category = cat
+                                categoryExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
             
             BottomSheetTextField(
                 value = city,
@@ -210,12 +245,15 @@ fun EditAnnonceBottomSheet(
                 leadingIcon = { Icon(Icons.Default.LocationOn, null) }
             )
             
-            ImagePickerButton(
-                selectedImageUri = selectedImageUri,
-                currentImageUrl = annonce.imageUrl,
-                onImageSelected = { imagePicker.launch("image/*") },
-                onImageRemoved = { selectedImageUri = null }
-            )
+            Button(
+                onClick = { imagePicker.launch("image/*") },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.outlinedButtonColors()
+            ) {
+                Icon(if (selectedImageUri != null) Icons.Default.CheckCircle else Icons.Default.Image, null)
+                Spacer(Modifier.width(8.dp))
+                Text(if (selectedImageUri != null) "Image sélectionnée" else "Changer l'image")
+            }
             
             Spacer(modifier = Modifier.height(8.dp))
             
@@ -226,10 +264,9 @@ fun EditAnnonceBottomSheet(
                         id = annonce.id,
                         title = title,
                         description = description,
-                        category = category,
                         city = city,
-                        imageUri = selectedImageUri,
-                        context = context
+                        category = category.ifEmpty { null },
+                        media = null
                     )
                     onAnnonceUpdated()
                     onDismiss()

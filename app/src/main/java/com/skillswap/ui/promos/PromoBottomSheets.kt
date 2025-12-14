@@ -18,8 +18,6 @@ import com.skillswap.model.Promo
 import com.skillswap.ui.components.*
 import com.skillswap.ui.theme.OrangePrimary
 import com.skillswap.viewmodel.PromosViewModel
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,7 +33,7 @@ fun CreatePromoBottomSheet(
     var description by remember { mutableStateOf("") }
     var discount by remember { mutableStateOf("") }
     var promoCode by remember { mutableStateOf("") }
-    var validUntil by remember { mutableStateOf<LocalDate?>(null) }
+    var validUntil by remember { mutableStateOf("") }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     var isSubmitting by remember { mutableStateOf(false) }
     
@@ -69,7 +67,7 @@ fun CreatePromoBottomSheet(
                 label = "Description",
                 placeholder = "Décrivez votre promotion...",
                 singleLine = false,
-                minLines = 3,
+                maxLines = 3,
                 leadingIcon = { Icon(Icons.Default.Description, null) }
             )
             
@@ -96,18 +94,23 @@ fun CreatePromoBottomSheet(
                 )
             }
             
-            MaterialDatePicker(
-                label = "Valable jusqu'au",
-                selectedDate = validUntil,
-                onDateSelected = { validUntil = it },
-                leadingIcon = { Icon(Icons.Default.CalendarToday, null, tint = OrangePrimary) }
+            BottomSheetTextField(
+                value = validUntil,
+                onValueChange = { validUntil = it },
+                label = "Valable jusqu'au (YYYY-MM-DD)",
+                placeholder = "2025-12-31",
+                leadingIcon = { Icon(Icons.Default.CalendarToday, null) }
             )
             
-            ImagePickerButton(
-                selectedImageUri = selectedImageUri,
-                onImageSelected = { imagePicker.launch("image/*") },
-                onImageRemoved = { selectedImageUri = null }
-            )
+            Button(
+                onClick = { imagePicker.launch("image/*") },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.outlinedButtonColors()
+            ) {
+                Icon(if (selectedImageUri != null) Icons.Default.CheckCircle else Icons.Default.Image, null)
+                Spacer(Modifier.width(8.dp))
+                Text(if (selectedImageUri != null) "Image sélectionnée" else "Ajouter une image")
+            }
             
             Spacer(modifier = Modifier.height(8.dp))
             
@@ -118,10 +121,9 @@ fun CreatePromoBottomSheet(
                         title = title,
                         description = description,
                         discount = discount.toIntOrNull() ?: 0,
-                        promoCode = promoCode,
-                        validUntil = validUntil?.format(DateTimeFormatter.ISO_DATE) ?: "",
-                        imageUri = selectedImageUri,
-                        context = context
+                        validTo = validUntil,
+                        promoCode = promoCode.ifEmpty { null },
+                        media = null
                     )
                     onPromoCreated()
                     onDismiss()
@@ -155,7 +157,7 @@ fun EditPromoBottomSheet(
     var description by remember { mutableStateOf(promo.description) }
     var discount by remember { mutableStateOf(promo.discount.toString()) }
     var promoCode by remember { mutableStateOf(promo.promoCode ?: "") }
-    var validUntil by remember { mutableStateOf<LocalDate?>(null) }
+    var validUntil by remember { mutableStateOf(promo.validUntil) }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     var isSubmitting by remember { mutableStateOf(false) }
     
@@ -187,7 +189,7 @@ fun EditPromoBottomSheet(
                 onValueChange = { description = it },
                 label = "Description",
                 singleLine = false,
-                minLines = 3,
+                maxLines = 3,
                 leadingIcon = { Icon(Icons.Default.Description, null) }
             )
             
@@ -212,19 +214,22 @@ fun EditPromoBottomSheet(
                 )
             }
             
-            MaterialDatePicker(
-                label = "Valable jusqu'au",
-                selectedDate = validUntil,
-                onDateSelected = { validUntil = it },
-                leadingIcon = { Icon(Icons.Default.CalendarToday, null, tint = OrangePrimary) }
+            BottomSheetTextField(
+                value = validUntil,
+                onValueChange = { validUntil = it },
+                label = "Valable jusqu'au (YYYY-MM-DD)",
+                leadingIcon = { Icon(Icons.Default.CalendarToday, null) }
             )
             
-            ImagePickerButton(
-                selectedImageUri = selectedImageUri,
-                currentImageUrl = promo.imageUrl,
-                onImageSelected = { imagePicker.launch("image/*") },
-                onImageRemoved = { selectedImageUri = null }
-            )
+            Button(
+                onClick = { imagePicker.launch("image/*") },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.outlinedButtonColors()
+            ) {
+                Icon(if (selectedImageUri != null) Icons.Default.CheckCircle else Icons.Default.Image, null)
+                Spacer(Modifier.width(8.dp))
+                Text(if (selectedImageUri != null) "Image sélectionnée" else "Changer l'image")
+            }
             
             Spacer(modifier = Modifier.height(8.dp))
             
@@ -236,10 +241,9 @@ fun EditPromoBottomSheet(
                         title = title,
                         description = description,
                         discount = discount.toIntOrNull() ?: 0,
-                        promoCode = promoCode,
-                        validUntil = validUntil?.format(DateTimeFormatter.ISO_DATE) ?: promo.validUntil,
-                        imageUri = selectedImageUri,
-                        context = context
+                        validTo = validUntil,
+                        promoCode = promoCode.ifEmpty { null },
+                        media = null
                     )
                     onPromoUpdated()
                     onDismiss()

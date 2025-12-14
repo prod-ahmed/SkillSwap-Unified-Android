@@ -1,8 +1,10 @@
 package com.skillswap.data
 
 import android.content.Context
+import com.skillswap.auth.AuthenticationManager
 import com.skillswap.model.ModerationResult
 import com.skillswap.network.NetworkService
+import com.skillswap.util.TokenUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import android.util.Base64
@@ -15,8 +17,7 @@ class ModerationService private constructor(private val context: Context) {
     suspend fun checkImage(imageBytes: ByteArray): ModerationResult = withContext(Dispatchers.IO) {
         try {
             // Get auth token
-            val prefs = context.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
-            val token = prefs.getString("auth_token", null)
+            val token = AuthenticationManager.getInstance(context).getToken()?.takeUnless { TokenUtils.isTokenExpired(it) }
             
             if (token.isNullOrEmpty()) {
                 // If no token, allow the image (moderation requires auth)
