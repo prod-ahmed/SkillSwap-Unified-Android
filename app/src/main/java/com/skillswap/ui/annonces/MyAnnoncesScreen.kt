@@ -14,13 +14,17 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.*
@@ -30,6 +34,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
@@ -46,7 +51,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import android.net.Uri
 import android.content.Context
 import android.provider.OpenableColumns
-import androidx.compose.runtime.rememberCoroutineScope
 import com.skillswap.model.MediaPayload
 import kotlinx.coroutines.launch
 import androidx.compose.material3.LinearProgressIndicator
@@ -418,9 +422,15 @@ fun AnnonceEditorDialog(
     var selectedImage by remember { mutableStateOf<MediaPayload?>(null) }
     var previewUri by remember { mutableStateOf<Uri?>(null) }
     var imageError by remember { mutableStateOf<String?>(null) }
+    var isCheckingImage by remember { mutableStateOf(false) }
+    var imageRejected by remember { mutableStateOf(false) }
+    var moderationMessage by remember { mutableStateOf<String?>(null) }
+    var showModerationAlert by remember { mutableStateOf(false) }
+    
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
-    val canSave = title.isNotBlank() && description.isNotBlank()
+    val canSave = title.isNotBlank() && description.isNotBlank() && !imageRejected && !isCheckingImage
+    
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
         scope.launch {
@@ -429,14 +439,48 @@ fun AnnonceEditorDialog(
                     ?: throw IllegalStateException("Impossible de lire le fichier")
                 val mime = context.contentResolver.getType(uri) ?: "image/jpeg"
                 val filename = resolveFileName(context, uri) ?: "annonce_${System.currentTimeMillis()}.jpg"
-                selectedImage = MediaPayload(bytes, filename, mime)
-                previewUri = uri
+                
+                // Check image moderation
+                isCheckingImage = true
+                imageRejected = false
                 imageError = null
+                
+                val moderationService = com.skillswap.data.ModerationService.getInstance(context)
+                val isSafe = moderationService.checkImage(bytes)
+                
+                isCheckingImage = false
+                
+                if (isSafe.safe) {
+                    selectedImage = MediaPayload(bytes, filename, mime)
+                    previewUri = uri
+                    imageError = null
+                } else {
+                    val reasons = isSafe.reasons?.joinToString(", ") ?: "contenu inapproprié"
+                    moderationMessage = "Votre image contient du contenu inapproprié ($reasons). Veuillez en choisir une autre."
+                    showModerationAlert = true
+                    imageRejected = true
+                    selectedImage = null
+                    previewUri = null
+                }
             }.onFailure {
-                imageError = "Image non chargée: ${it.message}"
+                isCheckingImage = false
+                imageError = "Erreur: ${it.message}"
                 selectedImage = null
             }
         }
+    }
+
+    if (showModerationAlert) {
+        AlertDialog(
+            onDismissRequest = { showModerationAlert = false },
+            title = { Text("Contenu inapproprié") },
+            text = { Text(moderationMessage ?: "") },
+            confirmButton = {
+                TextButton(onClick = { showModerationAlert = false }) {
+                    Text("OK")
+                }
+            }
+        )
     }
 
     AlertDialog(
@@ -450,36 +494,105 @@ fun AnnonceEditorDialog(
                     category.ifBlank { null },
                     selectedImage
                 )
-            }, enabled = canSave) { Text("Enregistrer") }
+            }, enabled = canSave) { Text("Publier") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Annuler") } },
-        title = { Text(if (initial == null) "Nouvelle annonce" else "Modifier l'annonce") },
+        title = { Text(if (initial == null) "Créer une annonce" else "Modifier l'annonce") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Titre") })
-                OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Description") })
-                OutlinedTextField(value = city, onValueChange = { city = it }, label = { Text("Ville") })
-                OutlinedTextField(value = category, onValueChange = { category = it }, label = { Text("Catégorie") })
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("Titre") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Description") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 3,
+                    maxLines = 6
+                )
+                OutlinedTextField(
+                    value = city,
+                    onValueChange = { city = it },
+                    label = { Text("Ville (optionnel)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = category,
+                    onValueChange = { category = it },
+                    label = { Text("Catégorie (optionnel)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                
+                Spacer(Modifier.height(4.dp))
+                Text("Image", style = MaterialTheme.typography.labelLarge)
+                
                 if (previewUri != null || initial?.imageUrl != null) {
-                    AsyncImage(
-                        model = previewUri ?: initial?.imageUrl,
-                        contentDescription = "Aperçu image",
+                    Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(150.dp)
-                            .background(Color.LightGray),
-                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        TextButton(onClick = { selectedImage = null; previewUri = null }) {
-                            Text("Retirer l'image")
+                            .height(200.dp),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        AsyncImage(
+                            model = previewUri ?: initial?.imageUrl,
+                            contentDescription = "Aperçu image",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                        )
+                    }
+                    TextButton(
+                        onClick = {
+                            selectedImage = null
+                            previewUri = null
+                            imageRejected = false
                         }
+                    ) {
+                        Text("Retirer l'image")
                     }
                 }
-                TextButton(onClick = { picker.launch("image/*") }) { Text("Choisir dans la galerie") }
-                imageError?.let { Text(it, color = Color.Red, style = MaterialTheme.typography.labelSmall) }
-                if (!canSave) {
-                    Text("Titre et description requis", color = Color.Red, style = MaterialTheme.typography.labelSmall)
+                
+                OutlinedButton(
+                    onClick = { picker.launch("image/*") },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.Image, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text(if (previewUri == null) "Choisir une image" else "Changer l'image")
+                }
+                
+                if (isCheckingImage) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            "Vérification de l'image...",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.Gray
+                        )
+                    }
+                }
+                
+                imageError?.let {
+                    Text(it, color = Color.Red, style = MaterialTheme.typography.bodySmall)
+                }
+                
+                if (!canSave && !isCheckingImage) {
+                    Text(
+                        "Titre et description requis",
+                        color = Color.Red,
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
             }
         }
