@@ -156,9 +156,11 @@ fun ProfileScreen(
                     navController.navigate("weekly_objective")
                 }
                 ProfileActionButton("trophy", "Récompenses", Color(0xFFFFD700)) {
-                    // TODO: Navigate to rewards
+                    navController.navigate("rewards")
                 }
-                ProfileActionButton("sparkles", "Sessions pour vous", Color.Magenta) {}
+                ProfileActionButton("sparkles", "Sessions pour vous", Color.Magenta) {
+                    navController.navigate("sessions_pour_vous")
+                }
                 ProfileActionButton("gift.fill", "Parrainer un ami", OrangePrimary) {
                     navController.navigate("referral")
                 }
@@ -180,7 +182,9 @@ fun ProfileScreen(
                     navController.navigate("moderation")
                 }
 
-                ProfileActionButton("gearshape.fill", "Paramètres", Color.Gray) {}
+                ProfileActionButton("gearshape.fill", "Paramètres", Color.Gray) {
+                    navController.navigate("settings")
+                }
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 

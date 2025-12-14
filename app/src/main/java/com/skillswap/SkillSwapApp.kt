@@ -218,6 +218,18 @@ fun SkillSwapApp() {
                         com.skillswap.ui.moderation.ModerationScreen()
                     }
                     
+                    composable("settings") {
+                        com.skillswap.ui.profile.SettingsScreen(navController)
+                    }
+                    
+                    composable("rewards") {
+                        com.skillswap.ui.profile.RewardsScreen(navController)
+                    }
+                    
+                    composable("sessions_pour_vous") {
+                        com.skillswap.ui.sessions.SessionsPourVousScreen(navController)
+                    }
+                    
                     composable(
                         route = Screen.ChatDetail.route,
                         arguments = listOf(navArgument("conversationId") { type = NavType.StringType })
