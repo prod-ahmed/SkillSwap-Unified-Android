@@ -148,8 +148,18 @@ fun SessionsScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     items(filteredSessions) { session ->
-                        SessionCard(
+                        val context = LocalContext.current
+                        val prefs = context.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
+                        val currentUserId = prefs.getString("user_id", "") ?: ""
+                        val isCreator = session.teacher.id == currentUserId
+                        
+                        com.skillswap.ui.sessions.SessionCard(
                             session = session,
+                            isCreator = isCreator,
+                            currentUserId = currentUserId,
+                            onCardClick = {
+                                navController.navigate("session_detail/${session.id}")
+                            },
                             onPostpone = { viewModel.postponeSession(session.id) },
                             onProposeReschedule = {
                                 rescheduleTarget = session
@@ -157,15 +167,12 @@ fun SessionsScreen(
                                 rescheduleTime = "10:00"
                                 rescheduleNote = ""
                             },
-                            onRespondReschedule = { accept ->
-                                viewModel.respondToReschedule(session.id, accept)
-                            },
                             onRate = {
                                 ratingTarget = session
                                 ratingValue = 4f
                                 ratingComment = ""
                             },
-                            onOpenPlan = {
+                            onShowPlan = {
                                 planTarget = session
                             }
                         )

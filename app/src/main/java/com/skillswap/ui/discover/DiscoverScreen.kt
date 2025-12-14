@@ -225,10 +225,12 @@ fun DiscoverScreen(
                                 }
                                 Spacer(Modifier.weight(1f))
                                 ActionButtons(
-                                    onPass = { viewModel.nextProfile() },
+                                    onPass = { viewModel.swipeLeft() },
                                     onLike = {
-                                        matchedUser = currentUser
-                                        showMatchDialog = true
+                                        viewModel.swipeRight(currentUser) { matchUser ->
+                                            matchedUser = matchUser
+                                            showMatchDialog = true
+                                        }
                                     },
                                     onMessage = {
                                         viewModel.startChatWithUser(currentUser.id) { threadId ->

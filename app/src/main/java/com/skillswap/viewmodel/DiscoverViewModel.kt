@@ -191,6 +191,29 @@ class DiscoverViewModel(application: Application) : AndroidViewModel(application
              // Reset or No more profiles
         }
     }
+    
+    fun swipeRight(user: User, onMatch: (User) -> Unit) {
+        val token = sharedPreferences.getString("auth_token", null) ?: return
+        viewModelScope.launch {
+            try {
+                // Call API to express interest
+                val response = NetworkService.api.expressInterest("Bearer $token", user.id)
+                
+                // Check if it's a match (mutual interest)
+                if (response.isMatch == true) {
+                    onMatch(user)
+                }
+            } catch (e: Exception) {
+                _errorMessage.value = "Erreur lors de l'expression d'intérêt"
+            } finally {
+                nextProfile()
+            }
+        }
+    }
+    
+    fun swipeLeft() {
+        nextProfile()
+    }
 
     fun startChatWithUser(userId: String, onThreadReady: (String) -> Unit) {
         val token = sharedPreferences.getString("auth_token", null) ?: return
