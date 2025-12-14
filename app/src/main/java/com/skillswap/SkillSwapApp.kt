@@ -280,13 +280,24 @@ fun SkillSwapApp() {
                     }
 
                     composable("create_session") {
-                        com.skillswap.ui.sessions.CreateSessionScreen(
-                            onBack = { navController.popBackStack() },
-                            onSessionCreated = {
+                        var showBottomSheet by remember { mutableStateOf(true) }
+                        
+                        if (showBottomSheet) {
+                            com.skillswap.ui.sessions.CreateSessionBottomSheet(
+                                onDismiss = { 
+                                    showBottomSheet = false
+                                    navController.popBackStack()
+                                },
+                                onSessionCreated = {
+                                    showBottomSheet = false
+                                    navController.popBackStack()
+                                }
+                            )
+                        } else {
+                            LaunchedEffect(Unit) {
                                 navController.popBackStack()
-                                // Optionally refresh sessions here via viewmodel share or result
                             }
-                        )
+                        }
                     }
                     
                     composable(Screen.Progress.route) {

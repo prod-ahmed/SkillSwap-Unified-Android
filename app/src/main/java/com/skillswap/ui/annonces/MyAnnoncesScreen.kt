@@ -163,14 +163,62 @@ fun MyAnnoncesScreenContent(
             )
         }
         if (filteredAnnonces.isEmpty()) {
-            EmptyAnnoncesState(
-                onRefresh = { viewModel.loadAnnonces() },
-                message = if (searchQuery.isNotBlank() || selectedCategory != null) 
-                    "Aucun résultat trouvé" 
-                else 
-                    "Aucune annonce publiée",
-                modifier = Modifier.padding(padding)
-            )
+            Column(modifier = Modifier.padding(padding)) {
+                // Add FilterSortBar even when empty
+                com.skillswap.ui.components.FilterSortBar(
+                    selectedSort = when(sortBy) {
+                        "title" -> com.skillswap.ui.components.SortOption.TITLE_ASC
+                        "city" -> com.skillswap.ui.components.SortOption.POPULAR
+                        else -> com.skillswap.ui.components.SortOption.DATE_DESC
+                    },
+                    onSortSelected = { option ->
+                        sortBy = when(option) {
+                            com.skillswap.ui.components.SortOption.TITLE_ASC, 
+                            com.skillswap.ui.components.SortOption.TITLE_DESC -> "title"
+                            com.skillswap.ui.components.SortOption.POPULAR -> "city"
+                            else -> "date"
+                        }
+                    },
+                    searchQuery = searchQuery,
+                    onSearchQueryChange = { searchQuery = it },
+                    showSearch = true,
+                    filterChips = listOf(
+                        com.skillswap.ui.components.FilterChipData(
+                            id = "all",
+                            label = "Tous",
+                            isSelected = selectedCategory == null
+                        ),
+                        com.skillswap.ui.components.FilterChipData(
+                            id = "Cours",
+                            label = "Cours",
+                            isSelected = selectedCategory == "Cours"
+                        ),
+                        com.skillswap.ui.components.FilterChipData(
+                            id = "Formation",
+                            label = "Formation",
+                            isSelected = selectedCategory == "Formation"
+                        ),
+                        com.skillswap.ui.components.FilterChipData(
+                            id = "Workshop",
+                            label = "Workshop",
+                            isSelected = selectedCategory == "Workshop"
+                        )
+                    ),
+                    onFilterSelected = { id ->
+                        selectedCategory = if (id == "all") null else id
+                    },
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+                
+                EmptyAnnoncesState(
+                    onRefresh = { viewModel.loadAnnonces() },
+                    message = if (searchQuery.isNotBlank() || selectedCategory != null) 
+                        "Aucun résultat trouvé" 
+                    else 
+                        "Aucune annonce publiée",
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
         } else {
             LazyColumn(
                 contentPadding = PaddingValues(16.dp),
@@ -180,6 +228,52 @@ fun MyAnnoncesScreenContent(
                     .fillMaxSize()
                     .background(Color(0xFFF2F2F7))
             ) {
+                item {
+                    com.skillswap.ui.components.FilterSortBar(
+                        selectedSort = when(sortBy) {
+                            "title" -> com.skillswap.ui.components.SortOption.TITLE_ASC
+                            "city" -> com.skillswap.ui.components.SortOption.POPULAR
+                            else -> com.skillswap.ui.components.SortOption.DATE_DESC
+                        },
+                        onSortSelected = { option ->
+                            sortBy = when(option) {
+                                com.skillswap.ui.components.SortOption.TITLE_ASC, 
+                                com.skillswap.ui.components.SortOption.TITLE_DESC -> "title"
+                                com.skillswap.ui.components.SortOption.POPULAR -> "city"
+                                else -> "date"
+                            }
+                        },
+                        searchQuery = searchQuery,
+                        onSearchQueryChange = { searchQuery = it },
+                        showSearch = true,
+                        filterChips = listOf(
+                            com.skillswap.ui.components.FilterChipData(
+                                id = "all",
+                                label = "Tous",
+                                isSelected = selectedCategory == null
+                            ),
+                            com.skillswap.ui.components.FilterChipData(
+                                id = "Cours",
+                                label = "Cours",
+                                isSelected = selectedCategory == "Cours"
+                            ),
+                            com.skillswap.ui.components.FilterChipData(
+                                id = "Formation",
+                                label = "Formation",
+                                isSelected = selectedCategory == "Formation"
+                            ),
+                            com.skillswap.ui.components.FilterChipData(
+                                id = "Workshop",
+                                label = "Workshop",
+                                isSelected = selectedCategory == "Workshop"
+                            )
+                        ),
+                        onFilterSelected = { id ->
+                            selectedCategory = if (id == "all") null else id
+                        }
+                    )
+                }
+                
                 items(filteredAnnonces) { annonce ->
                     AnnonceCard(
                         annonce = annonce,

@@ -225,29 +225,85 @@ fun SessionDetailScreen(
                         }
                     }
                     
-                    // Lesson Plan Card
+                    // Lesson Plan Card with AI Generator
+                    var showAIPlanGenerator by remember { mutableStateOf(false) }
+                    
                     if (sess.status == "confirmed" || sess.status == "completed") {
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
-                                .clickable { onOpenLessonPlan(sessionId) },
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
                             colors = CardDefaults.cardColors(containerColor = OrangePrimary.copy(alpha = 0.1f)),
                             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                         ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(48.dp)
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(OrangePrimary.copy(alpha = 0.2f)),
-                                    contentAlignment = Alignment.Center
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.AutoAwesome,
+                                            contentDescription = null,
+                                            tint = OrangePrimary,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                        Text(
+                                            "Plan de cours IA",
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                    
+                                    IconButton(onClick = { showAIPlanGenerator = true }) {
+                                        Icon(
+                                            Icons.Default.Add,
+                                            contentDescription = "Générer",
+                                            tint = OrangePrimary
+                                        )
+                                    }
+                                }
+                                
+                                if (sess.notes?.isNotEmpty() == true) {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = sess.notes ?: "",
+                                        fontSize = 14.sp,
+                                        color = Color.DarkGray,
+                                        maxLines = 3
+                                    )
+                                    TextButton(
+                                        onClick = { onOpenLessonPlan(sessionId) }
+                                    ) {
+                                        Text("Voir le plan complet", color = OrangePrimary)
+                                    }
+                                } else {
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        "Générez un plan de cours avec l'IA",
+                                        fontSize = 14.sp,
+                                        color = Color.Gray
+                                    )
+                                }
+                            }
+                        }
+                        
+                        if (showAIPlanGenerator) {
+                            AIPlanGeneratorBottomSheet(
+                                skill = sess.skill ?: "",
+                                duration = sess.duration,
+                                onPlanGenerated = { plan ->
+                                    // Update session with generated plan
+                                    // viewModel.updateSessionNotes(sessionId, plan)
+                                },
+                                onDismiss = { showAIPlanGenerator = false }
+                            )
+                        }
+                    }
                                     Icon(
                                         Icons.Default.Star,
                                         contentDescription = null,
