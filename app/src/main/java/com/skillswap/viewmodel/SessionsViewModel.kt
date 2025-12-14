@@ -79,7 +79,8 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
         date: String,
         duration: Int,
         meetingLink: String?,
-        notes: String?
+        notes: String?,
+        addToCalendar: Boolean = true
     ) {
         val token = sharedPreferences.getString("auth_token", null) ?: return
         viewModelScope.launch {
@@ -100,6 +101,34 @@ class SessionsViewModel(application: Application) : AndroidViewModel(application
                     )
                 )
                 _sessions.value = _sessions.value + created
+                
+                // Optionally create calendar event for this session
+                if (addToCalendar) {
+                    try {
+                        val endTime = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US).let { fmt ->
+                            val startDate = fmt.parse(date)
+                            if (startDate != null) {
+                                val endDate = java.util.Date(startDate.time + duration * 60 * 1000L)
+                                fmt.format(endDate)
+                            } else date
+                        }
+                        
+                        NetworkService.api.createCalendarEvent(
+                            "Bearer $token",
+                            com.skillswap.model.CreateEventRequest(
+                                title = "Session: $title",
+                                description = "Session de $skill avec $studentEmail. ${notes ?: ""}",
+                                startTime = date,
+                                endTime = endTime,
+                                sessionId = created.id,
+                                syncToGoogle = true
+                            )
+                        )
+                    } catch (e: Exception) {
+                        // Calendar event creation failed, but session was created
+                    }
+                }
+                
                 _successMessage.value = "Session créée"
             } catch (e: Exception) {
                 _errorMessage.value = "Création échouée: ${e.message}"
