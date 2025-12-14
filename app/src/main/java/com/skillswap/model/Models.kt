@@ -46,7 +46,7 @@ data class Session(
     val student: SessionUserSummary?,
     val students: List<SessionUserSummary>?,
     val skill: String,
-    val skills: List<String> = listOf(),
+    val skills: List<String>? = listOf(),
     val title: String,
     val date: String, // Keep as String to avoid parsing issues, parse in UI
     val duration: Int,

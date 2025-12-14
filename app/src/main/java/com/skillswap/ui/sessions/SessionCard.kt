@@ -143,7 +143,7 @@ fun SessionCard(
             Spacer(Modifier.height(12.dp))
             
             // Skills Tags
-            if (session.skills.isNotEmpty()) {
+            if (!session.skills.isNullOrEmpty()) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
