@@ -24,12 +24,14 @@ data class User(
     val isVerified: Boolean?,
     val bio: String? = null,
     val avatarUrl: String? = null,
-    val image: String? = null, // Added to match backend
+    val image: String? = null,
     @SerializedName("skillsTeach") val skillsTeach: List<String>? = null,
     @SerializedName("skillsLearn") val skillsLearn: List<String>? = null,
     val xp: Int? = null,
     val badges: List<String>? = null,
-    val location: UserLocation? = null
+    val location: UserLocation? = null,
+    val referralCode: String? = null,
+    @SerializedName("codeParainnage") val codeParainnage: String? = null
 )
 
 data class UserLocation(
@@ -575,4 +577,80 @@ data class AvailabilityResponse(
     val available: Boolean,
     val slots: List<String>? = null,
     val message: String? = null
+)
+
+// ============ Calendar Event Models ============
+
+data class CalendarEvent(
+    @SerializedName("_id") val id: String,
+    val title: String,
+    val description: String? = null,
+    val startTime: String,
+    val endTime: String,
+    val location: String? = null,
+    val participants: List<EventParticipant>? = null,
+    val createdBy: String,
+    val sessionId: String? = null,
+    val googleEventId: String? = null,
+    val status: String = "confirmed",
+    val reminder: Int? = 15,
+    val isAllDay: Boolean = false,
+    val recurrence: String? = null,
+    val createdAt: String? = null,
+    val updatedAt: String? = null
+)
+
+data class EventParticipant(
+    val userId: String,
+    val email: String,
+    val name: String? = null,
+    val status: String = "pending"
+)
+
+data class CreateEventRequest(
+    val title: String,
+    val description: String? = null,
+    val startTime: String,
+    val endTime: String,
+    val location: String? = null,
+    val participants: List<String>? = null,
+    val sessionId: String? = null,
+    val reminder: Int? = 15,
+    val isAllDay: Boolean = false,
+    val recurrence: String? = null,
+    val syncToGoogle: Boolean = false
+)
+
+data class UpdateEventRequest(
+    val title: String? = null,
+    val description: String? = null,
+    val startTime: String? = null,
+    val endTime: String? = null,
+    val location: String? = null,
+    val participants: List<String>? = null,
+    val status: String? = null,
+    val reminder: Int? = null,
+    val syncToGoogle: Boolean? = null
+)
+
+data class CalendarEventsResponse(
+    val events: List<CalendarEvent>,
+    val total: Int? = null,
+    val page: Int? = null
+)
+
+data class GoogleCalendarAuthResponse(
+    val authUrl: String,
+    val state: String? = null
+)
+
+data class GoogleCalendarTokenRequest(
+    val code: String,
+    val redirectUri: String? = null
+)
+
+data class GoogleCalendarSyncResult(
+    val synced: Int,
+    val failed: Int,
+    val errors: List<String>? = null
 )

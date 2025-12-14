@@ -122,6 +122,39 @@ fun SkillSwapApp() {
         val navBackStackEntry by navController.currentBackStackEntryAsState()
         val currentRoute = navBackStackEntry?.destination?.route
         
+        // Handle deep links from notifications
+        val deepLinkType by MainActivity.deepLinkType
+        val deepLinkData by MainActivity.deepLinkData
+        
+        LaunchedEffect(deepLinkType, deepLinkData) {
+            if (deepLinkType != null) {
+                when (deepLinkType) {
+                    "chat" -> {
+                        val threadId = deepLinkData["threadId"]
+                        if (!threadId.isNullOrEmpty()) {
+                            navController.navigate(Screen.ChatDetail.createRoute(threadId))
+                        } else {
+                            navController.navigate(Screen.Messages.route)
+                        }
+                    }
+                    "session" -> {
+                        val sessionId = deepLinkData["sessionId"]
+                        if (!sessionId.isNullOrEmpty()) {
+                            navController.navigate("session_detail/$sessionId")
+                        } else {
+                            navController.navigate(Screen.Sessions.route)
+                        }
+                    }
+                    "notification" -> {
+                        navController.navigate("notifications")
+                    }
+                }
+                // Clear after handling
+                MainActivity.deepLinkType.value = null
+                MainActivity.deepLinkData.value = emptyMap()
+            }
+        }
+        
         val bottomNavItems = listOf(
             Screen.Discover,
             Screen.Messages,
@@ -237,6 +270,26 @@ fun SkillSwapApp() {
                     
                     composable("settings") {
                         com.skillswap.ui.profile.SettingsScreen(navController)
+                    }
+                    
+                    composable("calendar") {
+                        com.skillswap.ui.calendar.CalendarScreen(
+                            onBack = { navController.popBackStack() },
+                            onEventClick = { eventId -> 
+                                navController.navigate("calendar_event/$eventId")
+                            }
+                        )
+                    }
+                    
+                    composable(
+                        "calendar_event/{eventId}",
+                        arguments = listOf(navArgument("eventId") { type = NavType.StringType })
+                    ) { backStackEntry ->
+                        val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
+                        com.skillswap.ui.calendar.EventDetailScreen(
+                            eventId = eventId,
+                            onBack = { navController.popBackStack() }
+                        )
                     }
                     
                     composable("privacy") {

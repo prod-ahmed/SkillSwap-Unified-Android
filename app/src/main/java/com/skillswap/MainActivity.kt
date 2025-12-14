@@ -1,14 +1,23 @@
 package com.skillswap
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 
 class MainActivity : ComponentActivity() {
+    
+    companion object {
+        // Deep link state
+        val deepLinkType = mutableStateOf<String?>(null)
+        val deepLinkData = mutableStateOf<Map<String, String>>(emptyMap())
+    }
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
@@ -19,6 +28,9 @@ class MainActivity : ComponentActivity() {
                 requestPermissions(arrayOf(permission), 101)
             }
         }
+        
+        // Handle deep link from notification
+        handleDeepLink(intent)
 
         setContent {
             Surface(
@@ -28,5 +40,43 @@ class MainActivity : ComponentActivity() {
                 SkillSwapApp()
             }
         }
+    }
+    
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleDeepLink(intent)
+    }
+    
+    private fun handleDeepLink(intent: Intent?) {
+        intent?.extras?.let { extras ->
+            val type = extras.getString("type")
+            val data = mutableMapOf<String, String>()
+            
+            when (type) {
+                "chat" -> {
+                    extras.getString("threadId")?.let { data["threadId"] = it }
+                }
+                "call" -> {
+                    extras.getString("callerId")?.let { data["callerId"] = it }
+                    extras.getString("callType")?.let { data["callType"] = it }
+                }
+                "session" -> {
+                    extras.getString("sessionId")?.let { data["sessionId"] = it }
+                }
+                "notification" -> {
+                    extras.getString("notificationId")?.let { data["notificationId"] = it }
+                }
+            }
+            
+            if (type != null) {
+                deepLinkType.value = type
+                deepLinkData.value = data
+            }
+        }
+    }
+    
+    fun clearDeepLink() {
+        deepLinkType.value = null
+        deepLinkData.value = emptyMap()
     }
 }

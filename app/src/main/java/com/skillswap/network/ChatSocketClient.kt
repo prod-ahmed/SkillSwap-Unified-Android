@@ -172,6 +172,7 @@ class ChatSocketClient private constructor(
                     val senderId = it.optString("senderId")
                     val content = it.optString("content")
                     val createdAt = it.optString("createdAt")
+                    val senderName = it.optString("senderName", it.optString("senderUsername", ""))
                     
                     // Emit to flow
                     _messages.tryEmit(SocketMessagePayload(id, threadId, senderId, content, createdAt))
@@ -179,12 +180,9 @@ class ChatSocketClient private constructor(
                     // Show notification if not from self
                     val currentUserId = userIdProvider()
                     if (senderId != currentUserId) {
-                        // We don't have sender name here easily without fetching, 
-                        // but we can show a generic message or try to parse if available
-                        // For now, use a generic title or "Nouveau message"
                         notificationManager.showMessageNotification(
                             threadId = threadId,
-                            senderName = "Nouveau message", 
+                            senderName = senderName.ifEmpty { "Nouveau message" }, 
                             messageText = content
                         )
                     }

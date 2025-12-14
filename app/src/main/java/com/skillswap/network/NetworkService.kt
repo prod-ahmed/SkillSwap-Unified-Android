@@ -358,6 +358,92 @@ interface SkillSwapApi {
         @Header("Authorization") token: String,
         @Path("id") id: String
     )
+    
+    // ============ Calendar Events ============
+    
+    @GET("/calendar/events")
+    suspend fun getCalendarEvents(
+        @Header("Authorization") token: String,
+        @Query("startDate") startDate: String? = null,
+        @Query("endDate") endDate: String? = null,
+        @Query("page") page: Int? = null,
+        @Query("limit") limit: Int? = null
+    ): CalendarEventsResponse
+    
+    @GET("/calendar/events/{id}")
+    suspend fun getCalendarEvent(
+        @Header("Authorization") token: String,
+        @Path("id") id: String
+    ): CalendarEvent
+    
+    @POST("/calendar/events")
+    suspend fun createCalendarEvent(
+        @Header("Authorization") token: String,
+        @Body body: CreateEventRequest
+    ): CalendarEvent
+    
+    @PATCH("/calendar/events/{id}")
+    suspend fun updateCalendarEvent(
+        @Header("Authorization") token: String,
+        @Path("id") id: String,
+        @Body body: UpdateEventRequest
+    ): CalendarEvent
+    
+    @DELETE("/calendar/events/{id}")
+    suspend fun deleteCalendarEvent(
+        @Header("Authorization") token: String,
+        @Path("id") id: String
+    ): Map<String, Any>
+    
+    @POST("/calendar/events/{id}/participants")
+    suspend fun addEventParticipant(
+        @Header("Authorization") token: String,
+        @Path("id") id: String,
+        @Body body: Map<String, String>
+    ): CalendarEvent
+    
+    @DELETE("/calendar/events/{id}/participants/{userId}")
+    suspend fun removeEventParticipant(
+        @Header("Authorization") token: String,
+        @Path("id") id: String,
+        @Path("userId") userId: String
+    ): CalendarEvent
+    
+    @POST("/calendar/events/{id}/respond")
+    suspend fun respondToEventInvite(
+        @Header("Authorization") token: String,
+        @Path("id") id: String,
+        @Body body: Map<String, String>
+    ): CalendarEvent
+    
+    // ============ Google Calendar Integration ============
+    
+    @GET("/calendar/google/auth-url")
+    suspend fun getGoogleCalendarAuthUrl(
+        @Header("Authorization") token: String
+    ): GoogleCalendarAuthResponse
+    
+    @POST("/calendar/google/callback")
+    suspend fun handleGoogleCalendarCallback(
+        @Header("Authorization") token: String,
+        @Body body: GoogleCalendarTokenRequest
+    ): Map<String, Any>
+    
+    @POST("/calendar/google/sync")
+    suspend fun syncWithGoogleCalendar(
+        @Header("Authorization") token: String,
+        @Body body: Map<String, Any>? = null
+    ): GoogleCalendarSyncResult
+    
+    @DELETE("/calendar/google/disconnect")
+    suspend fun disconnectGoogleCalendar(
+        @Header("Authorization") token: String
+    ): Map<String, Any>
+    
+    @GET("/calendar/google/status")
+    suspend fun getGoogleCalendarStatus(
+        @Header("Authorization") token: String
+    ): Map<String, Any>
 }
 
 object NetworkService {

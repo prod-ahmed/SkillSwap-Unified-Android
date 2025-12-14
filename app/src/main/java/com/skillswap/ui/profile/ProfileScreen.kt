@@ -47,6 +47,13 @@ import com.skillswap.viewmodel.ProfileViewModel
 
 import androidx.navigation.NavController
 
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Intent
+
 import com.skillswap.Screen
 
 @Composable
@@ -56,6 +63,8 @@ fun ProfileScreen(
     viewModel: ProfileViewModel = viewModel()
 ) {
     val context = LocalContext.current
+    var showReferralModal by remember { mutableStateOf(false) }
+    
     LaunchedEffect(Unit) {
         viewModel.loadProfile()
     }
@@ -165,13 +174,16 @@ fun ProfileScreen(
                     navController.navigate("sessions_pour_vous")
                 }
                 ProfileActionButton("gift.fill", "Parrainer un ami", OrangePrimary) {
-                    navController.navigate("referral")
+                    showReferralModal = true
                 }
                 ProfileActionButton("book.closed", "Quiz AI", Color(0xFF6A4CFF)) {
                     navController.navigate("quizzes")
                 }
                 ProfileActionButton("bell.fill", "Notifications", Color(0xFFFF6B35)) {
                     navController.navigate("notifications")
+                }
+                ProfileActionButton("calendar", "Calendrier", Color(0xFF2196F3)) {
+                    navController.navigate("calendar")
                 }
                 
                 // New Features
@@ -267,6 +279,97 @@ fun ProfileScreen(
              
              Spacer(Modifier.height(32.dp))
         }
+    }
+    
+    // Inline Referral Modal
+    if (showReferralModal) {
+        val referralCode = user?.referralCode ?: "SKILL${user?.id?.take(6)?.uppercase() ?: "XXX"}"
+        
+        AlertDialog(
+            onDismissRequest = { showReferralModal = false },
+            title = { 
+                Text(
+                    "🎁 Parrainer un ami",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        "Partagez votre code et gagnez des récompenses !",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Gray
+                    )
+                    
+                    // Code display
+                    Surface(
+                        color = OrangePrimary.copy(alpha = 0.1f),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                referralCode,
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = OrangePrimary
+                            )
+                            IconButton(onClick = {
+                                val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                clipboard.setPrimaryClip(ClipData.newPlainText("Referral Code", referralCode))
+                            }) {
+                                Icon(Icons.Default.Code, "Copier", tint = OrangePrimary)
+                            }
+                        }
+                    }
+                    
+                    // Stats
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("0", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
+                            Text("Parrainés", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                        }
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("0", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
+                            Text("XP gagnés", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val shareIntent = Intent().apply {
+                            action = Intent.ACTION_SEND
+                            putExtra(Intent.EXTRA_TEXT, "Rejoins SkillSwap et utilise mon code: $referralCode pour obtenir des bonus!")
+                            type = "text/plain"
+                        }
+                        context.startActivity(Intent.createChooser(shareIntent, "Partager"))
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary)
+                ) {
+                    Icon(Icons.Default.Share, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Partager")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showReferralModal = false }) {
+                    Text("Fermer")
+                }
+            }
+        )
     }
 }
 
