@@ -167,7 +167,7 @@ fun SettingsScreen(navController: NavController) {
                     icon = Icons.Default.Security,
                     title = "Confidentialité",
                     subtitle = "Gérer vos données",
-                    onClick = { /* TODO: Navigate to privacy settings */ }
+                    onClick = { navController.navigate("privacy") }
                 )
             }
             

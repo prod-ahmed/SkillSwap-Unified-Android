@@ -239,6 +239,10 @@ fun SkillSwapApp() {
                         com.skillswap.ui.profile.SettingsScreen(navController)
                     }
                     
+                    composable("privacy") {
+                        com.skillswap.ui.profile.PrivacyScreen(onBack = { navController.popBackStack() })
+                    }
+                    
                     composable(Screen.ProfileEdit.route) {
                         com.skillswap.ui.profile.ProfileEditScreen(
                             onBack = { navController.popBackStack() }

@@ -20,6 +20,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import com.skillswap.ui.theme.OrangePrimary
 import com.skillswap.viewmodel.CallState
 import kotlinx.coroutines.delay
@@ -43,6 +45,23 @@ fun VideoCallScreen(
     onDismissEnded: () -> Unit
 ) {
     var showControls by remember { mutableStateOf(true) }
+    
+    // Permissions
+    val context = LocalContext.current
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { perms ->
+        // Handle permission results if needed
+    }
+    
+    LaunchedEffect(Unit) {
+        permissionLauncher.launch(
+            arrayOf(
+                android.Manifest.permission.CAMERA,
+                android.Manifest.permission.RECORD_AUDIO
+            )
+        )
+    }
     
     // Auto-hide controls
     LaunchedEffect(showControls, callState.connectionStatus) {

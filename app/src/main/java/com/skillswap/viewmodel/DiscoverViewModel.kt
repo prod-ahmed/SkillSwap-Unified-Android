@@ -54,6 +54,12 @@ class DiscoverViewModel(application: Application) : AndroidViewModel(application
     private val _skillFilter = MutableStateFlow<String?>(null)
     val skillFilter: StateFlow<String?> = _skillFilter.asStateFlow()
     
+    private val _categories = MutableStateFlow(listOf("Design", "Développement", "Marketing", "Langues", "Musique", "Autre"))
+    val categories: StateFlow<List<String>> = _categories.asStateFlow()
+    
+    private val _categoryFilter = MutableStateFlow<String?>(null)
+    val categoryFilter: StateFlow<String?> = _categoryFilter.asStateFlow()
+    
     // ============ PHASE 13: Advanced Filters ============
     
     private val _annonceFilterState = MutableStateFlow(com.skillswap.ui.discover.AnnonceFilterState())
@@ -208,6 +214,14 @@ class DiscoverViewModel(application: Application) : AndroidViewModel(application
     fun setSkillFilter(skill: String?) {
         _skillFilter.value = skill
         loadForCurrentSegment()
+    }
+    
+    fun setCategoryFilter(category: String?) {
+        _categoryFilter.value = category
+        // For annonces, we filter locally or reload if API supports it. 
+        // Currently API getAllAnnonces doesn't take filters, so we rely on local filtering in UI or here.
+        // But to be consistent, let's just expose the filter and let UI handle it or filter the list here.
+        // The UI currently does local filtering for text. Let's keep it consistent.
     }
 
     private fun withAbsoluteAnnonce(item: Annonce): Annonce {

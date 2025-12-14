@@ -70,6 +70,8 @@ fun DiscoverScreen(
     val skills by viewModel.skills.collectAsState()
     val selectedCity by viewModel.cityFilter.collectAsState()
     val selectedSkill by viewModel.skillFilter.collectAsState()
+    val categories by viewModel.categories.collectAsState()
+    val selectedCategory by viewModel.categoryFilter.collectAsState()
 
     var filterText by remember { mutableStateOf("") }
     var showAnnonceDialog by remember { mutableStateOf(false) }
@@ -77,10 +79,14 @@ fun DiscoverScreen(
     var showMatchDialog by remember { mutableStateOf(false) }
     var matchedUser by remember { mutableStateOf<User?>(null) }
 
-    val filteredAnnonces = remember(annonces, filterText) {
-        if (filterText.isBlank()) annonces else annonces.filter {
+    val filteredAnnonces = remember(annonces, filterText, selectedCategory) {
+        var list = if (filterText.isBlank()) annonces else annonces.filter {
             it.title.contains(filterText, ignoreCase = true) || (it.city ?: "").contains(filterText, ignoreCase = true)
         }
+        if (selectedCategory != null) {
+            list = list.filter { it.category == selectedCategory }
+        }
+        list
     }
     val filteredPromos = remember(promos, filterText) {
         if (filterText.isBlank()) promos else promos.filter {
@@ -234,14 +240,49 @@ fun DiscoverScreen(
                         }
                     }
                     DiscoverSegment.ANNONCES -> {
-                        OutlinedTextField(
-                            value = filterText,
-                            onValueChange = { filterText = it },
-                            label = { Text("Filtrer par titre/ville") },
-                            modifier = Modifier
-                                .padding(horizontal = 16.dp)
-                                .fillMaxWidth()
-                        )
+                        Column {
+                            OutlinedTextField(
+                                value = filterText,
+                                onValueChange = { filterText = it },
+                                label = { Text("Filtrer par titre/ville") },
+                                modifier = Modifier
+                                    .padding(horizontal = 16.dp)
+                                    .fillMaxWidth()
+                            )
+                            
+                            // Category Filter
+                            LazyRow(
+                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                item {
+                                    FilterChip(
+                                        selected = selectedCategory == null,
+                                        onClick = { viewModel.setCategoryFilter(null) },
+                                        label = { Text("Toutes") },
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = SkillCoral.copy(alpha = 0.2f),
+                                            selectedLabelColor = SkillCoral
+                                        )
+                                    )
+                                }
+                                items(categories) { cat ->
+                                    FilterChip(
+                                        selected = selectedCategory == cat,
+                                        onClick = { viewModel.setCategoryFilter(if (selectedCategory == cat) null else cat) },
+                                        label = { Text(cat) },
+                                        leadingIcon = if (selectedCategory == cat) {
+                                            { Icon(Icons.Default.Done, null, modifier = Modifier.size(16.dp)) }
+                                        } else null,
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = SkillCoral.copy(alpha = 0.2f),
+                                            selectedLabelColor = SkillCoral
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                        
                         if (filteredAnnonces.isEmpty()) {
                             EmptyDiscoverState(message = "Aucune annonce trouvée", action = { viewModel.loadForCurrentSegment() })
                         } else {
