@@ -17,6 +17,10 @@ import kotlinx.coroutines.launch
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import com.skillswap.widget.WeeklyObjectiveWidgetProvider
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 
 class WeeklyObjectiveViewModel(application: Application) : AndroidViewModel(application) {
     private val prefs = application.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
@@ -137,6 +141,162 @@ class WeeklyObjectiveViewModel(application: Application) : AndroidViewModel(appl
                 _error.value = e.message
             }
         }
+    }
+
+    private val _isGeneratingAI = MutableStateFlow(false)
+    val isGeneratingAI: StateFlow<Boolean> = _isGeneratingAI.asStateFlow()
+    
+    private val _aiGeneratedData = MutableStateFlow<AIGeneratedObjective?>(null)
+    val aiGeneratedData: StateFlow<AIGeneratedObjective?> = _aiGeneratedData.asStateFlow()
+
+    data class AIGeneratedObjective(
+        val title: String,
+        val targetHours: Int,
+        val suggestion: String,
+        val tasks: List<String>
+    )
+
+    fun generateWithAI(skill: String, level: String, hoursPerWeek: Int) {
+        viewModelScope.launch {
+            _isGeneratingAI.value = true
+            _error.value = null
+            try {
+                val response = callGeminiAPI(skill, level, hoursPerWeek)
+                val parsed = parseAIResponse(response)
+                _aiGeneratedData.value = parsed
+            } catch (e: Exception) {
+                _error.value = "AI generation failed: ${e.message}"
+                // Set default fallback
+                _aiGeneratedData.value = AIGeneratedObjective(
+                    title = "Master $skill",
+                    targetHours = hoursPerWeek,
+                    suggestion = "Practice regularly and track your progress",
+                    tasks = List(7) { "Practice $skill - Day ${it + 1}" }
+                )
+            } finally {
+                _isGeneratingAI.value = false
+            }
+        }
+    }
+
+    private suspend fun callGeminiAPI(skill: String, level: String, hoursPerWeek: Int): String = withContext(Dispatchers.IO) {
+        val apiKey = com.skillswap.BuildConfig.GEMINI_API_KEY
+        if (apiKey.isBlank()) {
+            throw Exception("Gemini API key not configured")
+        }
+
+        val prompt = """
+            Create a weekly learning plan for:
+            - Skill: $skill
+            - Current Level: $level
+            - Available Hours per Week: $hoursPerWeek
+            
+            Please provide:
+            1. A motivating title for this week's objective
+            2. Realistic target hours
+            3. A brief suggestion or tip
+            4. A 7-day learning plan with specific daily tasks
+            
+            Format your response EXACTLY as:
+            Title: [your title]
+            Hours: [number]
+            Suggestion: [your suggestion]
+            Day 1: [task]
+            Day 2: [task]
+            Day 3: [task]
+            Day 4: [task]
+            Day 5: [task]
+            Day 6: [task]
+            Day 7: [task]
+        """.trimIndent()
+
+        val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=$apiKey"
+        val client = okhttp3.OkHttpClient.Builder()
+            .connectTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+            .build()
+
+        val requestBody = """
+            {
+                "contents": [{
+                    "parts": [{"text": "${prompt.replace("\"", "\\\"")}"}]
+                }],
+                "generationConfig": {
+                    "temperature": 0.7,
+                    "maxOutputTokens": 1024
+                }
+            }
+        """.trimIndent()
+
+        val request = okhttp3.Request.Builder()
+            .url(url)
+            .post(
+                requestBody.toRequestBody("application/json; charset=utf-8".toMediaType())
+            )
+            .build()
+
+        val response = client.newCall(request).execute()
+        if (!response.isSuccessful) {
+            throw Exception("API request failed with status ${response.code}")
+        }
+
+        val responseBody = response.body?.string() ?: throw Exception("Empty response")
+        parseGeminiResponse(responseBody)
+    }
+
+    private fun parseGeminiResponse(jsonResponse: String): String {
+        val json = org.json.JSONObject(jsonResponse)
+        val candidates = json.getJSONArray("candidates")
+        val firstCandidate = candidates.getJSONObject(0)
+        val content = firstCandidate.getJSONObject("content")
+        val parts = content.getJSONArray("parts")
+        val firstPart = parts.getJSONObject(0)
+        return firstPart.getString("text")
+    }
+
+    private fun parseAIResponse(response: String): AIGeneratedObjective {
+        val lines = response.lines().map { it.trim() }.filter { it.isNotEmpty() }
+        
+        var title = "Weekly Learning Goal"
+        var hours = 10
+        var suggestion = "Stay consistent and track your progress"
+        val tasks = mutableListOf<String>()
+        
+        for (line in lines) {
+            when {
+                line.startsWith("Title:", ignoreCase = true) -> {
+                    title = line.substring(6).trim()
+                }
+                line.startsWith("Hours:", ignoreCase = true) -> {
+                    val hoursStr = line.substring(6).trim()
+                    hours = hoursStr.filter { it.isDigit() }.toIntOrNull() ?: 10
+                }
+                line.startsWith("Suggestion:", ignoreCase = true) -> {
+                    suggestion = line.substring(11).trim()
+                }
+                line.matches(Regex("Day \\d+:.*", RegexOption.IGNORE_CASE)) -> {
+                    val colonIndex = line.indexOf(':')
+                    if (colonIndex != -1) {
+                        val task = line.substring(colonIndex + 1).trim()
+                        if (task.isNotEmpty()) {
+                            tasks.add(task)
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Ensure we have 7 tasks
+        while (tasks.size < 7) {
+            tasks.add("Practice and review - Day ${tasks.size + 1}")
+        }
+        
+        return AIGeneratedObjective(
+            title = title,
+            targetHours = hours,
+            suggestion = suggestion,
+            tasks = tasks.take(7)
+        )
     }
 
     private fun saveWidgetState(objective: WeeklyObjective) {

@@ -24,6 +24,9 @@ import com.skillswap.viewmodel.SessionsViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 import com.skillswap.ui.components.SkillSelectionComposable
+import com.skillswap.ui.components.LocationPickerScreen
+import java.util.Calendar
+import java.util.TimeZone
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,6 +43,11 @@ fun CreateSessionScreen(
     var selectedDate by remember { mutableStateOf(Date()) }
     var selectedTime by remember { mutableStateOf(Date()) }
     var duration by remember { mutableStateOf(60) }
+    
+    var locationName by remember { mutableStateOf("") }
+    var locationLat by remember { mutableStateOf<Double?>(null) }
+    var locationLng by remember { mutableStateOf<Double?>(null) }
+    var showLocationPicker by remember { mutableStateOf(false) }
     
     var studentEmail by remember { mutableStateOf("") }
     var meetingLink by remember { mutableStateOf("") }
@@ -281,6 +289,26 @@ fun CreateSessionScreen(
                                         }
                                     }
                                 }
+                                
+                                Spacer(modifier = Modifier.height(16.dp))
+                                
+                                Text(
+                                    "Localisation (optionnel)",
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 14.sp
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                
+                                OutlinedButton(
+                                    onClick = { showLocationPicker = true },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Icon(Icons.Default.LocationOn, contentDescription = null)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        if (locationName.isNotBlank()) locationName else "Choisir une localisation"
+                                    )
+                                }
                             }
                         }
                     }
@@ -448,19 +476,65 @@ fun CreateSessionScreen(
                         Text("Suivant")
                     }
                 } else {
+                    val isLoading by viewModel.isLoading.collectAsState()
+                    val successMessage by viewModel.successMessage.collectAsState()
+                    
+                    LaunchedEffect(successMessage) {
+                        if (successMessage != null) {
+                            onSessionCreated()
+                        }
+                    }
+                    
                     Button(
                         onClick = {
-                            // Create session logic here
-                            onSessionCreated()
+                            val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
+                                timeZone = TimeZone.getTimeZone("UTC")
+                            }
+                            val calendar = Calendar.getInstance().apply {
+                                time = selectedDate
+                                set(Calendar.HOUR_OF_DAY, Calendar.getInstance().apply { time = selectedTime }.get(Calendar.HOUR_OF_DAY))
+                                set(Calendar.MINUTE, Calendar.getInstance().apply { time = selectedTime }.get(Calendar.MINUTE))
+                            }
+                            
+                            viewModel.createSession(
+                                title = title,
+                                skill = selectedSkills.firstOrNull() ?: "",
+                                studentEmail = studentEmail,
+                                date = dateFormat.format(calendar.time),
+                                duration = duration,
+                                meetingLink = meetingLink.takeIf { it.isNotBlank() },
+                                notes = description.takeIf { it.isNotBlank() },
+                                addToCalendar = true
+                            )
                         },
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary),
-                        enabled = title.isNotBlank() && studentEmail.isNotBlank()
+                        enabled = title.isNotBlank() && studentEmail.isNotBlank() && selectedSkills.isNotEmpty() && !isLoading
                     ) {
-                        Text("Créer la session")
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text("Créer la session")
+                        }
                     }
                 }
             }
         }
+    }
+    
+    if (showLocationPicker) {
+        LocationPickerScreen(
+            onLocationSelected = { name, lat, lng ->
+                locationName = name
+                locationLat = lat
+                locationLng = lng
+                showLocationPicker = false
+            },
+            onBack = { showLocationPicker = false }
+        )
     }
 }
