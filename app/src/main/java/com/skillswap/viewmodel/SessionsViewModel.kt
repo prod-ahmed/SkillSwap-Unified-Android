@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.skillswap.model.CreateSessionRequest
+import com.skillswap.security.SecureStorage
 import com.skillswap.model.LessonPlan
 import com.skillswap.model.LessonPlanGenerateRequest
 import com.skillswap.model.RateSessionRequest
@@ -19,7 +20,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class SessionsViewModel(application: Application) : AndroidViewModel(application) {
-    private val sharedPreferences = application.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
+    private val sharedPreferences = SecureStorage.getInstance(application)
 
     private val _sessions = MutableStateFlow<List<Session>>(emptyList())
     val sessions: StateFlow<List<Session>> = _sessions.asStateFlow()

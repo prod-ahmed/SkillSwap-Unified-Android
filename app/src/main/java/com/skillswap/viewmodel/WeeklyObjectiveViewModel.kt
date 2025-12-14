@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.skillswap.model.CreateWeeklyObjectiveRequest
+import com.skillswap.security.SecureStorage
 import com.skillswap.model.DailyTaskRequest
 import com.skillswap.model.TaskUpdateRequest
 import com.skillswap.model.UpdateWeeklyObjectiveRequest
@@ -23,7 +24,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 
 class WeeklyObjectiveViewModel(application: Application) : AndroidViewModel(application) {
-    private val prefs = application.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
+    private val prefs = SecureStorage.getInstance(application)
     private val appContext = application.applicationContext
 
     private val _current = MutableStateFlow<WeeklyObjective?>(null)

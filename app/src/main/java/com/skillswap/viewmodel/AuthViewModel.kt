@@ -9,6 +9,7 @@ import com.skillswap.auth.GoogleSignInHelper
 import com.skillswap.model.ForgotPasswordRequest
 import com.skillswap.model.ReferralPreview
 import com.skillswap.network.NetworkService
+import com.skillswap.security.SecureStorage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -39,7 +40,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-    private val sharedPreferences = application.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
+    private val sharedPreferences = SecureStorage.getInstance(application)
     val googleSignInHelper = GoogleSignInHelper(application.applicationContext)
 
     fun onEmailChange(newValue: String) { _email.value = newValue }

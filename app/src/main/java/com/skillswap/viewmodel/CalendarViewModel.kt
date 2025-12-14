@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.skillswap.model.CalendarEvent
+import com.skillswap.security.SecureStorage
 import com.skillswap.model.CreateEventRequest
 import com.skillswap.model.UpdateEventRequest
 import com.skillswap.network.NetworkService
@@ -16,7 +17,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 class CalendarViewModel(application: Application) : AndroidViewModel(application) {
-    private val sharedPreferences = application.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
+    private val sharedPreferences = SecureStorage.getInstance(application)
     
     private val _events = MutableStateFlow<List<CalendarEvent>>(emptyList())
     val events: StateFlow<List<CalendarEvent>> = _events.asStateFlow()

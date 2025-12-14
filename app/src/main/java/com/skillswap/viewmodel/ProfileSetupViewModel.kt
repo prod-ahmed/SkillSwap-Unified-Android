@@ -8,6 +8,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.skillswap.network.NetworkService
+import com.skillswap.security.SecureStorage
 import kotlinx.coroutines.launch
 
 data class ProfileSetupState(
@@ -16,7 +17,7 @@ data class ProfileSetupState(
 )
 
 class ProfileSetupViewModel(application: Application) : AndroidViewModel(application) {
-    private val prefs = application.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
+    private val prefs = SecureStorage.getInstance(application)
     var state by mutableStateOf(ProfileSetupState())
         private set
 

@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.skillswap.model.CallIceCandidate
+import com.skillswap.security.SecureStorage
 import com.skillswap.model.CallSdp
 import com.skillswap.model.CallOfferPayload
 import com.skillswap.network.ChatSocketClient
@@ -185,7 +186,7 @@ class CallViewModel(application: Application) : AndroidViewModel(application), W
         // Chat Notifications
         viewModelScope.launch {
             socketClient.messages.collectLatest { msg ->
-                val prefs = getApplication<Application>().getSharedPreferences("SkillSwapPrefs", android.content.Context.MODE_PRIVATE)
+                val prefs = SecureStorage.getInstance(getApplication())
                 val myId = prefs.getString("user_id", "")
                 
                 if (msg.senderId != myId) {

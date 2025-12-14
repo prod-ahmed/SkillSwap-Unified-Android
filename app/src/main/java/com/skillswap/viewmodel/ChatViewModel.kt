@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.skillswap.model.Conversation
+import com.skillswap.security.SecureStorage
 import com.skillswap.model.Message
 import com.skillswap.model.ChatThread
 import com.skillswap.network.NetworkService
@@ -21,7 +22,7 @@ import kotlinx.coroutines.flow.collectLatest
 import org.json.JSONObject
 
 class ChatViewModel(application: Application) : AndroidViewModel(application) {
-    private val sharedPreferences = application.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
+    private val sharedPreferences = SecureStorage.getInstance(application)
     private val socketClient = ChatSocketClient.getInstance(application)
 
     private val _conversations = MutableStateFlow<List<Conversation>>(emptyList())

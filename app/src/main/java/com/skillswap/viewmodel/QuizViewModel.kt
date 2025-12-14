@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.skillswap.data.QuizQuestion
+import com.skillswap.security.SecureStorage
 import com.skillswap.data.QuizResult
 import com.skillswap.data.QuizService
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,7 +18,7 @@ import java.util.UUID
 
 class QuizViewModel(application: Application) : AndroidViewModel(application) {
     private val quizService = QuizService.instance
-    private val prefs = application.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
+    private val prefs = SecureStorage.getInstance(application)
     private val gson = Gson()
     
     private val _isGenerating = MutableStateFlow(false)

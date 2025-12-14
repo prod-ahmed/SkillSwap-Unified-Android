@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.skillswap.model.ReferralCodeResponse
+import com.skillswap.security.SecureStorage
 import com.skillswap.model.ReferralsMeResponse
 import com.skillswap.network.NetworkService
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,7 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class ReferralViewModel(application: Application) : AndroidViewModel(application) {
-    private val prefs = application.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
+    private val prefs = SecureStorage.getInstance(application)
 
     private val _state = MutableStateFlow<ReferralsMeResponse?>(null)
     val state: StateFlow<ReferralsMeResponse?> = _state.asStateFlow()

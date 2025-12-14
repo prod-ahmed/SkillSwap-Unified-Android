@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.skillswap.model.Annonce
+import com.skillswap.security.SecureStorage
 import com.skillswap.model.CreateAnnonceRequest
 import com.skillswap.model.CreatePromoRequest
 import com.skillswap.model.Promo
@@ -20,7 +21,7 @@ enum class DiscoverSegment {
 }
 
 class DiscoverViewModel(application: Application) : AndroidViewModel(application) {
-    private val sharedPreferences = application.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
+    private val sharedPreferences = SecureStorage.getInstance(application)
     
     private val _segment = MutableStateFlow(DiscoverSegment.PROFILS)
     val segment: StateFlow<DiscoverSegment> = _segment.asStateFlow()

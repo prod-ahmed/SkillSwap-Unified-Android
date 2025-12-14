@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.skillswap.model.Annonce
+import com.skillswap.security.SecureStorage
 import com.skillswap.model.CreateAnnonceRequest
 import com.skillswap.model.MediaPayload
 import com.skillswap.model.UpdateAnnonceRequest
@@ -19,7 +20,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class AnnoncesViewModel(application: Application) : AndroidViewModel(application) {
-    private val sharedPreferences = application.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
+    private val sharedPreferences = SecureStorage.getInstance(application)
 
     private val _annonces = MutableStateFlow<List<Annonce>>(emptyList())
     val annonces: StateFlow<List<Annonce>> = _annonces.asStateFlow()

@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.skillswap.model.User
+import com.skillswap.security.SecureStorage
 import com.skillswap.network.NetworkService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,7 +21,7 @@ data class UserLocationPin(
 )
 
 class MapViewModel(application: Application) : AndroidViewModel(application) {
-    private val sharedPreferences = application.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
+    private val sharedPreferences = SecureStorage.getInstance(application)
 
     private val _pins = MutableStateFlow<List<UserLocationPin>>(emptyList())
     val pins: StateFlow<List<UserLocationPin>> = _pins.asStateFlow()

@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.skillswap.model.Recommendation
+import com.skillswap.security.SecureStorage
 import com.skillswap.model.User
 import com.skillswap.network.NetworkService
 import com.google.android.gms.maps.model.LatLng
@@ -15,7 +16,7 @@ import kotlinx.coroutines.launch
 
 class RecommendationsViewModel(application: Application) : AndroidViewModel(application) {
     private val api = NetworkService.api
-    private val sharedPreferences = application.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
+    private val sharedPreferences = SecureStorage.getInstance(application)
     
     private val _recommendations = MutableStateFlow<List<Recommendation>>(emptyList())
     val recommendations: StateFlow<List<Recommendation>> = _recommendations.asStateFlow()

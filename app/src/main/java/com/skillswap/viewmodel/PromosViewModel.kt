@@ -6,6 +6,7 @@ import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.skillswap.BuildConfig
+import com.skillswap.security.SecureStorage
 import com.skillswap.model.CreatePromoRequest
 import com.skillswap.model.MediaPayload
 import com.skillswap.model.Promo
@@ -20,7 +21,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class PromosViewModel(application: Application) : AndroidViewModel(application) {
-    private val sharedPreferences = application.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
+    private val sharedPreferences = SecureStorage.getInstance(application)
 
     private val _promos = MutableStateFlow<List<Promo>>(emptyList())
     val promos: StateFlow<List<Promo>> = _promos.asStateFlow()
