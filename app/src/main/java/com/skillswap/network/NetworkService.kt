@@ -133,6 +133,19 @@ interface SkillSwapApi {
         @Path("threadId") threadId: String,
         @Body body: Map<String, List<String>?>
     ): Map<String, Any>
+    
+    @POST("/chat/messages/{messageId}/react")
+    suspend fun reactToMessage(
+        @Header("Authorization") token: String,
+        @Path("messageId") messageId: String,
+        @Body body: Map<String, String>
+    ): ThreadMessage
+    
+    @DELETE("/chat/messages/{messageId}")
+    suspend fun deleteMessage(
+        @Header("Authorization") token: String,
+        @Path("messageId") messageId: String
+    ): ThreadMessage
 
     // Matching / discovery
     @GET("/matching/recommendations")
