@@ -67,22 +67,18 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
                 val authManager = com.skillswap.auth.AuthenticationManager.getInstance(getApplication())
                 val token = authManager.getToken()
                 if (!token.isNullOrEmpty()) {
-                    val apiService = com.skillswap.network.RetrofitInstance.apiService
-                    val response = apiService.getUserProfile("Bearer $token")
-                    if (response.isSuccessful) {
-                        val user = response.body()
-                        val skills = mutableSetOf<String>()
-                        user?.skillsTeach?.let { skills.addAll(it) }
-                        user?.skillsLearn?.let { skills.addAll(it) }
-                        
-                        // Add default subjects if no skills
-                        if (skills.isEmpty()) {
-                            skills.addAll(listOf("Général", "Culture Générale", "Mathématiques"))
-                        }
-                        
-                        _subjects.value = skills.toList()
+                    val apiService = com.skillswap.network.NetworkService.api
+                    val response = apiService.getMe("Bearer $token")
+                    val skills = mutableSetOf<String>()
+                    response.skillsTeach?.let { skills.addAll(it) }
+                    response.skillsLearn?.let { skills.addAll(it) }
+                    
+                    // Add default subjects if no skills
+                    if (skills.isEmpty()) {
+                        skills.addAll(listOf("Général", "Culture Générale", "Mathématiques"))
                     }
-                }
+                    
+                    _subjects.value = skills.toList()
             } catch (e: Exception) {
                 // Fallback to default subjects
                 _subjects.value = listOf("Général", "Culture Générale", "Mathématiques", "Sciences", "Technologie")
