@@ -268,10 +268,10 @@ fun SessionDetailScreen(
                                     }
                                 }
                                 
-                                if (sess.notes?.isNotEmpty() == true) {
+                                if (sess.title.isNotEmpty()) {
                                     Spacer(modifier = Modifier.height(8.dp))
                                     Text(
-                                        text = sess.notes ?: "",
+                                        text = "Plan de cours à venir",
                                         fontSize = 14.sp,
                                         color = Color.DarkGray,
                                         maxLines = 3
@@ -302,34 +302,6 @@ fun SessionDetailScreen(
                                 },
                                 onDismiss = { showAIPlanGenerator = false }
                             )
-                        }
-                    }
-                                    Icon(
-                                        Icons.Default.Star,
-                                        contentDescription = null,
-                                        tint = OrangePrimary,
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(16.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        "Plan de cours IA",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 16.sp
-                                    )
-                                    Text(
-                                        "Voir le plan détaillé",
-                                        fontSize = 14.sp,
-                                        color = Color.Gray
-                                    )
-                                }
-                                Icon(
-                                    Icons.Default.KeyboardArrowRight,
-                                    contentDescription = null,
-                                    tint = OrangePrimary
-                                )
-                            }
                         }
                     }
                     

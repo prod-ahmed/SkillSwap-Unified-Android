@@ -21,7 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
-import com.skillswap.model.Promotion
+import com.skillswap.model.Promo
 import com.skillswap.ui.theme.OrangePrimary
 import com.skillswap.viewmodel.PromosViewModel
 import java.time.OffsetDateTime
@@ -34,7 +34,7 @@ fun PromoDetailScreenNew(
     onBack: () -> Unit,
     viewModel: PromosViewModel = viewModel()
 ) {
-    var promo by remember { mutableStateOf<Promotion?>(null) }
+    var promo by remember { mutableStateOf<Promo?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     val clipboardManager = LocalClipboardManager.current
     var showCopiedSnackbar by remember { mutableStateOf(false) }
@@ -159,7 +159,7 @@ fun PromoDetailScreenNew(
                                 modifier = Modifier.size(18.dp)
                             )
                             Text(
-                                text = "Valable jusqu'au ${formatDate(promo?.validTo ?: "")}",
+                                text = "Valable jusqu'au ${formatDate(promo?.validUntil ?: "")}",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = Color.White.copy(alpha = 0.9f)
                             )
@@ -170,7 +170,7 @@ fun PromoDetailScreenNew(
                 // Content
                 Column(modifier = Modifier.padding(16.dp)) {
                     // Promo Code Card
-                    promo?.code?.let { code ->
+                    promo?.promoCode?.let { code ->
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             colors = CardDefaults.cardColors(
@@ -258,37 +258,12 @@ fun PromoDetailScreenNew(
                             Spacer(modifier = Modifier.height(12.dp))
                             
                             ConditionItem("Réduction de ${promo?.discount ?: 20}% sur les services")
-                            ConditionItem("Valable jusqu'au ${formatDate(promo?.validTo ?: "")}")
+                            ConditionItem("Valable jusqu'au ${formatDate(promo?.validUntil ?: "")}")
                             ConditionItem("Non cumulable avec d'autres offres")
                             ConditionItem("Utilisable une seule fois par utilisateur")
                         }
                     }
                     
-                    // Skills
-                    if (promo?.skills?.isNotEmpty() == true) {
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "Compétences concernées",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            promo.skills?.forEach { skill ->
-                                AssistChip(
-                                    onClick = {},
-                                    label = { Text(skill) },
-                                    colors = AssistChipDefaults.assistChipColors(
-                                        containerColor = OrangePrimary.copy(alpha = 0.1f),
-                                        labelColor = OrangePrimary
-                                    )
-                                )
-                            }
-                        }
-                    }
                     
                     Spacer(modifier = Modifier.height(24.dp))
                     

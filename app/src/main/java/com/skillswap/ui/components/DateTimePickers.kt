@@ -196,6 +196,7 @@ fun DurationPicker(
 ) {
     var expanded by remember { mutableStateOf(false) }
     
+    @OptIn(ExperimentalMaterial3Api::class)
     ExposedDropdownMenuBox(
         expanded = expanded,
         onExpandedChange = { expanded = !expanded },
@@ -260,6 +261,7 @@ fun <T> DropdownPickerField(
 ) {
     var expanded by remember { mutableStateOf(false) }
     
+    @OptIn(ExperimentalMaterial3Api::class)
     ExposedDropdownMenuBox(
         expanded = expanded,
         onExpandedChange = { if (enabled) expanded = !expanded },

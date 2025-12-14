@@ -139,7 +139,7 @@ fun AnnonceDetailScreen(
                                 tint = Color.Gray
                             )
                             Text(
-                                text = "Publié par ${annonce?.author?.username ?: "Utilisateur"}",
+                                text = "Publié par ${annonce?.user?.username ?: "Utilisateur"}",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = Color.Gray
                             )
@@ -159,24 +159,7 @@ fun AnnonceDetailScreen(
                             )
                         }
                         
-                        annonce?.price?.let { price ->
-                            if (price.isNotBlank()) {
-                                Spacer(modifier = Modifier.height(12.dp))
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        Icons.Default.AttachMoney,
-                                        contentDescription = null,
-                                        tint = OrangePrimary
-                                    )
-                                    Text(
-                                        text = price,
-                                        style = MaterialTheme.typography.titleLarge,
-                                        fontWeight = FontWeight.Bold,
-                                        color = OrangePrimary
-                                    )
-                                }
-                            }
-                        }
+                        // Price (Annonce model doesn't have price field, removing)
                         
                         Spacer(modifier = Modifier.height(16.dp))
                         HorizontalDivider()
@@ -195,35 +178,11 @@ fun AnnonceDetailScreen(
                             color = Color.DarkGray
                         )
                         
-                        // Skills
-                        if (annonce?.skills?.isNotEmpty() == true) {
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                text = "Compétences",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                annonce.skills?.forEach { skill ->
-                                    AssistChip(
-                                        onClick = {},
-                                        label = { Text(skill) },
-                                        colors = AssistChipDefaults.assistChipColors(
-                                            containerColor = OrangePrimary.copy(alpha = 0.1f),
-                                            labelColor = OrangePrimary
-                                        )
-                                    )
-                                }
-                            }
-                        }
+                        // Skills (Annonce model doesn't have skills, removing this section)
                         
-                        // Location
-                        annonce?.location?.let { location ->
-                            if (location.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(24.dp))
+                        annonce?.city?.let { city ->
+                            if (city.isNotBlank()) {
                                 Spacer(modifier = Modifier.height(16.dp))
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
@@ -233,7 +192,7 @@ fun AnnonceDetailScreen(
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
-                                        text = location,
+                                        text = city,
                                         style = MaterialTheme.typography.bodyMedium
                                     )
                                 }
@@ -276,12 +235,15 @@ fun AnnonceDetailScreen(
             onDismissRequest = { showContactDialog = false },
             title = { Text("Contacter l'auteur") },
             text = {
-                Text("Souhaitez-vous envoyer un message à ${annonce?.author?.username} ?")
+                Text("Souhaitez-vous envoyer un message à ${annonce?.user?.username ?: "cet utilisateur"} ?")
             },
             confirmButton = {
                 Button(
                     onClick = {
-                        annonce?.author?.id?.let { onContact(it) }
+                        val user = annonce?.user
+                        if (user != null) {
+                            onContact(user._id)
+                        }
                         showContactDialog = false
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary)
