@@ -227,7 +227,9 @@ fun SkillSwapApp() {
                     }
                     
                     composable("sessions_pour_vous") {
-                        com.skillswap.ui.sessions.SessionsPourVousScreen(navController)
+                        com.skillswap.ui.sessions.SessionsPourVousScreen(
+                            onBack = { navController.popBackStack() }
+                        )
                     }
                     
                     composable(

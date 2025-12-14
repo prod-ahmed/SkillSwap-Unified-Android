@@ -15,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -315,6 +316,4 @@ fun PointsEarnItem(activity: String, points: String) {
 }
 
 @Composable
-private fun Modifier.alpha(alpha: Float): Modifier = this.then(
-    androidx.compose.ui.draw.alpha(alpha)
-)
+private fun Modifier.alpha(alpha: Float): Modifier = this.graphicsLayer { this.alpha = alpha }

@@ -147,7 +147,7 @@ class CallManager private constructor(private val context: Context) : WebRTCClie
             Log.d(tag, "Offer created, emitting to socket")
             socketService.emitCallOffer(
                 recipientId = recipientId,
-                offer = sdp.description,
+                sdp = sdp.description,
                 isVideo = isVideo
             )
         }

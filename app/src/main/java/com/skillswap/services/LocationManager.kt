@@ -1,10 +1,10 @@
 package com.skillswap.services
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Geocoder
-import android.location.Location
 import android.os.Build
 import android.util.Log
 import androidx.core.content.ContextCompat
@@ -17,7 +17,9 @@ import com.google.android.gms.location.Priority
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.suspendCancellableCoroutine
 import java.util.Locale
+import kotlin.coroutines.resume
 
 data class LocationData(
     val latitude: Double,
@@ -79,28 +81,39 @@ class LocationManager private constructor(private val context: Context) {
         }
     }
     
+    @SuppressLint("MissingPermission")
     suspend fun getCurrentLocation(): LocationData? {
         if (!checkLocationPermission()) {
             Log.w(TAG, "Location permission not granted")
             return null
         }
         
-        try {
-            val location = fusedLocationClient.lastLocation.await()
-            return location?.let { loc ->
-                val address = getAddressFromLocation(loc.latitude, loc.longitude)
-                LocationData(
-                    latitude = loc.latitude,
-                    longitude = loc.longitude,
-                    address = address?.getAddressLine(0),
-                    city = address?.locality
-                ).also {
-                    _currentLocation.value = it
-                }
+        return try {
+            suspendCancellableCoroutine { continuation ->
+                fusedLocationClient.lastLocation
+                    .addOnSuccessListener { location: android.location.Location? ->
+                        if (location != null) {
+                            val address = getAddressFromLocation(location.latitude, location.longitude)
+                            val data = LocationData(
+                                latitude = location.latitude,
+                                longitude = location.longitude,
+                                address = address?.getAddressLine(0),
+                                city = address?.locality
+                            )
+                            _currentLocation.value = data
+                            continuation.resume(data, null)
+                        } else {
+                            continuation.resume(null, null)
+                        }
+                    }
+                    .addOnFailureListener { e ->
+                        Log.e(TAG, "Error getting location", e)
+                        continuation.resume(null, null)
+                    }
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error getting location", e)
-            return null
+            null
         }
     }
     
@@ -193,12 +206,4 @@ class LocationManager private constructor(private val context: Context) {
     }
 }
 
-// Extension function to convert Tasks to coroutines
-private suspend fun <T> com.google.android.gms.tasks.Task<T>.await(): T? {
-    return try {
-        kotlinx.coroutines.tasks.await(this)
-    } catch (e: Exception) {
-        Log.e("LocationManager", "Task failed", e)
-        null
-    }
-}
+// Extension function to convert Tasks to coroutines is already available via kotlinx-coroutines-play-services

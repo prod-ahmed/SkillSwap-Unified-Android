@@ -21,7 +21,10 @@ import kotlinx.coroutines.flow.collectLatest
 
 class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private val sharedPreferences = application.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
-    private val socketClient = ChatSocketClient(userIdProvider = { sharedPreferences.getString("user_id", null) })
+    private val socketClient = ChatSocketClient(
+        context = application.applicationContext,
+        userIdProvider = { sharedPreferences.getString("user_id", null) }
+    )
 
     private val _conversations = MutableStateFlow<List<Conversation>>(emptyList())
     val conversations: StateFlow<List<Conversation>> = _conversations.asStateFlow()
