@@ -62,9 +62,14 @@ import androidx.compose.ui.unit.sp
 import android.content.Context
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.collectAsState
-
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalLayoutDirection
 import com.skillswap.network.ChatSocketClient
+import com.skillswap.auth.AuthenticationManager
+import com.skillswap.util.LocalizationManager
+import com.skillswap.util.ThemeManager
+import com.skillswap.util.DeepLinkHandler
 
 sealed class Screen(val route: String, val title: String, val icon: String) {
     object Discover : Screen("discover", "Découvrir", "house.fill")
@@ -91,33 +96,41 @@ sealed class Screen(val route: String, val title: String, val icon: String) {
 fun SkillSwapApp() {
     val context = LocalContext.current
     
+    // Initialize managers
+    val authManager = remember { AuthenticationManager.getInstance(context) }
+    val localizationManager = remember { LocalizationManager.getInstance(context) }
+    val themeManager = remember { ThemeManager.getInstance(context) }
+    
+    // Observe layout direction for RTL support
+    val currentLanguage by localizationManager.currentLanguage
+    val layoutDirection = localizationManager.layoutDirection
+    
     // Initialize global socket listener for notifications
     LaunchedEffect(Unit) {
-        val prefs = context.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
-        val token = prefs.getString("auth_token", null)
+        val token = authManager.getToken()
         if (!token.isNullOrEmpty()) {
             ChatSocketClient.getInstance(context).connect()
         }
     }
 
-    SkillSwapTheme {
-        val navController = rememberNavController()
-        var showBottomBar by remember { mutableStateOf(false) }
-        val context = LocalContext.current
-        val callViewModel: CallViewModel = viewModel()
-        val startDestination = remember {
-            val prefs = context.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
-            val hasSeenOnboarding = prefs.getBoolean("onboarding_done", false)
-            val hasProfile = prefs.getBoolean("profile_completed", false)
-            val token = prefs.getString("auth_token", null)
-            
-            when {
-                !hasSeenOnboarding -> "onboarding"
-                token.isNullOrEmpty() || com.skillswap.util.TokenUtils.isTokenExpired(token) -> "auth"
-                !hasProfile -> "profile_setup"
-                else -> Screen.Discover.route
+    CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
+        SkillSwapTheme {
+            val navController = rememberNavController()
+            var showBottomBar by remember { mutableStateOf(false) }
+            val callViewModel: CallViewModel = viewModel()
+            val startDestination = remember {
+                val prefs = context.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
+                val hasSeenOnboarding = prefs.getBoolean("onboarding_done", false)
+                val hasProfile = prefs.getBoolean("profile_completed", false)
+                val token = authManager.getToken()
+                
+                when {
+                    !hasSeenOnboarding -> "onboarding"
+                    token.isNullOrEmpty() || com.skillswap.util.TokenUtils.isTokenExpired(token) -> "auth"
+                    !hasProfile -> "profile_setup"
+                    else -> Screen.Discover.route
+                }
             }
-        }
         
         val navBackStackEntry by navController.currentBackStackEntryAsState()
         val currentRoute = navBackStackEntry?.destination?.route
