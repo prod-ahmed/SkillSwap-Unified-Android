@@ -19,6 +19,10 @@ import com.skillswap.ui.components.*
 import com.skillswap.ui.theme.OrangePrimary
 import com.skillswap.viewmodel.PromosViewModel
 
+import com.skillswap.ai.CloudflareAIService
+import com.skillswap.model.MediaPayload
+import kotlinx.coroutines.launch
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreatePromoBottomSheet(
@@ -28,6 +32,7 @@ fun CreatePromoBottomSheet(
 ) {
     val sheetState = rememberStandardBottomSheetState()
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
@@ -35,7 +40,9 @@ fun CreatePromoBottomSheet(
     var promoCode by remember { mutableStateOf("") }
     var validUntil by remember { mutableStateOf("") }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var generatedImageBytes by remember { mutableStateOf<ByteArray?>(null) }
     var isSubmitting by remember { mutableStateOf(false) }
+    var isGeneratingAI by remember { mutableStateOf(false) }
     
     val imagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -60,6 +67,36 @@ fun CreatePromoBottomSheet(
                 placeholder = "Ex: Promo Black Friday",
                 leadingIcon = { Icon(Icons.Default.LocalOffer, null) }
             )
+            
+            // AI Description
+            if (title.isNotBlank() && discount.isNotBlank()) {
+                OutlinedButton(
+                    onClick = {
+                        scope.launch {
+                            isGeneratingAI = true
+                            try {
+                                val prompt = "Write a short, persuasive description for a promotion titled '$title' with $discount% discount."
+                                val generated = CloudflareAIService.generateText(prompt, maxTokens = 200)
+                                description = generated
+                            } catch (e: Exception) {
+                                // Handle error
+                            } finally {
+                                isGeneratingAI = false
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isGeneratingAI
+                ) {
+                    if (isGeneratingAI) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
+                    Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Générer la description avec IA")
+                }
+            }
             
             BottomSheetTextField(
                 value = description,
@@ -102,14 +139,47 @@ fun CreatePromoBottomSheet(
                 leadingIcon = { Icon(Icons.Default.CalendarToday, null) }
             )
             
-            Button(
-                onClick = { imagePicker.launch("image/*") },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.outlinedButtonColors()
-            ) {
-                Icon(if (selectedImageUri != null) Icons.Default.CheckCircle else Icons.Default.Image, null)
-                Spacer(Modifier.width(8.dp))
-                Text(if (selectedImageUri != null) "Image sélectionnée" else "Ajouter une image")
+            // Image picker & AI Image
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = { imagePicker.launch("image/*") },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors()
+                ) {
+                    Icon(if (selectedImageUri != null) Icons.Default.CheckCircle else Icons.Default.Image, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text(if (selectedImageUri != null) "Image sélectionnée" else "Ajouter une image")
+                }
+                
+                if (title.isNotBlank()) {
+                    OutlinedButton(
+                        onClick = {
+                            scope.launch {
+                                isGeneratingAI = true
+                                try {
+                                    val prompt = "A promotional image for '$title' with $discount% off. $description"
+                                    val imageBytes = CloudflareAIService.generateImage(prompt)
+                                    generatedImageBytes = imageBytes
+                                    selectedImageUri = null
+                                } catch (e: Exception) {
+                                    // Handle error
+                                } finally {
+                                    isGeneratingAI = false
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !isGeneratingAI
+                    ) {
+                        if (isGeneratingAI) {
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
+                        Icon(Icons.Default.Image, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(if (generatedImageBytes != null) "Image générée (cliquer pour régénérer)" else "Générer une image avec IA")
+                    }
+                }
             }
             
             Spacer(modifier = Modifier.height(8.dp))
@@ -117,13 +187,22 @@ fun CreatePromoBottomSheet(
             Button(
                 onClick = {
                     isSubmitting = true
+                    val media = when {
+                        generatedImageBytes != null -> MediaPayload(
+                            bytes = generatedImageBytes!!,
+                            filename = "ai_promo_${System.currentTimeMillis()}.jpg",
+                            mimeType = "image/jpeg"
+                        )
+                        else -> null
+                    }
+                    
                     viewModel.createPromo(
                         title = title,
                         description = description,
                         discount = discount.toIntOrNull() ?: 0,
                         validTo = validUntil,
                         promoCode = promoCode.ifEmpty { null },
-                        media = null
+                        media = media
                     )
                     onPromoCreated()
                     onDismiss()

@@ -184,27 +184,17 @@ fun SessionsScreen(
     }
 
     if (showCreate) {
-        CreateSessionDialog(
+        CreateSessionBottomSheet(
             onDismiss = { showCreate = false },
-            onCreate = { title, skill, studentEmail, date, duration, meetingLink, notes ->
-                viewModel.createSession(
-                    title = title,
-                    skill = skill,
-                    studentEmail = studentEmail,
-                    studentEmails = null,
-                    date = date,
-                    duration = duration,
-                    meetingLink = meetingLink,
-                    location = null,
-                    notes = notes
-                )
+            onSessionCreated = {
                 showCreate = false
+                viewModel.loadSessions()
             }
         )
     }
 
     if (rescheduleTarget != null) {
-        RescheduleDialog(
+        RescheduleBottomSheet(
             date = rescheduleDate,
             time = rescheduleTime,
             note = rescheduleNote,
@@ -222,7 +212,7 @@ fun SessionsScreen(
     }
 
     if (ratingTarget != null) {
-        RatingDialog(
+        RatingBottomSheet(
             rating = ratingValue,
             comment = ratingComment,
             onRatingChange = { ratingValue = it },
@@ -241,10 +231,10 @@ fun SessionsScreen(
         LaunchedEffect(target.id) {
             viewModel.loadLessonPlan(target.id)
         }
-        LessonPlanDialog(
+        LessonPlanBottomSheet(
             sessionTitle = target.title,
-            planLoading = planLoading,
-            planError = planError,
+            isLoading = planLoading,
+            error = planError,
             lessonPlan = lessonPlan,
             onGenerate = { viewModel.generateLessonPlan(target.id, level = null, goal = null) },
             onDismiss = { planTarget = null }
@@ -343,55 +333,6 @@ private fun EmptySessionsState(onRefresh: () -> Unit) {
         Spacer(Modifier.height(12.dp))
         OutlinedButton(onClick = onRefresh) { Text("Rafraîchir") }
     }
-}
-
-@Composable
-fun CreateSessionDialog(
-    onDismiss: () -> Unit,
-    onCreate: (String, String, String, String, Int, String?, String?) -> Unit
-) {
-    var title by remember { mutableStateOf("") }
-    var skill by remember { mutableStateOf("") }
-    var studentEmail by remember { mutableStateOf("") }
-    var date by remember { mutableStateOf("") }
-    var duration by remember { mutableStateOf("60") }
-    var link by remember { mutableStateOf("") }
-    var notes by remember { mutableStateOf("") }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(onClick = {
-                onCreate(
-                    title,
-                    skill,
-                    studentEmail,
-                    date,
-                    duration.toIntOrNull() ?: 60,
-                    link.ifBlank { null },
-                    notes.ifBlank { null }
-                )
-            }) { Text("Créer") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Annuler") } },
-        title = { Text("Nouvelle session") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Titre") })
-                OutlinedTextField(value = skill, onValueChange = { skill = it }, label = { Text("Compétence") })
-                OutlinedTextField(value = studentEmail, onValueChange = { studentEmail = it }, label = { Text("Email élève") })
-                OutlinedTextField(value = date, onValueChange = { date = it }, label = { Text("Date (ISO)") })
-                OutlinedTextField(
-                    value = duration,
-                    onValueChange = { duration = it },
-                    label = { Text("Durée (min)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                )
-                OutlinedTextField(value = link, onValueChange = { link = it }, label = { Text("Lien de réunion (optionnel)") })
-                OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text("Notes") })
-            }
-        }
-    )
 }
 
 @Composable
@@ -568,116 +509,11 @@ private fun openMeetingLink(context: Context, url: String) {
     }
 }
 
-@Composable
-fun RescheduleDialog(
-    date: String,
-    time: String,
-    note: String,
-    onDateChange: (String) -> Unit,
-    onTimeChange: (String) -> Unit,
-    onNoteChange: (String) -> Unit,
-    onDismiss: () -> Unit,
-    onConfirm: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = { TextButton(onClick = onConfirm) { Text("Envoyer") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Annuler") } },
-        title = { Text("Proposer un créneau") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = date,
-                    onValueChange = onDateChange,
-                    label = { Text("Date (ISO)") }
-                )
-                OutlinedTextField(
-                    value = time,
-                    onValueChange = onTimeChange,
-                    label = { Text("Heure (HH:mm)") }
-                )
-                OutlinedTextField(
-                    value = note,
-                    onValueChange = onNoteChange,
-                    label = { Text("Note (optionnel)") }
-                )
-            }
-        }
-    )
-}
 
-@Composable
-fun RatingDialog(
-    rating: Float,
-    comment: String,
-    onRatingChange: (Float) -> Unit,
-    onCommentChange: (String) -> Unit,
-    onDismiss: () -> Unit,
-    onConfirm: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = { TextButton(onClick = onConfirm) { Text("Envoyer") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Annuler") } },
-        title = { Text("Noter la session") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Note: ${rating.toInt()}/5")
-                Slider(
-                    value = rating,
-                    onValueChange = onRatingChange,
-                    valueRange = 1f..5f,
-                    steps = 3
-                )
-                OutlinedTextField(
-                    value = comment,
-                    onValueChange = onCommentChange,
-                    label = { Text("Commentaire (optionnel)") }
-                )
-            }
-        }
-    )
-}
 
-@Composable
-fun LessonPlanDialog(
-    sessionTitle: String,
-    planLoading: Boolean,
-    planError: String?,
-    lessonPlan: com.skillswap.model.LessonPlan?,
-    onGenerate: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(onClick = onGenerate) {
-                Text(if (lessonPlan == null) "Générer" else "Régénérer")
-            }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Fermer") } },
-        title = { Text("Plan de cours - $sessionTitle") },
-        text = {
-            when {
-                planLoading -> {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        CircularProgressIndicator(modifier = Modifier.size(20.dp))
-                        Text("Chargement...")
-                    }
-                }
-                planError != null -> Text(planError, color = Color.Red)
-                lessonPlan != null -> {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(lessonPlan.plan)
-                        Text("Objectif: ${lessonPlan.goal}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                        Text("Ressources: ${lessonPlan.resources.joinToString()}", style = MaterialTheme.typography.bodySmall)
-                    }
-                }
-                else -> Text("Aucun plan disponible")
-            }
-        }
-    )
-}
+
+
+
 
 private fun formatSessionDate(raw: String): String {
     return try {
