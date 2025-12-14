@@ -14,10 +14,10 @@ import com.skillswap.network.NetworkService
 
 class WeeklyObjectiveWidgetProvider : AppWidgetProvider() {
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
-        // First update with cached data
+        // First update with cached data for immediate display
         updateAll(context, appWidgetManager, appWidgetIds, context.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE))
         
-        // Fetch fresh data
+        // Fetch fresh data from backend
         val prefs = context.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
         val token = prefs.getString("auth_token", null)
         
@@ -29,17 +29,27 @@ class WeeklyObjectiveWidgetProvider : AppWidgetProvider() {
                         ((objective.completedHours / objective.targetHours) * 100).toInt()
                     } else 0
                     
+                    // Update cache
                     prefs.edit()
                         .putString("widget_objective_title", objective.title)
                         .putInt("widget_objective_progress", progress)
+                        .putLong("widget_last_update", System.currentTimeMillis())
                         .apply()
                     
-                    // Update widget again
+                    // Update widget immediately
                     updateAll(context, appWidgetManager, appWidgetIds, prefs)
                 } catch (e: Exception) {
                     e.printStackTrace()
+                    // Fallback to cached data (already displayed)
                 }
             }
+        } else {
+            // No auth token, show default message
+            prefs.edit()
+                .putString("widget_objective_title", "Connectez-vous")
+                .putInt("widget_objective_progress", 0)
+                .apply()
+            updateAll(context, appWidgetManager, appWidgetIds, prefs)
         }
     }
 

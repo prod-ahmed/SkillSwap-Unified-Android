@@ -7,13 +7,15 @@ import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
-import com.google.android.gms.tasks.Task
+import com.skillswap.BuildConfig
 
 class GoogleSignInHelper(private val context: Context) {
     
     private val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
         .requestEmail()
-        .requestIdToken(context.getString(android.R.string.cancel)) // TODO: Replace with actual Web Client ID from Google Console
+        .requestIdToken(BuildConfig.GOOGLE_CLIENT_ID.ifEmpty { 
+            context.getString(android.R.string.cancel) 
+        })
         .requestProfile()
         .build()
     

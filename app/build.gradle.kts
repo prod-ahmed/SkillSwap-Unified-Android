@@ -34,6 +34,9 @@ android {
 
         buildConfigField("String", "API_BASE_URL", "\"${envValue("SKILLSWAP_API_URL", "https://p8hkmhq3-3000.euw.devtunnels.ms")}\"")
         buildConfigField("String", "MAPS_API_KEY", "\"${envValue("SKILLSWAP_MAPS_API_KEY", "")}\"")
+        buildConfigField("String", "GOOGLE_CLIENT_ID", "\"${envValue("GOOGLE_CLIENT_ID", "")}\"")
+        buildConfigField("String", "OPENAI_API_KEY", "\"${envValue("OPENAI_API_KEY", "")}\"")
+        buildConfigField("String", "GEMINI_API_KEY", "\"${envValue("GEMINI_API_KEY", "")}\"")
         manifestPlaceholders["MAPS_API_KEY"] = envValue("SKILLSWAP_MAPS_API_KEY", "")
     }
 
