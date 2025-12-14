@@ -135,10 +135,10 @@ fun ProgressScreen(
                         horizontalArrangement = Arrangement.SpaceEvenly,
                         verticalAlignment = Alignment.Bottom
                     ) {
-                        val max = data.weeklyActivity.maxOfOrNull { it.hours } ?: 1.0
+                        val max = data.weeklyActivity.maxOfOrNull { it.hours }?.coerceAtLeast(1.0) ?: 1.0
                         data.weeklyActivity.forEach { point ->
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                val heightRatio = (point.hours / max).toFloat().coerceIn(0.1f, 1f) // Min height
+                                val heightRatio = ((point.hours ?: 0.0) / max).toFloat().coerceIn(0.1f, 1f)
                                  Box(
                                     modifier = Modifier
                                         .width(20.dp)
