@@ -1,5 +1,6 @@
 package com.skillswap.ui.annonces
 
+import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -16,7 +17,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.skillswap.ui.theme.OrangePrimary
 import com.skillswap.viewmodel.AnnoncesViewModel
-import com.skillswap.ui.components.SkillSelectionComposable
+import com.skillswap.ui.components.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,7 +32,10 @@ fun CreateAnnonceScreen(
     var category by remember { mutableStateOf("") }
     var price by remember { mutableStateOf("") }
     var location by remember { mutableStateOf("") }
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     var isLoading by remember { mutableStateOf(false) }
+    var showSkillsPicker by remember { mutableStateOf(false) }
+    var showAIGenerator by remember { mutableStateOf(false) }
     
     val categories = listOf("Cours", "Formation", "Workshop", "Mentorat", "Autre")
     
@@ -79,11 +83,24 @@ fun CreateAnnonceScreen(
                         
                         Spacer(modifier = Modifier.height(16.dp))
                         
-                        Text(
-                            "Description",
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 14.sp
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                "Description",
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 14.sp
+                            )
+                            IconButton(onClick = { showAIGenerator = true }) {
+                                Icon(
+                                    Icons.Default.AutoAwesome,
+                                    contentDescription = "Générer avec IA",
+                                    tint = OrangePrimary
+                                )
+                            }
+                        }
                         Spacer(modifier = Modifier.height(8.dp))
                         OutlinedTextField(
                             value = description,
@@ -92,18 +109,61 @@ fun CreateAnnonceScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(120.dp),
-                            maxLines = 5
+                            maxLines = 5,
+                            trailingIcon = {
+                                if (description.isEmpty() && title.isNotEmpty()) {
+                                    IconButton(onClick = { showAIGenerator = true }) {
+                                        Icon(
+                                            Icons.Default.AutoAwesome,
+                                            contentDescription = "Générer avec IA",
+                                            tint = OrangePrimary
+                                        )
+                                    }
+                                }
+                            }
                         )
                         
                         Spacer(modifier = Modifier.height(16.dp))
                         
-                        SkillSelectionComposable(
-                            selectedSkills = skills,
-                            onSkillsChanged = { skills = it },
-                            title = "Compétences associées",
-                            placeholder = "Rechercher des compétences...",
-                            maxSelections = 5
+                        Text(
+                            "Compétences associées",
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 14.sp
                         )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedButton(
+                            onClick = { showSkillsPicker = true },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                if (skills.isEmpty()) "Sélectionner des compétences" 
+                                else "${skills.size} compétence(s) sélectionnée(s)"
+                            )
+                        }
+                        
+                        if (skills.isNotEmpty()) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                skills.take(3).forEach { skill ->
+                                    AssistChip(
+                                        onClick = { },
+                                        label = { Text(skill) }
+                                    )
+                                }
+                                if (skills.size > 3) {
+                                    AssistChip(
+                                        onClick = { showSkillsPicker = true },
+                                        label = { Text("+${skills.size - 3}") }
+                                    )
+                                }
+                            }
+                        }
                         
                         Spacer(modifier = Modifier.height(16.dp))
                         
@@ -175,6 +235,14 @@ fun CreateAnnonceScreen(
                                 Icon(Icons.Default.LocationOn, "Location")
                             }
                         )
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        ImagePickerField(
+                            selectedImageUri = selectedImageUri,
+                            onImageSelected = { selectedImageUri = it },
+                            label = "Image de l'annonce"
+                        )
                     }
                 }
             }
@@ -212,5 +280,31 @@ fun CreateAnnonceScreen(
                 }
             }
         }
+    }
+    
+    // Skills Picker Bottom Sheet
+    if (showSkillsPicker) {
+        SkillsPickerBottomSheet(
+            selectedSkills = skills,
+            onSkillsChanged = { skills = it },
+            onDismiss = { showSkillsPicker = false },
+            maxSelections = 5,
+            title = "Sélectionner des compétences"
+        )
+    }
+    
+    // AI Content Generator Bottom Sheet
+    if (showAIGenerator) {
+        AIContentGeneratorBottomSheet(
+            title = title,
+            description = description,
+            onDescriptionGenerated = { generatedDesc ->
+                description = generatedDesc
+            },
+            onImageGenerated = { imageBytes ->
+                // Handle image bytes (convert to Uri if needed)
+            },
+            onDismiss = { showAIGenerator = false }
+        )
     }
 }

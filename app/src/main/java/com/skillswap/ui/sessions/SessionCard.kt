@@ -234,6 +234,24 @@ fun SessionCard(
                 Divider(color = Color(0xFFE0E0E0))
                 Spacer(Modifier.height(8.dp))
                 
+                // AI Plan Generator CTA (prominent for upcoming sessions)
+                if (session.status == "upcoming") {
+                    Button(
+                        onClick = onShowPlan,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFFF9800).copy(alpha = 0.1f),
+                            contentColor = Color(0xFFFF9800)
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Default.AutoAwesome, null, modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Générer un plan avec IA", fontWeight = FontWeight.SemiBold)
+                    }
+                    Spacer(Modifier.height(8.dp))
+                }
+                
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -241,7 +259,7 @@ fun SessionCard(
                     if (session.status == "completed") {
                         TextButton(
                             onClick = onRate,
-                            modifier = if (isCreator && session.status == "upcoming") Modifier.weight(1f) else Modifier.fillMaxWidth()
+                            modifier = Modifier.weight(1f)
                         ) {
                             Icon(Icons.Default.Star, null, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(4.dp))
@@ -251,13 +269,12 @@ fun SessionCard(
                     
                     if (isCreator && session.status == "upcoming") {
                         TextButton(
-                            onClick = onShowPlan,
-                            modifier = if (session.status == "completed") Modifier.weight(1f) else Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFFF9800))
+                            onClick = onProposeReschedule,
+                            modifier = Modifier.weight(1f)
                         ) {
-                            Icon(Icons.Default.Description, null, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Schedule, null, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text("Plan")
+                            Text("Replanifier")
                         }
                     }
                 }

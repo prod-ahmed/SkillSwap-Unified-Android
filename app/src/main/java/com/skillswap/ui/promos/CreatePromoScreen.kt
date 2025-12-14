@@ -1,5 +1,6 @@
 package com.skillswap.ui.promos
 
+import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -21,7 +22,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import kotlinx.coroutines.launch
-import com.skillswap.ui.components.SkillSelectionComposable
+import com.skillswap.ui.components.*
+import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,15 +36,17 @@ fun CreatePromoScreen(
     var description by remember { mutableStateOf("") }
     var skills by remember { mutableStateOf<List<String>>(emptyList()) }
     var discountPercent by remember { mutableStateOf("") }
-    var validUntil by remember { mutableStateOf("") }
+    var validUntil by remember { mutableStateOf<LocalDate?>(null) }
     var code by remember { mutableStateOf("") }
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var showSkillsPicker by remember { mutableStateOf(false) }
+    var showAIGenerator by remember { mutableStateOf(false) }
     
     val isLoading by viewModel.isLoading.collectAsState()
     val generatingImage by viewModel.generatingImage.collectAsState()
     val generatedImageUrl by viewModel.generatedImageUrl.collectAsState()
     val success by viewModel.success.collectAsState()
     val scope = rememberCoroutineScope()
-    var prompt by remember { mutableStateOf("") }
 
     LaunchedEffect(success) {
         if (success != null) {
@@ -95,11 +99,24 @@ fun CreatePromoScreen(
                         
                         Spacer(modifier = Modifier.height(16.dp))
                         
-                        Text(
-                            "Description",
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 14.sp
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                "Description",
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 14.sp
+                            )
+                            IconButton(onClick = { showAIGenerator = true }) {
+                                Icon(
+                                    Icons.Default.AutoAwesome,
+                                    contentDescription = "Générer avec IA",
+                                    tint = OrangePrimary
+                                )
+                            }
+                        }
                         Spacer(modifier = Modifier.height(8.dp))
                         OutlinedTextField(
                             value = description,
@@ -113,13 +130,23 @@ fun CreatePromoScreen(
                         
                         Spacer(modifier = Modifier.height(16.dp))
                         
-                        SkillSelectionComposable(
-                            selectedSkills = skills,
-                            onSkillsChanged = { skills = it },
-                            title = "Compétences concernées",
-                            placeholder = "Rechercher des compétences...",
-                            maxSelections = 3
+                        Text(
+                            "Compétences concernées",
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 14.sp
                         )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedButton(
+                            onClick = { showSkillsPicker = true },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                if (skills.isEmpty()) "Sélectionner des compétences" 
+                                else "${skills.size} compétence(s) sélectionnée(s)"
+                            )
+                        }
                         
                         Spacer(modifier = Modifier.height(16.dp))
                         
@@ -166,73 +193,45 @@ fun CreatePromoScreen(
                             fontSize = 14.sp
                         )
                         Spacer(modifier = Modifier.height(8.dp))
-                        OutlinedTextField(
-                            value = validUntil,
-                            onValueChange = { validUntil = it },
-                            placeholder = { Text("JJ/MM/AAAA") },
-                            modifier = Modifier.fillMaxWidth(),
-                            leadingIcon = {
-                                Icon(Icons.Default.DateRange, "Date")
-                            }
+                        DatePickerField(
+                            selectedDate = validUntil,
+                            onDateSelected = { validUntil = it },
+                            label = "Date d'expiration",
+                            minDate = LocalDate.now()
                         )
 
                         Spacer(modifier = Modifier.height(16.dp))
                         
-                        Text(
-                            "Image (Génération IA)",
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 14.sp
+                        ImagePickerField(
+                            selectedImageUri = selectedImageUri,
+                            onImageSelected = { selectedImageUri = it },
+                            label = "Image de la promotion"
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            OutlinedTextField(
-                                value = prompt,
-                                onValueChange = { prompt = it },
-                                placeholder = { Text("Décrivez l'image...") },
-                                modifier = Modifier.weight(1f),
-                                singleLine = true
-                            )
-                            
-                            Button(
-                                onClick = {
-                                    if (prompt.isNotBlank()) {
-                                        scope.launch {
-                                            viewModel.generatePromoImage(prompt)
-                                        }
-                                    }
-                                },
-                                enabled = !generatingImage && prompt.isNotBlank(),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6A1B9A)),
-                                contentPadding = PaddingValues(horizontal = 12.dp)
-                            ) {
-                                if (generatingImage) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(20.dp),
-                                        color = Color.White,
-                                        strokeWidth = 2.dp
-                                    )
-                                } else {
-                                    Icon(Icons.Default.AutoAwesome, contentDescription = null)
-                                }
-                            }
-                        }
                         
                         if (generatedImageUrl != null) {
                             Spacer(modifier = Modifier.height(12.dp))
-                            AsyncImage(
-                                model = generatedImageUrl,
-                                contentDescription = "Image générée",
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(200.dp)
-                                    .clip(RoundedCornerShape(8.dp)),
-                                contentScale = ContentScale.Crop
-                            )
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5))
+                            ) {
+                                Column(modifier = Modifier.padding(12.dp)) {
+                                    Text(
+                                        "Image générée par IA",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    AsyncImage(
+                                        model = generatedImageUrl,
+                                        contentDescription = "Image générée",
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(200.dp)
+                                            .clip(RoundedCornerShape(8.dp)),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -250,7 +249,7 @@ fun CreatePromoScreen(
                             title = title,
                             description = description,
                             discount = discountPercent.toIntOrNull() ?: 0,
-                            validTo = validUntil,
+                            validTo = validUntil?.toString() ?: "",
                             promoCode = code.ifBlank { null },
                             imageUrl = generatedImageUrl
                         )
@@ -276,5 +275,34 @@ fun CreatePromoScreen(
                 }
             }
         }
+    }
+    
+    // Skills Picker Bottom Sheet
+    if (showSkillsPicker) {
+        SkillsPickerBottomSheet(
+            selectedSkills = skills,
+            onSkillsChanged = { skills = it },
+            onDismiss = { showSkillsPicker = false },
+            maxSelections = 3,
+            title = "Compétences concernées"
+        )
+    }
+    
+    // AI Content Generator Bottom Sheet
+    if (showAIGenerator) {
+        AIContentGeneratorBottomSheet(
+            title = title,
+            description = description,
+            onDescriptionGenerated = { generatedDesc ->
+                description = generatedDesc
+            },
+            onImageGenerated = { imageBytes ->
+                // Handle image generation
+                scope.launch {
+                    // Convert bytes to URL or save locally
+                }
+            },
+            onDismiss = { showAIGenerator = false }
+        )
     }
 }

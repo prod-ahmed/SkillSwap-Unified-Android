@@ -51,7 +51,7 @@ fun ProgressScreen(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .background(Color(0xFFF2F2F7))
-                .padding(bottom = 80.dp) // Add bottom padding for navigation bar
+                .padding(bottom = 100.dp) // Increased bottom padding for navigation bar clearance
         ) {
             dashboard?.let { data ->
                 Box(
