@@ -79,6 +79,7 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
                     }
                     
                     _subjects.value = skills.toList()
+                }
             } catch (e: Exception) {
                 // Fallback to default subjects
                 _subjects.value = listOf("Général", "Culture Générale", "Mathématiques", "Sciences", "Technologie")
