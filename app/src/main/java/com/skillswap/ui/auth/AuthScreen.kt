@@ -138,17 +138,18 @@ fun LoginView(viewModel: AuthViewModel, onSuccess: () -> Unit) {
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-        // Google Sign-In Button (disabled until backend endpoint is live)
+        // Google Sign-In Button
         OutlinedButton(
-            onClick = { /* disabled until /auth/google is available */ },
+            onClick = { googleSignInLauncher.launch(viewModel.googleSignInHelper.getSignInIntent()) },
             modifier = Modifier.fillMaxWidth().height(50.dp),
-            enabled = false
+            enabled = !isLoading
         ) {
             Row(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Se connecter avec Google (bientôt)")
+                // Ideally add Google Icon here
+                Text("Se connecter avec Google")
             }
         }
 

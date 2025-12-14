@@ -40,6 +40,7 @@ fun SettingsScreen(navController: NavController) {
     }
     var showLanguagePicker by remember { mutableStateOf(false) }
     var showLogoutDialog by remember { mutableStateOf(false) }
+    var showAboutDialog by remember { mutableStateOf(false) }
     
     if (showLogoutDialog) {
         AlertDialog(
@@ -64,6 +65,27 @@ fun SettingsScreen(navController: NavController) {
             dismissButton = {
                 TextButton(onClick = { showLogoutDialog = false }) {
                     Text("Annuler")
+                }
+            }
+        )
+    }
+    
+    if (showAboutDialog) {
+        AlertDialog(
+            onDismissRequest = { showAboutDialog = false },
+            title = { Text("À propos de SkillSwap") },
+            text = { 
+                Column {
+                    Text("Version 1.0.0")
+                    Spacer(Modifier.height(8.dp))
+                    Text("SkillSwap est une plateforme d'échange de compétences qui connecte les mentors et les apprenants.")
+                    Spacer(Modifier.height(8.dp))
+                    Text("© 2025 SkillSwap Inc.")
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showAboutDialog = false }) {
+                    Text("Fermer")
                 }
             }
         )
@@ -178,7 +200,7 @@ fun SettingsScreen(navController: NavController) {
                     icon = Icons.Default.Info,
                     title = "Version de l'application",
                     subtitle = "1.0.0",
-                    onClick = { }
+                    onClick = { showAboutDialog = true }
                 )
             }
         }
