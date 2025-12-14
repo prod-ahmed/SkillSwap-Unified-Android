@@ -375,7 +375,7 @@ fun DiscoverScreen(
         }
         
         if (showMatchDialog && matchedUser != null) {
-            MatchDialog(
+            MatchOverlay(
                 user = matchedUser!!,
                 onDismiss = {
                     showMatchDialog = false
@@ -391,38 +391,6 @@ fun DiscoverScreen(
             )
         }
     }
-}
-
-@Composable
-fun MatchDialog(user: User, onDismiss: () -> Unit, onMessage: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("C'est un Match !", fontWeight = FontWeight.Bold, color = SkillCoral) },
-        text = {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                Text("Vous avez matché avec ${user.username} !")
-                Spacer(Modifier.height(16.dp))
-                if (user.avatarUrl?.isNotBlank() == true) {
-                    AsyncImage(
-                        model = user.avatarUrl,
-                        contentDescription = null,
-                        modifier = Modifier.size(100.dp).clip(CircleShape),
-                        contentScale = ContentScale.Crop
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            Button(onClick = onMessage, colors = ButtonDefaults.buttonColors(containerColor = SkillTurquoise)) {
-                Text("Envoyer un message")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Continuer")
-            }
-        }
-    )
 }
 
 @Composable

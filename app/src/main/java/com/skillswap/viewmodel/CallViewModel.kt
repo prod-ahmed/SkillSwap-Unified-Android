@@ -42,11 +42,7 @@ class CallViewModel(application: Application) : AndroidViewModel(application), W
     private val _state = MutableStateFlow(CallState())
     val state: StateFlow<CallState> = _state.asStateFlow()
     private val rtcClient = WebRtcClient(application.applicationContext, this)
-    private val socketClient = ChatSocketClient(
-        context = application.applicationContext,
-        userIdProvider = { application.getSharedPreferences("SkillSwapPrefs", android.content.Context.MODE_PRIVATE).getString("user_id", null) },
-        tokenProvider = { application.getSharedPreferences("SkillSwapPrefs", android.content.Context.MODE_PRIVATE).getString("auth_token", null) }
-    )
+    private val socketClient = ChatSocketClient.getInstance(application)
     private val notificationManager by lazy { LocalNotificationManager.getInstance(application) }
     private var threadId: String? = null
     private var partnerId: String? = null

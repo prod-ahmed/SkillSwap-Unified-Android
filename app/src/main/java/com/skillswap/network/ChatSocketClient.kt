@@ -10,22 +10,39 @@ import com.skillswap.model.CallIcePayload
 import com.skillswap.model.CallBusyPayload
 import com.skillswap.model.CallEndPayload
 import com.skillswap.model.CallRejectPayload
+import com.skillswap.utils.LocalNotificationManager
 import io.socket.client.IO
 import io.socket.client.Socket
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.launch
 import org.json.JSONObject
 
-class ChatSocketClient(
-    private val context: Context,
-    private val userIdProvider: () -> String?
+class ChatSocketClient private constructor(
+    private val context: Context
 ) {
+    companion object {
+        @Volatile
+        private var instance: ChatSocketClient? = null
+
+        fun getInstance(context: Context): ChatSocketClient {
+            return instance ?: synchronized(this) {
+                instance ?: ChatSocketClient(context.applicationContext).also { instance = it }
+            }
+        }
+    }
+
     private val sharedPrefs by lazy {
         context.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
     }
 
+    private fun userIdProvider(): String? = sharedPrefs.getString("user_id", null)
     private fun authToken(): String? = sharedPrefs.getString("auth_token", null)
+    
+    private val notificationManager = LocalNotificationManager.getInstance(context)
     private fun normalizedBaseUrl(): String? {
         val raw = BuildConfig.API_BASE_URL?.trim()
         if (raw.isNullOrBlank()) return null
@@ -155,7 +172,22 @@ class ChatSocketClient(
                     val senderId = it.optString("senderId")
                     val content = it.optString("content")
                     val createdAt = it.optString("createdAt")
+                    
+                    // Emit to flow
                     _messages.tryEmit(SocketMessagePayload(id, threadId, senderId, content, createdAt))
+                    
+                    // Show notification if not from self
+                    val currentUserId = userIdProvider()
+                    if (senderId != currentUserId) {
+                        // We don't have sender name here easily without fetching, 
+                        // but we can show a generic message or try to parse if available
+                        // For now, use a generic title or "Nouveau message"
+                        notificationManager.showMessageNotification(
+                            threadId = threadId,
+                            senderName = "Nouveau message", 
+                            messageText = content
+                        )
+                    }
                 }
             }
         }
@@ -250,14 +282,25 @@ class ChatSocketClient(
         callSocket?.on("call:incoming") { args ->
             args.firstOrNull()?.let {
                 if (it is JSONObject) {
+                    val callId = it.optString("callId", it.optString("_id", ""))
+                    val callerId = it.optString("callerId")
+                    val callType = it.optString("callType", "audio")
+                    
                     _callOffers.tryEmit(
                         CallOfferPayload(
-                            callId = it.optString("callId", it.optString("_id", "")),
-                            callerId = it.optString("callerId"),
+                            callId = callId,
+                            callerId = callerId,
                             sdp = it.optString("sdp"),
-                            isVideo = it.optString("callType", "audio") == "video",
+                            isVideo = callType == "video",
                             threadId = it.optString("threadId", null)
                         )
+                    )
+                    
+                    // Show notification
+                    notificationManager.showCallNotification(
+                        callerId = callerId,
+                        callerName = "Appel entrant", // Ideally fetch name
+                        callType = if (callType == "video") "Vidéo" else "Audio"
                     )
                 }
             }

@@ -63,6 +63,8 @@ import android.content.Context
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.collectAsState
 
+import com.skillswap.network.ChatSocketClient
+
 sealed class Screen(val route: String, val title: String, val icon: String) {
     object Discover : Screen("discover", "Découvrir", "house.fill")
     object Messages : Screen("messages", "Messages", "message.fill")
@@ -85,6 +87,17 @@ sealed class Screen(val route: String, val title: String, val icon: String) {
 
 @Composable
 fun SkillSwapApp() {
+    val context = LocalContext.current
+    
+    // Initialize global socket listener for notifications
+    LaunchedEffect(Unit) {
+        val prefs = context.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
+        val token = prefs.getString("auth_token", null)
+        if (!token.isNullOrEmpty()) {
+            ChatSocketClient.getInstance(context).connect()
+        }
+    }
+
     SkillSwapTheme {
         val navController = rememberNavController()
         var showBottomBar by remember { mutableStateOf(false) }
@@ -94,9 +107,11 @@ fun SkillSwapApp() {
             val prefs = context.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
             val hasSeenOnboarding = prefs.getBoolean("onboarding_done", false)
             val hasProfile = prefs.getBoolean("profile_completed", false)
+            val token = prefs.getString("auth_token", null)
+            
             when {
                 !hasSeenOnboarding -> "onboarding"
-                prefs.getString("auth_token", null).isNullOrEmpty() -> "auth"
+                token.isNullOrEmpty() || com.skillswap.util.TokenUtils.isTokenExpired(token) -> "auth"
                 !hasProfile -> "profile_setup"
                 else -> Screen.Discover.route
             }

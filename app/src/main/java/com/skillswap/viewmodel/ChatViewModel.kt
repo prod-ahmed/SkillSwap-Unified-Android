@@ -22,11 +22,7 @@ import org.json.JSONObject
 
 class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private val sharedPreferences = application.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
-    private val socketClient = ChatSocketClient(
-        context = application.applicationContext,
-        userIdProvider = { sharedPreferences.getString("user_id", null) },
-        tokenProvider = { sharedPreferences.getString("auth_token", null) }
-    )
+    private val socketClient = ChatSocketClient.getInstance(application)
 
     private val _conversations = MutableStateFlow<List<Conversation>>(emptyList())
     val conversations: StateFlow<List<Conversation>> = _conversations.asStateFlow()
