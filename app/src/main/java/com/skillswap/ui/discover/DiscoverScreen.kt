@@ -79,12 +79,15 @@ fun DiscoverScreen(
     var showMatchDialog by remember { mutableStateOf(false) }
     var matchedUser by remember { mutableStateOf<User?>(null) }
 
-    val filteredAnnonces = remember(annonces, filterText, selectedCategory) {
+    val filteredAnnonces = remember(annonces, filterText, selectedCategory, selectedCity) {
         var list = if (filterText.isBlank()) annonces else annonces.filter {
             it.title.contains(filterText, ignoreCase = true) || (it.city ?: "").contains(filterText, ignoreCase = true)
         }
         if (selectedCategory != null) {
             list = list.filter { it.category == selectedCategory }
+        }
+        if (selectedCity != null) {
+            list = list.filter { it.city == selectedCity }
         }
         list
     }
@@ -250,9 +253,41 @@ fun DiscoverScreen(
                                     .fillMaxWidth()
                             )
                             
+                            // City Filter
+                            LazyRow(
+                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                item {
+                                    FilterChip(
+                                        selected = selectedCity == null,
+                                        onClick = { viewModel.setCityFilter(null) },
+                                        label = { Text("Toutes villes") },
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = SkillTurquoise.copy(alpha = 0.2f),
+                                            selectedLabelColor = SkillTurquoise
+                                        )
+                                    )
+                                }
+                                items(cities) { city ->
+                                    FilterChip(
+                                        selected = selectedCity == city,
+                                        onClick = { viewModel.setCityFilter(if (selectedCity == city) null else city) },
+                                        label = { Text(city) },
+                                        leadingIcon = if (selectedCity == city) {
+                                            { Icon(Icons.Default.Done, null, modifier = Modifier.size(16.dp)) }
+                                        } else null,
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = SkillTurquoise.copy(alpha = 0.2f),
+                                            selectedLabelColor = SkillTurquoise
+                                        )
+                                    )
+                                }
+                            }
+                            
                             // Category Filter
                             LazyRow(
-                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 item {
@@ -297,23 +332,96 @@ fun DiscoverScreen(
                         }
                     }
                     DiscoverSegment.PROMOS -> {
-                        OutlinedTextField(
-                            value = filterText,
-                            onValueChange = { filterText = it },
-                            label = { Text("Filtrer par titre/code") },
-                            modifier = Modifier
-                                .padding(horizontal = 16.dp)
-                                .fillMaxWidth()
-                        )
-                        if (filteredPromos.isEmpty()) {
-                            EmptyDiscoverState(message = "Aucune promotion active", action = { viewModel.loadForCurrentSegment() })
-                        } else {
-                            LazyColumn(
-                                contentPadding = PaddingValues(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                        Column {
+                            OutlinedTextField(
+                                value = filterText,
+                                onValueChange = { filterText = it },
+                                label = { Text("Filtrer par titre/code") },
+                                modifier = Modifier
+                                    .padding(horizontal = 16.dp)
+                                    .fillMaxWidth()
+                            )
+                            
+                            // Discount Range Filter
+                            var showDiscountFilter by remember { mutableStateOf(false) }
+                            var minDiscount by remember { mutableStateOf(0) }
+                            
+                            LazyRow(
+                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                items(filteredPromos) { promo ->
-                                    PromoDiscoverCard(promo)
+                                item {
+                                    FilterChip(
+                                        selected = minDiscount == 0,
+                                        onClick = { minDiscount = 0 },
+                                        label = { Text("Toutes") },
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = SkillGold.copy(alpha = 0.2f),
+                                            selectedLabelColor = SkillGold
+                                        )
+                                    )
+                                }
+                                item {
+                                    FilterChip(
+                                        selected = minDiscount == 10,
+                                        onClick = { minDiscount = 10 },
+                                        label = { Text("10%+") },
+                                        leadingIcon = if (minDiscount == 10) {
+                                            { Icon(Icons.Default.Done, null, modifier = Modifier.size(16.dp)) }
+                                        } else null,
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = SkillGold.copy(alpha = 0.2f),
+                                            selectedLabelColor = SkillGold
+                                        )
+                                    )
+                                }
+                                item {
+                                    FilterChip(
+                                        selected = minDiscount == 25,
+                                        onClick = { minDiscount = 25 },
+                                        label = { Text("25%+") },
+                                        leadingIcon = if (minDiscount == 25) {
+                                            { Icon(Icons.Default.Done, null, modifier = Modifier.size(16.dp)) }
+                                        } else null,
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = SkillGold.copy(alpha = 0.2f),
+                                            selectedLabelColor = SkillGold
+                                        )
+                                    )
+                                }
+                                item {
+                                    FilterChip(
+                                        selected = minDiscount == 50,
+                                        onClick = { minDiscount = 50 },
+                                        label = { Text("50%+") },
+                                        leadingIcon = if (minDiscount == 50) {
+                                            { Icon(Icons.Default.Done, null, modifier = Modifier.size(16.dp)) }
+                                        } else null,
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = SkillGold.copy(alpha = 0.2f),
+                                            selectedLabelColor = SkillGold
+                                        )
+                                    )
+                                }
+                            }
+                            
+                            val discountFilteredPromos = remember(filteredPromos, minDiscount) {
+                                if (minDiscount == 0) filteredPromos
+                                else filteredPromos.filter { 
+                                    it.discount >= minDiscount
+                                }
+                            }
+                            
+                            if (discountFilteredPromos.isEmpty()) {
+                                EmptyDiscoverState(message = "Aucune promotion active", action = { viewModel.loadForCurrentSegment() })
+                            } else {
+                                LazyColumn(
+                                    contentPadding = PaddingValues(16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    items(discountFilteredPromos) { promo ->
+                                        PromoDiscoverCard(promo)
+                                    }
                                 }
                             }
                         }

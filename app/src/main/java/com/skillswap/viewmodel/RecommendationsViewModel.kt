@@ -88,12 +88,22 @@ class RecommendationsViewModel(application: Application) : AndroidViewModel(appl
         val coords = mutableMapOf<String, LatLng>()
         
         items.forEachIndexed { index, item ->
-            // Simple offset logic to scatter them around user location
-            val angle = (index * (2 * Math.PI / items.size.coerceAtLeast(1)))
-            val radius = 0.02 + (index % 3) * 0.01 // roughly 2-5km
+            // Parse distance to determine radius (e.g., "2.5 km" -> 2.5)
+            val distanceKm = try {
+                item.distance.split(" ").firstOrNull()?.toDoubleOrNull() ?: (2.0 + (index % 5))
+            } catch (e: Exception) {
+                2.0 + (index % 5) // fallback: 2-6 km
+            }
             
-            val lat = baseLat + radius * Math.cos(angle)
-            val lng = baseLng + radius * Math.sin(angle)
+            // Convert km to degrees (rough approximation: 1° ≈ 111 km at equator)
+            val radiusDegrees = distanceKm / 111.0
+            
+            // Scatter around user location in a circle pattern
+            val angle = (index * (2 * Math.PI / items.size.coerceAtLeast(1))) + 
+                        (Math.random() * 0.5 - 0.25) // Add slight randomness
+            
+            val lat = baseLat + radiusDegrees * Math.cos(angle)
+            val lng = baseLng + radiusDegrees * Math.sin(angle)
             
             coords[item.id] = LatLng(lat, lng)
         }
