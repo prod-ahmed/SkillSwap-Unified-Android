@@ -148,7 +148,21 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
             _errorMessage.value = null
             
             try {
-                val questions = quizService.generateQuiz(subject, level)
+                // Use Cloudflare AI for quiz generation
+                val aiResponse = com.skillswap.ai.CloudflareAIService.generateQuizQuestions(
+                    subject = subject,
+                    level = level,
+                    numQuestions = 5
+                )
+                
+                // Parse the AI response (it should be JSON)
+                val questions = try {
+                    quizService.parseQuizResponse(aiResponse)
+                } catch (e: Exception) {
+                    // Fallback to existing service if parsing fails
+                    quizService.generateQuiz(subject, level)
+                }
+                
                 _quizQuestions.value = questions
                 _currentQuestionIndex.value = 0
                 _selectedAnswers.value = emptyMap()

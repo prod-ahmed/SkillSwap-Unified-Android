@@ -138,6 +138,19 @@ fun SkillSwapApp() {
     val localizationManager = remember { LocalizationManager.getInstance(context) }
     val themeManager = remember { ThemeManager.getInstance(context) }
     
+    // Initialize Cloudflare AI Workers
+    LaunchedEffect(Unit) {
+        try {
+            val cloudflareAccountId = BuildConfig.CLOUDFLARE_ACCOUNT_ID
+            val cloudflareApiKey = BuildConfig.CLOUDFLARE_WORKERS_AI_API_KEY
+            if (cloudflareAccountId.isNotBlank() && cloudflareApiKey.isNotBlank()) {
+                com.skillswap.ai.CloudflareAIService.initialize(cloudflareAccountId, cloudflareApiKey)
+            }
+        } catch (e: Exception) {
+            // Silently fail if keys are not configured
+        }
+    }
+    
     // Observe layout direction for RTL support
     val currentLanguage by localizationManager.currentLanguage
     val layoutDirection = localizationManager.layoutDirection

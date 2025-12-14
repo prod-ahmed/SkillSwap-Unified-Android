@@ -1,22 +1,28 @@
 package com.skillswap.ui.annonces
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -45,7 +51,7 @@ import com.skillswap.model.MediaPayload
 import kotlinx.coroutines.launch
 import androidx.compose.material3.LinearProgressIndicator
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun MyAnnoncesScreenContent(
     navController: NavController,
@@ -61,6 +67,42 @@ fun MyAnnoncesScreenContent(
     var showCreate by remember { mutableStateOf(false) }
     var editingAnnonce by remember { mutableStateOf<Annonce?>(null) }
     
+    // Filtering and Sorting state
+    var searchQuery by remember { mutableStateOf("") }
+    var selectedCategory by remember { mutableStateOf<String?>(null) }
+    var sortBy by remember { mutableStateOf("date") } // date, title, city
+    var showFilterSheet by remember { mutableStateOf(false) }
+    
+    // Filter and sort annonces
+    val filteredAnnonces = remember(annonces, searchQuery, selectedCategory, sortBy) {
+        var result = annonces
+        
+        // Apply search filter
+        if (searchQuery.isNotBlank()) {
+            result = result.filter {
+                it.title.contains(searchQuery, ignoreCase = true) ||
+                it.description.contains(searchQuery, ignoreCase = true) ||
+                (it.city?.contains(searchQuery, ignoreCase = true) == true)
+            }
+        }
+        
+        // Apply category filter
+        if (selectedCategory != null) {
+            result = result.filter { it.category == selectedCategory }
+        }
+        
+        // Apply sorting
+        when (sortBy) {
+            "title" -> result.sortedBy { it.title }
+            "city" -> result.sortedBy { it.city ?: "" }
+            else -> result.sortedByDescending { it.createdAt } // date (newest first)
+        }
+    }
+    
+    val categories = remember(annonces) {
+        annonces.mapNotNull { it.category }.distinct()
+    }
+    
     Scaffold(
         topBar = {
             TopAppBar(
@@ -70,6 +112,17 @@ fun MyAnnoncesScreenContent(
                         IconButton(onClick = { navController.popBackStack() }) {
                             Icon(Icons.Default.Close, contentDescription = "Retour")
                         }
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { showFilterSheet = true }) {
+                        Icon(
+                            imageVector = Icons.Filled.FilterList,
+                            contentDescription = "Filtres",
+                            tint = if (searchQuery.isNotBlank() || selectedCategory != null) 
+                                com.skillswap.ui.theme.OrangePrimary 
+                            else Color.Gray
+                        )
                     }
                 }
             )
@@ -105,8 +158,15 @@ fun MyAnnoncesScreenContent(
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             )
         }
-        if (annonces.isEmpty()) {
-            EmptyAnnoncesState(onRefresh = { viewModel.loadAnnonces() }, modifier = Modifier.padding(padding))
+        if (filteredAnnonces.isEmpty()) {
+            EmptyAnnoncesState(
+                onRefresh = { viewModel.loadAnnonces() },
+                message = if (searchQuery.isNotBlank() || selectedCategory != null) 
+                    "Aucun résultat trouvé" 
+                else 
+                    "Aucune annonce publiée",
+                modifier = Modifier.padding(padding)
+            )
         } else {
             LazyColumn(
                 contentPadding = PaddingValues(16.dp),
@@ -116,7 +176,7 @@ fun MyAnnoncesScreenContent(
                     .fillMaxSize()
                     .background(Color(0xFFF2F2F7))
             ) {
-                items(annonces) { annonce ->
+                items(filteredAnnonces) { annonce ->
                     AnnonceCard(
                         annonce,
                         onDelete = { viewModel.deleteAnnonce(annonce.id) },
@@ -146,6 +206,106 @@ fun MyAnnoncesScreenContent(
                 if (!uploading) editingAnnonce = null
             }
         )
+    }
+    
+    // Filter Bottom Sheet
+    if (showFilterSheet) {
+        androidx.compose.material3.ModalBottomSheet(
+            onDismissRequest = { showFilterSheet = false }
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    "Filtres et Tri",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                )
+                
+                // Search
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    label = { Text("Rechercher") },
+                    modifier = Modifier.fillMaxWidth(),
+                    leadingIcon = { Icon(Icons.Default.Search, "Recherche") },
+                    singleLine = true
+                )
+                
+                // Category filter
+                Text("Catégorie", fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
+                androidx.compose.foundation.layout.FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    FilterChip(
+                        selected = selectedCategory == null,
+                        onClick = { selectedCategory = null },
+                        label = { Text("Toutes") }
+                    )
+                    categories.forEach { category ->
+                        FilterChip(
+                            selected = selectedCategory == category,
+                            onClick = { selectedCategory = if (selectedCategory == category) null else category },
+                            label = { Text(category) }
+                        )
+                    }
+                }
+                
+                // Sorting
+                Text("Trier par", fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SortOption("Date (récent)", "date", sortBy) { sortBy = it }
+                    SortOption("Titre", "title", sortBy) { sortBy = it }
+                    SortOption("Ville", "city", sortBy) { sortBy = it }
+                }
+                
+                Spacer(Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = {
+                            searchQuery = ""
+                            selectedCategory = null
+                            sortBy = "date"
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Réinitialiser")
+                    }
+                    Button(
+                        onClick = { showFilterSheet = false },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Appliquer")
+                    }
+                }
+                Spacer(Modifier.height(16.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun SortOption(label: String, value: String, current: String, onSelect: (String) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onSelect(value) }
+            .padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        androidx.compose.material3.RadioButton(
+            selected = current == value,
+            onClick = { onSelect(value) }
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(label)
     }
 }
 
@@ -226,7 +386,7 @@ private fun StatusBanner(
 }
 
 @Composable
-private fun EmptyAnnoncesState(onRefresh: () -> Unit, modifier: Modifier = Modifier) {
+private fun EmptyAnnoncesState(onRefresh: () -> Unit, message: String = "Aucune annonce publiée", modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -234,7 +394,7 @@ private fun EmptyAnnoncesState(onRefresh: () -> Unit, modifier: Modifier = Modif
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text("Aucune annonce publiée", color = Color.Gray, style = MaterialTheme.typography.titleMedium)
+        Text(message, color = Color.Gray, style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(12.dp))
         OutlinedButton(onClick = onRefresh) { Text("Rafraîchir") }
     }
