@@ -75,7 +75,8 @@ fun ProfileScreen(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .background(Color(0xFFF2F2F7)) // System Grouped Background
+            .background(Color(0xFFF2F2F7))
+            .padding(bottom = 80.dp) // Add bottom padding for navigation bar
     ) {
         // Header Gradient
         Box(
@@ -95,6 +96,20 @@ fun ProfileScreen(
                         )
                     )
             )
+            
+            // Edit Profile Icon Button
+            IconButton(
+                onClick = { navController.navigate(Screen.ProfileEdit.route) },
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(24.dp)
+            ) {
+                Icon(
+                    Icons.Default.Edit,
+                    contentDescription = "Modifier le profil",
+                    tint = Color.White
+                )
+            }
             
             // Avatar
             Box(

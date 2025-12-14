@@ -4,6 +4,7 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
@@ -19,12 +20,18 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.skillswap.model.Message
 import com.skillswap.ui.theme.OrangePrimary
+import com.skillswap.BuildConfig
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -34,6 +41,7 @@ fun SwipeableMessageBubble(
     isOwnMessage: Boolean,
     onReply: (Message) -> Unit,
     onReact: (Message, String) -> Unit,
+    onImageClick: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var offsetX by remember { mutableFloatStateOf(0f) }
@@ -107,16 +115,48 @@ fun SwipeableMessageBubble(
                 Column(
                     horizontalAlignment = if (isOwnMessage) Alignment.End else Alignment.Start
                 ) {
-                    // Reply indicator if message is a reply
+                    // Replied-to message bubble (separate, behind, slightly above - Messenger style)
                     message.replyTo?.let { replyTo ->
-                        ReplyIndicator(
-                            replyToText = replyTo.content,
-                            isOwnMessage = isOwnMessage
-                        )
-                        Spacer(Modifier.height(4.dp))
+                        Box(
+                            modifier = Modifier
+                                .padding(
+                                    start = if (isOwnMessage) 24.dp else 0.dp,
+                                    end = if (isOwnMessage) 0.dp else 24.dp,
+                                    bottom = 0.dp // Overlap with main message
+                                )
+                                .offset(y = 8.dp) // Push down so main message overlaps it
+                        ) {
+                            Surface(
+                                color = Color(0xFFE0E0E0).copy(alpha = 0.8f),
+                                shape = RoundedCornerShape(12.dp),
+                                shadowElevation = 0.dp
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    // Accent bar
+                                    Box(
+                                        modifier = Modifier
+                                            .width(3.dp)
+                                            .height(24.dp)
+                                            .clip(RoundedCornerShape(2.dp))
+                                            .background(OrangePrimary.copy(alpha = 0.7f))
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        text = replyTo.content.take(40) + if (replyTo.content.length > 40) "..." else "",
+                                        fontSize = 12.sp,
+                                        color = Color.DarkGray,
+                                        maxLines = 1
+                                    )
+                                }
+                            }
+                        }
                     }
                     
-                    // Message bubble
+                    // Main message bubble
                     Surface(
                         color = if (isOwnMessage) OrangePrimary else Color(0xFFEEEEEE),
                         shape = RoundedCornerShape(
@@ -125,23 +165,54 @@ fun SwipeableMessageBubble(
                             bottomStart = if (isOwnMessage) 16.dp else 4.dp,
                             bottomEnd = if (isOwnMessage) 4.dp else 16.dp
                         ),
-                        shadowElevation = 1.dp
+                        shadowElevation = 2.dp,
+                        modifier = Modifier.zIndex(1f) // Bring main message to front
                     ) {
                         Column(
-                            modifier = Modifier.padding(12.dp)
+                            modifier = Modifier.padding(if (message.attachmentUrl != null) 4.dp else 12.dp)
                         ) {
-                            Text(
-                                text = message.text,
-                                color = if (isOwnMessage) Color.White else Color.Black,
-                                fontSize = 15.sp
-                            )
+                            // Image attachment
+                            if (message.attachmentUrl != null && message.type == "attachment") {
+                                val baseUrl = BuildConfig.API_BASE_URL.removeSuffix("/")
+                                val imageUrl = if (message.attachmentUrl!!.startsWith("http")) {
+                                    message.attachmentUrl
+                                } else {
+                                    "$baseUrl${message.attachmentUrl}"
+                                }
+                                
+                                AsyncImage(
+                                    model = ImageRequest.Builder(LocalContext.current)
+                                        .data(imageUrl)
+                                        .crossfade(true)
+                                        .build(),
+                                    contentDescription = "Image attachment",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .heightIn(max = 200.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .clickable { onImageClick(imageUrl ?: "") }
+                                )
+                                
+                                Spacer(Modifier.height(4.dp))
+                            }
                             
-                            Spacer(Modifier.height(4.dp))
+                            // Text content (hide filename for attachments)
+                            if (message.type != "attachment" || message.attachmentUrl == null) {
+                                Text(
+                                    text = message.text,
+                                    color = if (isOwnMessage) Color.White else Color.Black,
+                                    fontSize = 15.sp,
+                                    modifier = Modifier.padding(horizontal = if (message.attachmentUrl != null) 8.dp else 0.dp)
+                                )
+                                
+                                Spacer(Modifier.height(4.dp))
+                            }
                             
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.End,
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.padding(horizontal = if (message.attachmentUrl != null) 8.dp else 0.dp)
                             ) {
                                 Text(
                                     text = message.time,

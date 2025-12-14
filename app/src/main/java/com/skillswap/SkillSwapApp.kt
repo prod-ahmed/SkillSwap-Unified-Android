@@ -265,6 +265,16 @@ fun SkillSwapApp() {
                     composable(Screen.Sessions.route) {
                         SessionsScreen(navController)
                     }
+
+                    composable("create_session") {
+                        com.skillswap.ui.sessions.CreateSessionScreen(
+                            onBack = { navController.popBackStack() },
+                            onSessionCreated = {
+                                navController.popBackStack()
+                                // Optionally refresh sessions here via viewmodel share or result
+                            }
+                        )
+                    }
                     
                     composable(Screen.Progress.route) {
                         ProgressScreen()
@@ -387,6 +397,7 @@ fun SkillSwapApp() {
                         ChatScreen(
                             conversationId = conversationId,
                             onBack = { navController.popBackStack() },
+                            onPlanSession = { navController.navigate("create_session") },
                             callViewModel = callViewModel
                         )
                     }

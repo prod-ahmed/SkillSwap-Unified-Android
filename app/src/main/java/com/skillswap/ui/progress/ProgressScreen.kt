@@ -50,7 +50,8 @@ fun ProgressScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .background(Color(0xFFF2F2F7)) // System Grouped Background
+                .background(Color(0xFFF2F2F7))
+                .padding(bottom = 80.dp) // Add bottom padding for navigation bar
         ) {
             dashboard?.let { data ->
                 Box(

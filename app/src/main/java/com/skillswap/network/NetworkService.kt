@@ -147,6 +147,15 @@ interface SkillSwapApi {
         @Path("messageId") messageId: String
     ): ThreadMessage
 
+    @Multipart
+    @POST("/chat/threads/{threadId}/upload")
+    suspend fun uploadChatAttachment(
+        @Header("Authorization") token: String,
+        @Path("threadId") threadId: String,
+        @Part file: MultipartBody.Part,
+        @Part("content") content: okhttp3.RequestBody? = null
+    ): ThreadMessage
+
     // Matching / discovery
     @GET("/matching/recommendations")
     suspend fun getRecommendations(

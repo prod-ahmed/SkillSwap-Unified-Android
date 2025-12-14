@@ -57,6 +57,37 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
     init {
         loadProgress()
         loadHistory()
+        loadUserSkills()
+    }
+    
+    private fun loadUserSkills() {
+        viewModelScope.launch {
+            try {
+                // Load user profile to get skills
+                val authManager = com.skillswap.auth.AuthenticationManager.getInstance(getApplication())
+                val token = authManager.getToken()
+                if (!token.isNullOrEmpty()) {
+                    val apiService = com.skillswap.network.RetrofitInstance.apiService
+                    val response = apiService.getUserProfile("Bearer $token")
+                    if (response.isSuccessful) {
+                        val user = response.body()
+                        val skills = mutableSetOf<String>()
+                        user?.skillsTeach?.let { skills.addAll(it) }
+                        user?.skillsLearn?.let { skills.addAll(it) }
+                        
+                        // Add default subjects if no skills
+                        if (skills.isEmpty()) {
+                            skills.addAll(listOf("Général", "Culture Générale", "Mathématiques"))
+                        }
+                        
+                        _subjects.value = skills.toList()
+                    }
+                }
+            } catch (e: Exception) {
+                // Fallback to default subjects
+                _subjects.value = listOf("Général", "Culture Générale", "Mathématiques", "Sciences", "Technologie")
+            }
+        }
     }
     
     private fun loadProgress() {
@@ -66,9 +97,8 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
             val progress = gson.fromJson<Map<String, Int>>(progressJson, type)
             _unlockedLevel.value = progress
         } else {
-            _unlockedLevel.value = mapOf("Swift" to 1, "History" to 1)
+            _unlockedLevel.value = emptyMap()
         }
-        _subjects.value = listOf("Swift", "History", "Math", "Science", "Kotlin", "Java", "Python")
     }
     
     private fun loadHistory() {

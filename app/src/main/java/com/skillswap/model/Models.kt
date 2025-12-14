@@ -158,7 +158,9 @@ data class Message(
     val read: Boolean = false,
     val reactions: Map<String, List<String>>? = null,
     val isDeleted: Boolean = false,
-    val replyTo: ReferencedMessage? = null
+    val replyTo: ReferencedMessage? = null,
+    val attachmentUrl: String? = null,
+    val type: String = "text"
 )
 
 data class ChatPayload(
@@ -195,7 +197,8 @@ data class ThreadMessage(
     val createdAt: String,
     val reactions: Map<String, List<String>>? = null, // emoji -> list of userIds
     val isDeleted: Boolean? = null,
-    val replyTo: ReferencedMessage? = null
+    val replyTo: ReferencedMessage? = null,
+    val attachmentUrl: String? = null
 )
 
 data class ReferencedMessage(
@@ -216,7 +219,8 @@ data class SocketMessagePayload(
     val threadId: String,
     val senderId: String,
     val content: String,
-    val createdAt: String
+    val createdAt: String,
+    val replyTo: ReferencedMessage? = null
 )
 
 data class SocketTypingPayload(

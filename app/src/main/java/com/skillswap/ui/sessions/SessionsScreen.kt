@@ -85,9 +85,10 @@ fun SessionsScreen(
     Scaffold(
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { showCreate = true },
+                onClick = { navController.navigate("create_session") }, // Navigate to new screen
                 containerColor = OrangePrimary,
-                contentColor = Color.White
+                contentColor = Color.White,
+                modifier = Modifier.padding(bottom = 110.dp) // Lift above bottom bar (which is ~80dp)
             ) {
                 Icon(Icons.Default.Add, contentDescription = "New Session")
             }

@@ -19,6 +19,8 @@ import kotlinx.coroutines.delay
 import java.util.UUID
 import com.skillswap.network.ChatSocketClient
 import kotlinx.coroutines.flow.collectLatest
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 
 class ChatViewModel(application: Application) : AndroidViewModel(application) {
@@ -216,9 +218,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     "type" to "text"
                 )
                 
-                // Add replyTo if present
+                // Add replyToId if present (backend expects replyToId, not replyTo)
                 replyTo?.let {
-                    payload["replyTo"] = it.id
+                    payload["replyToId"] = it.id
                 }
                 
                 val remote = NetworkService.api.sendMessage(
@@ -229,6 +231,47 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 _messages.value = _messages.value + remote.toUiMessage(me)
             } catch (e: Exception) {
                 _error.value = "Message non envoyé: ${e.message}"
+            }
+        }
+    }
+
+    fun uploadAttachment(uri: android.net.Uri, context: android.content.Context) {
+        val threadId = activeThreadId
+        val header = authHeader()
+        val me = currentUserId()
+        if (threadId == null || header == null || me == null) {
+            _error.value = "Impossible d'envoyer le fichier (session expirée)"
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                _isLoading.value = true
+                
+                // Get file from URI
+                val contentResolver = context.contentResolver
+                val inputStream = contentResolver.openInputStream(uri) ?: throw Exception("Cannot open file")
+                val bytes = inputStream.readBytes()
+                inputStream.close()
+                
+                // Get file name and mime type
+                val fileName = uri.lastPathSegment ?: "file"
+                val mimeType = contentResolver.getType(uri) ?: "application/octet-stream"
+                
+                // Create multipart body
+                val requestBody = bytes.toRequestBody(mimeType.toMediaTypeOrNull())
+                val filePart = okhttp3.MultipartBody.Part.createFormData("file", fileName, requestBody)
+                
+                val remote = NetworkService.api.uploadChatAttachment(
+                    header,
+                    threadId,
+                    filePart
+                )
+                _messages.value = _messages.value + remote.toUiMessage(me)
+            } catch (e: Exception) {
+                _error.value = "Fichier non envoyé: ${e.message}"
+            } finally {
+                _isLoading.value = false
             }
         }
     }
@@ -248,7 +291,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                             text = msg.content,
                             isMe = msg.senderId == me,
                             time = msg.createdAt,
-                            read = msg.senderId == me
+                            read = msg.senderId == me,
+                            replyTo = msg.replyTo
                         )
                         if (msg.senderId != me) {
                             markThreadRead(threadId, null)
@@ -344,7 +388,10 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             time = createdAt,
             read = read || senderId == meId,
             reactions = reactions,
-            isDeleted = isDeleted == true
+            isDeleted = isDeleted == true,
+            replyTo = replyTo,
+            attachmentUrl = attachmentUrl,
+            type = type
         )
     }
 

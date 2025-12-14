@@ -62,6 +62,11 @@ import com.skillswap.viewmodel.CallViewModel
 import org.webrtc.VideoTrack
 import org.webrtc.EglBase
 import android.widget.Toast
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 
 // Colors matching iOS
 val ChatOrangeStart = Color(0xFFFF6B35)
@@ -73,6 +78,7 @@ fun ChatScreen(
     onBack: () -> Unit,
     onVideoCall: () -> Unit = {},
     onAudioCall: () -> Unit = {},
+    onPlanSession: () -> Unit = {},
     viewModel: ChatViewModel = viewModel(),
     callViewModel: CallViewModel = viewModel()
 ) {
@@ -97,6 +103,7 @@ fun ChatScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     var inputText by remember { mutableStateOf("") }
     var replyingTo by remember { mutableStateOf<com.skillswap.model.ThreadMessage?>(null) }
+    var fullScreenImageUrl by remember { mutableStateOf<String?>(null) }
     val listState = rememberLazyListState()
     val context = LocalContext.current
     var pendingVideo by remember { mutableStateOf<Boolean?>(null) }
@@ -123,6 +130,15 @@ fun ChatScreen(
             }
         }
         pendingVideo = null
+    }
+
+    // File picker for attachments
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let {
+            viewModel.uploadAttachment(it, context)
+        }
     }
 
     fun launchCall(video: Boolean) {
@@ -225,6 +241,9 @@ fun ChatScreen(
                         },
                         onReact = { msg, emoji ->
                             viewModel.reactToMessage(msg.id, emoji)
+                        },
+                        onImageClick = { imageUrl ->
+                            fullScreenImageUrl = imageUrl
                         }
                     )
                 }
@@ -288,8 +307,12 @@ fun ChatScreen(
                     ChatStatusBanner(text = it, onDismiss = { viewModel.clearError() })
                     Spacer(Modifier.height(8.dp))
                 }
-                if (!socketConnected && !isLoading) {
-                    ChatStatusBanner(text = "Reconnexion en cours…", onDismiss = { /* keep banner until reconnect */ })
+                // Only show reconnection banner when socket is disconnected AND not loading
+                if (!socketConnected && !isLoading && messages.isNotEmpty()) {
+                    ChatStatusBanner(
+                        text = "Reconnexion en cours…",
+                        onDismiss = { /* keep banner until reconnect */ }
+                    )
                     Spacer(Modifier.height(8.dp))
                 }
              Row(
@@ -299,13 +322,13 @@ fun ChatScreen(
             ) {
                 // Attach Button
                 IconButton(
-                    onClick = { /* attachment placeholder */ },
+                    onClick = { filePickerLauncher.launch("image/*") },
                     modifier = Modifier
                         .size(44.dp)
                         .clip(CircleShape)
                         .background(ChatOrangeStart.copy(alpha = 0.1f))
                 ) {
-                Icon(Icons.Default.AttachFile, contentDescription = "Ajouter une pièce jointe", tint = ChatOrangeStart)
+                    Icon(Icons.Default.AttachFile, contentDescription = "Ajouter une pièce jointe", tint = ChatOrangeStart)
                 }
 
                 // Text Input
@@ -354,13 +377,58 @@ fun ChatScreen(
             
             // Plan Session Button
             Button(
-                onClick = { /* navigate to sessions or open scheduler */ },
+                onClick = onPlanSession,
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF2F2F7)),
                 shape = RoundedCornerShape(24.dp),
                 contentPadding = PaddingValues(vertical = 12.dp)
             ) {
                 Text("📅 Planifier une session", color = Color.Black, fontWeight = FontWeight.SemiBold)
+            }
+        }
+    }
+    
+    // Full-screen image viewer
+    fullScreenImageUrl?.let { imageUrl ->
+        Dialog(
+            onDismissRequest = { fullScreenImageUrl = null },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black)
+                    .clickable { fullScreenImageUrl = null }
+            ) {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(imageUrl)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = "Full screen image",
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp)
+                )
+                
+                // Close button
+                IconButton(
+                    onClick = { fullScreenImageUrl = null },
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(16.dp)
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(Color.Black.copy(alpha = 0.5f))
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Close",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
             }
         }
     }
