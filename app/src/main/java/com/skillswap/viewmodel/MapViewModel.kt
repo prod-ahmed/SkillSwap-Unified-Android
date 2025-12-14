@@ -28,6 +28,14 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
     val cities: StateFlow<List<String>> = _cities.asStateFlow()
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
+    
+    // Search functionality
+    private val _searchResults = MutableStateFlow<List<UserLocationPin>>(emptyList())
+    val searchResults: StateFlow<List<UserLocationPin>> = _searchResults.asStateFlow()
+    private val _isSearching = MutableStateFlow(false)
+    val isSearching: StateFlow<Boolean> = _isSearching.asStateFlow()
+    private val _selectedLocation = MutableStateFlow<UserLocationPin?>(null)
+    val selectedLocation: StateFlow<UserLocationPin?> = _selectedLocation.asStateFlow()
 
     fun loadPins() {
         val token = sharedPreferences.getString("auth_token", null) ?: return
@@ -40,6 +48,36 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
                 _error.value = e.message
             }
         }
+    }
+    
+    fun searchLocation(query: String) {
+        if (query.length < 2) {
+            _searchResults.value = emptyList()
+            return
+        }
+        _isSearching.value = true
+        viewModelScope.launch {
+            try {
+                // Search within existing pins first
+                val localResults = _pins.value.filter { pin ->
+                    pin.name.contains(query, ignoreCase = true) ||
+                    pin.city?.contains(query, ignoreCase = true) == true
+                }
+                _searchResults.value = localResults
+            } catch (e: Exception) {
+                _searchResults.value = emptyList()
+            } finally {
+                _isSearching.value = false
+            }
+        }
+    }
+    
+    fun selectSearchResult(result: UserLocationPin) {
+        _selectedLocation.value = result
+    }
+    
+    fun clearSearchResults() {
+        _searchResults.value = emptyList()
     }
 }
 

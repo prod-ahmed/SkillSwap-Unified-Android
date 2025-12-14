@@ -48,17 +48,28 @@ import androidx.compose.material.icons.filled.Done
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 fun MapScreen(viewModel: MapViewModel = viewModel()) {
     val pins by viewModel.pins.collectAsState()
     val cities by viewModel.cities.collectAsState()
     val error by viewModel.error.collectAsState()
+    val searchResults by viewModel.searchResults.collectAsState()
+    val isSearching by viewModel.isSearching.collectAsState()
 
     LaunchedEffect(Unit) {
         viewModel.loadPins()
     }
     var selectedCity by remember { mutableStateOf<String?>(null) }
+    var searchQuery by remember { mutableStateOf("") }
 
     if (BuildConfig.MAPS_API_KEY.isBlank()) {
         Box(
@@ -97,6 +108,63 @@ fun MapScreen(viewModel: MapViewModel = viewModel()) {
                 modifier = Modifier.padding(12.dp),
                 style = MaterialTheme.typography.bodyMedium
             )
+        }
+        
+        // Search Field
+        Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { 
+                    searchQuery = it
+                    viewModel.searchLocation(it)
+                },
+                placeholder = { Text("Rechercher une adresse...") },
+                modifier = Modifier.fillMaxWidth(),
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                trailingIcon = {
+                    if (isSearching) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                    }
+                },
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp)
+            )
+            
+            // Search Results Dropdown
+            if (searchResults.isNotEmpty()) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 56.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(4.dp)
+                ) {
+                    Column {
+                        searchResults.take(5).forEach { result ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        searchQuery = result.name
+                                        viewModel.selectSearchResult(result)
+                                        viewModel.clearSearchResults()
+                                    }
+                                    .padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.Map, contentDescription = null, tint = Color.Gray)
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column {
+                                    Text(result.name, style = MaterialTheme.typography.bodyMedium)
+                                    result.city?.let {
+                                        Text(it, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
         
         // Filter Chips
