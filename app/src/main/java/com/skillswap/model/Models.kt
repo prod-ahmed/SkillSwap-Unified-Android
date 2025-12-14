@@ -499,6 +499,7 @@ data class CreateAnnonceRequest(
     val title: String,
     val description: String,
     val city: String?,
+    val category: String? = null,
     val price: Double? = null,
     val imageUrl: String? = null
 )
@@ -507,6 +508,7 @@ data class UpdateAnnonceRequest(
     val title: String? = null,
     val description: String? = null,
     val city: String? = null,
+    val category: String? = null,
     val price: Double? = null,
     val imageUrl: String? = null
 )

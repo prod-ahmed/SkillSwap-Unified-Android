@@ -63,6 +63,7 @@ import android.content.Context
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.collectAsState
 
+import androidx.compose.runtime.LaunchedEffect
 import com.skillswap.network.ChatSocketClient
 
 sealed class Screen(val route: String, val title: String, val icon: String) {
@@ -83,6 +84,7 @@ sealed class Screen(val route: String, val title: String, val icon: String) {
     object MyPromos : Screen("my_promos", "Mes Promos", "")
     object MyAnnonces : Screen("my_annonces", "Mes Annonces", "")
     object ReferralCodeGeneration : Screen("referral_code_generation", "Code Parrainage", "")
+    object ProfileEdit : Screen("profile_edit", "Modifier Profil", "")
 }
 
 @Composable
@@ -235,6 +237,12 @@ fun SkillSwapApp() {
                     
                     composable("settings") {
                         com.skillswap.ui.profile.SettingsScreen(navController)
+                    }
+                    
+                    composable(Screen.ProfileEdit.route) {
+                        com.skillswap.ui.profile.ProfileEditScreen(
+                            onBack = { navController.popBackStack() }
+                        )
                     }
                     
                     composable("rewards") {

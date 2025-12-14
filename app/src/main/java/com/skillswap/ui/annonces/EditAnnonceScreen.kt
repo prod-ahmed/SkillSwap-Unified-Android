@@ -103,6 +103,7 @@ fun EditAnnonceScreen(
                                     title = title,
                                     description = description,
                                     city = city.ifEmpty { null },
+                                    category = category.ifEmpty { null },
                                     media = mediaPayload
                                 )
                             },

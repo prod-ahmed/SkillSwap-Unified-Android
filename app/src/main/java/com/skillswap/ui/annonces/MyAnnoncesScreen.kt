@@ -131,8 +131,8 @@ fun MyAnnoncesScreenContent(
         AnnonceEditorDialog(
             initial = null,
             onDismiss = { showCreate = false },
-            onSave = { title, desc, city, image ->
-                viewModel.createAnnonce(title, desc, city, image)
+            onSave = { title, desc, city, category, image ->
+                viewModel.createAnnonce(title, desc, city, category, image)
                 if (!uploading) showCreate = false
             }
         )
@@ -141,8 +141,8 @@ fun MyAnnoncesScreenContent(
         AnnonceEditorDialog(
             initial = annonce,
             onDismiss = { editingAnnonce = null },
-            onSave = { title, desc, city, image ->
-                viewModel.updateAnnonce(annonce.id, title, desc, city, image)
+            onSave = { title, desc, city, category, image ->
+                viewModel.updateAnnonce(annonce.id, title, desc, city, category, image)
                 if (!uploading) editingAnnonce = null
             }
         )
@@ -243,11 +243,12 @@ private fun EmptyAnnoncesState(onRefresh: () -> Unit, modifier: Modifier = Modif
 fun AnnonceEditorDialog(
     initial: Annonce?,
     onDismiss: () -> Unit,
-    onSave: (String, String, String?, MediaPayload?) -> Unit
+    onSave: (String, String, String?, String?, MediaPayload?) -> Unit
 ) {
     var title by remember { mutableStateOf(initial?.title.orEmpty()) }
     var description by remember { mutableStateOf(initial?.description.orEmpty()) }
     var city by remember { mutableStateOf(initial?.city ?: "") }
+    var category by remember { mutableStateOf(initial?.category ?: "") }
     var selectedImage by remember { mutableStateOf<MediaPayload?>(null) }
     var previewUri by remember { mutableStateOf<Uri?>(null) }
     var imageError by remember { mutableStateOf<String?>(null) }
@@ -280,6 +281,7 @@ fun AnnonceEditorDialog(
                     title,
                     description,
                     city.ifBlank { null },
+                    category.ifBlank { null },
                     selectedImage
                 )
             }, enabled = canSave) { Text("Enregistrer") }
@@ -291,6 +293,7 @@ fun AnnonceEditorDialog(
                 OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Titre") })
                 OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Description") })
                 OutlinedTextField(value = city, onValueChange = { city = it }, label = { Text("Ville") })
+                OutlinedTextField(value = category, onValueChange = { category = it }, label = { Text("Catégorie") })
                 if (previewUri != null || initial?.imageUrl != null) {
                     AsyncImage(
                         model = previewUri ?: initial?.imageUrl,

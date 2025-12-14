@@ -59,6 +59,7 @@ class AnnoncesViewModel(application: Application) : AndroidViewModel(application
         title: String,
         description: String,
         city: String?,
+        category: String? = null,
         media: MediaPayload? = null
     ) {
         val token = sharedPreferences.getString("auth_token", null) ?: return
@@ -76,6 +77,7 @@ class AnnoncesViewModel(application: Application) : AndroidViewModel(application
                         title = title,
                         description = description,
                         city = city,
+                        category = category,
                         imageUrl = null
                     )
                 )
@@ -97,6 +99,7 @@ class AnnoncesViewModel(application: Application) : AndroidViewModel(application
         title: String,
         description: String,
         city: String?,
+        category: String? = null,
         media: MediaPayload? = null
     ) {
         val token = sharedPreferences.getString("auth_token", null) ?: return
@@ -115,6 +118,7 @@ class AnnoncesViewModel(application: Application) : AndroidViewModel(application
                         title = title,
                         description = description,
                         city = city,
+                        category = category,
                         imageUrl = null
                     )
                 )

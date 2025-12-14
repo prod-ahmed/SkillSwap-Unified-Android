@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -38,6 +39,35 @@ fun SettingsScreen(navController: NavController) {
         mutableStateOf(sharedPrefs.getBoolean("notifications_enabled", true)) 
     }
     var showLanguagePicker by remember { mutableStateOf(false) }
+    var showLogoutDialog by remember { mutableStateOf(false) }
+    
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = { Text("Déconnexion") },
+            text = { Text("Êtes-vous sûr de vouloir vous déconnecter ?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showLogoutDialog = false
+                        // Clear session
+                        sharedPrefs.edit().clear().apply()
+                        // Navigate to Auth
+                        navController.navigate("auth") {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                ) {
+                    Text("Déconnexion", color = Color.Red)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLogoutDialog = false }) {
+                    Text("Annuler")
+                }
+            }
+        )
+    }
     
     Scaffold(
         topBar = {
@@ -74,6 +104,12 @@ fun SettingsScreen(navController: NavController) {
                         else -> "English"
                     },
                     onClick = { showLanguagePicker = true }
+                )
+                SettingsItem(
+                    icon = Icons.Default.ExitToApp,
+                    title = "Déconnexion",
+                    subtitle = "Se déconnecter du compte",
+                    onClick = { showLogoutDialog = true }
                 )
             }
             

@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.CardGiftcard
 import androidx.compose.material.icons.automirrored.filled.Label
 import androidx.compose.material.icons.filled.Campaign
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Circle
 import androidx.compose.material.icons.filled.Notifications
@@ -45,6 +46,8 @@ import com.skillswap.ui.theme.OrangePrimary
 import com.skillswap.viewmodel.ProfileViewModel
 
 import androidx.navigation.NavController
+
+import com.skillswap.Screen
 
 @Composable
 @OptIn(ExperimentalLayoutApi::class)
@@ -184,6 +187,10 @@ fun ProfileScreen(
 
                 ProfileActionButton("gearshape.fill", "Paramètres", Color.Gray) {
                     navController.navigate("settings")
+                }
+                
+                ProfileActionButton("pencil", "Modifier le profil", Color.Blue) {
+                    navController.navigate(Screen.ProfileEdit.route)
                 }
                 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -349,6 +356,7 @@ fun ProfileActionButton(
                     "bell.fill" -> androidx.compose.material.icons.Icons.Default.Notifications
                     "shield" -> androidx.compose.material.icons.Icons.Default.Shield
                     "gearshape.fill" -> androidx.compose.material.icons.Icons.Default.Settings
+                    "pencil" -> androidx.compose.material.icons.Icons.Default.Edit
                     else -> androidx.compose.material.icons.Icons.Default.Circle
                 }
                 Icon(imageVector, contentDescription = "Action profil", tint = iconColor, modifier = Modifier.size(18.dp))

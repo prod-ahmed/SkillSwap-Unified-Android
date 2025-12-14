@@ -1,5 +1,6 @@
 package com.skillswap.data
 
+import com.skillswap.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -73,6 +74,10 @@ class QuizService {
     }
     
     suspend fun generateQuiz(subject: String, level: Int): List<QuizQuestion> = withContext(Dispatchers.IO) {
+        if (apiKey.isBlank()) {
+            throw Exception("OpenAI API Key is missing. Please add SKILLSWAP_OPENAI_API_KEY to your .env file.")
+        }
+
         val prompt = """
             Generate a quiz about "$subject" for level $level (where 1 is beginner and 10 is expert).
             Create 5 multiple choice questions.

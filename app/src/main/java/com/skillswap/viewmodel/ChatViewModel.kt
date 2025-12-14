@@ -127,6 +127,10 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
     
+    fun loadMessagesForThread(threadId: String) {
+        loadMessages(threadId)
+    }
+
     fun loadMessages(conversationId: String) {
         activeThreadId = conversationId
         val header = authHeader()

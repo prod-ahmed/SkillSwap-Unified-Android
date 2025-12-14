@@ -307,42 +307,4 @@ class CallViewModel(application: Application) : AndroidViewModel(application), W
             _remoteVideoTrack.value = null
         }
     }
-    
-    // Add missing methods for VideoCallScreen
-    private val _callState = MutableStateFlow("idle")
-    val callState: StateFlow<String> = _callState.asStateFlow()
-    
-    fun setupRemoteRenderer(renderer: org.webrtc.SurfaceViewRenderer) {
-        rtcClient.setupRemoteRenderer(renderer)
-    }
-    
-    fun setupLocalRenderer(renderer: org.webrtc.SurfaceViewRenderer) {
-        rtcClient.setupLocalRenderer(renderer)
-    }
-    
-    fun initializeCall(sessionId: String) {
-        _callState.value = "connecting"
-        viewModelScope.launch {
-            try {
-                rtcClient.initializePeerConnection()
-                _callState.value = "connected"
-            } catch (e: Exception) {
-                _callState.value = "error"
-            }
-        }
-    }
-    
-    fun toggleMute(mute: Boolean) {
-        _state.value = _state.value.copy(muted = mute)
-        rtcClient.toggleAudio(!mute)
-    }
-    
-    fun toggleCamera(enable: Boolean) {
-        _state.value = _state.value.copy(videoEnabled = enable)
-        rtcClient.toggleVideo(enable)
-    }
-    
-    fun toggleSpeaker(enable: Boolean) {
-        _state.value = _state.value.copy(speakerOn = enable)
-    }
 }
