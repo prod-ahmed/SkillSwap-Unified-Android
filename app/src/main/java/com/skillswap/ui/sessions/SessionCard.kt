@@ -241,7 +241,7 @@ fun SessionCard(
                     if (session.status == "completed") {
                         TextButton(
                             onClick = onRate,
-                            modifier = Modifier.weight(1f)
+                            modifier = if (isCreator && session.status == "upcoming") Modifier.weight(1f) else Modifier.fillMaxWidth()
                         ) {
                             Icon(Icons.Default.Star, null, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(4.dp))
@@ -252,7 +252,7 @@ fun SessionCard(
                     if (isCreator && session.status == "upcoming") {
                         TextButton(
                             onClick = onShowPlan,
-                            modifier = Modifier.weight(1f),
+                            modifier = if (session.status == "completed") Modifier.weight(1f) else Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFFF9800))
                         ) {
                             Icon(Icons.Default.Description, null, modifier = Modifier.size(16.dp))
