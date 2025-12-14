@@ -422,6 +422,25 @@ fun SkillSwapApp() {
                     composable(Screen.MyAnnonces.route) {
                         MyAnnoncesScreenContent(navController = navController)
                     }
+                    
+                    composable(
+                        route = "promo_detail/{promoId}",
+                        arguments = listOf(navArgument("promoId") { type = NavType.StringType })
+                    ) { backStackEntry ->
+                        val promoId = backStackEntry.arguments?.getString("promoId") ?: return@composable
+                        // Load promo and show detail screen
+                        // For now, we need to pass the promo object - this is a placeholder
+                        // In production, you'd fetch the promo by ID from the viewModel
+                    }
+                    
+                    composable(
+                        route = "annonce_detail/{annonceId}",
+                        arguments = listOf(navArgument("annonceId") { type = NavType.StringType })
+                    ) { backStackEntry ->
+                        val annonceId = backStackEntry.arguments?.getString("annonceId") ?: return@composable
+                        // Load annonce and show detail screen
+                        // Similar to promo detail
+                    }
                 }
 
                 // Custom Floating Bottom Bar

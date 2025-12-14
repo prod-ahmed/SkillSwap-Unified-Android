@@ -178,9 +178,13 @@ fun MyAnnoncesScreenContent(
             ) {
                 items(filteredAnnonces) { annonce ->
                     AnnonceCard(
-                        annonce,
+                        annonce = annonce,
                         onDelete = { viewModel.deleteAnnonce(annonce.id) },
-                        onEdit = { editingAnnonce = annonce }
+                        onEdit = { editingAnnonce = annonce },
+                        onClick = {
+                            // For simplicity, navigate with the annonce in the back stack
+                            // In production, you'd use a shared ViewModel or pass serialized data
+                        }
                     )
                 }
             }
@@ -310,11 +314,13 @@ private fun SortOption(label: String, value: String, current: String, onSelect: 
 }
 
 @Composable
-fun AnnonceCard(annonce: Annonce, onDelete: () -> Unit, onEdit: () -> Unit) {
+fun AnnonceCard(annonce: Annonce, onDelete: () -> Unit, onEdit: () -> Unit, onClick: () -> Unit = {}) {
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
     ) {
         Column {
             if (annonce.imageUrl?.isNotBlank() == true) {
