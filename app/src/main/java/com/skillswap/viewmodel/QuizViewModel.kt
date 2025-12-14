@@ -154,7 +154,7 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
                 
                 // Parse the AI response (it should be JSON)
                 val questions = try {
-                    quizService.parseQuizResponse(aiResponse)
+                    parseQuizQuestionsFromJson(aiResponse)
                 } catch (e: Exception) {
                     // Fallback to existing service if parsing fails
                     quizService.generateQuiz(subject, level)
@@ -171,6 +171,35 @@ class QuizViewModel(application: Application) : AndroidViewModel(application) {
             } finally {
                 _isGenerating.value = false
             }
+        }
+    }
+    
+    private fun parseQuizQuestionsFromJson(jsonResponse: String): List<QuizQuestion> {
+        return try {
+            // Try to parse as JSON array
+            val jsonArray = org.json.JSONArray(jsonResponse)
+            val questions = mutableListOf<QuizQuestion>()
+            
+            for (i in 0 until jsonArray.length()) {
+                val obj = jsonArray.getJSONObject(i)
+                val optionsArray = obj.getJSONArray("options")
+                val options = mutableListOf<String>()
+                for (j in 0 until optionsArray.length()) {
+                    options.add(optionsArray.getString(j))
+                }
+                
+                questions.add(
+                    QuizQuestion(
+                        question = obj.getString("question"),
+                        options = options,
+                        correctAnswerIndex = obj.getInt("correctAnswer"),
+                        explanation = obj.optString("explanation", "")
+                    )
+                )
+            }
+            questions
+        } catch (e: Exception) {
+            throw Exception("Failed to parse quiz questions: ${e.message}")
         }
     }
     
