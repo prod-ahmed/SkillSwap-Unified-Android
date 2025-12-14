@@ -58,7 +58,7 @@ private data class OpenAIResponse(
 
 class QuizService {
     // ⚠️ PUT YOUR OPENAI API KEY HERE
-    private val apiKey = "REDACTED"
+    private val apiKey = BuildConfig.OPENAI_API_KEY
     
     private val baseURL = "https://api.openai.com/v1/chat/completions"
     

@@ -111,7 +111,7 @@ fun ProfileScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "${user?.username ?: "Utilisateur"}, 24",
+                text = user?.username ?: "Utilisateur",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
@@ -119,11 +119,11 @@ fun ProfileScreen(
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
                 Icon(Icons.Default.LocationOn, contentDescription = "Localisation", tint = Color.Gray, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(4.dp))
-                Text("Tunis", color = Color.Gray)
+                Text(user?.location?.city ?: "Localisation inconnue", color = Color.Gray)
             }
             
             Text(
-                "Passionnée de design graphique et photographie",
+                user?.bio ?: "Aucune bio renseignée",
                 color = Color.Gray,
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(top = 8.dp)
@@ -210,9 +210,13 @@ fun ProfileScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    TagChip("Photoshop", OrangePrimary)
-                    TagChip("Illustrator", OrangePrimary)
-                    TagChip("UI Design", OrangePrimary)
+                    if (user?.skillsTeach.isNullOrEmpty()) {
+                        Text("Aucune compétence", color = Color.Gray, style = MaterialTheme.typography.bodyMedium)
+                    } else {
+                        user?.skillsTeach?.forEach { skill ->
+                            TagChip(skill, OrangePrimary)
+                        }
+                    }
                 }
             }
             
@@ -223,8 +227,13 @@ fun ProfileScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    TagChip("Guitare", Color(0xFF008080)) // Teal
-                    TagChip("Arabe Dialectal", Color(0xFF008080))
+                    if (user?.skillsLearn.isNullOrEmpty()) {
+                        Text("Aucune compétence", color = Color.Gray, style = MaterialTheme.typography.bodyMedium)
+                    } else {
+                        user?.skillsLearn?.forEach { skill ->
+                            TagChip(skill, Color(0xFF008080))
+                        }
+                    }
                 }
             }
             

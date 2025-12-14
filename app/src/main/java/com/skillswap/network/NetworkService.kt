@@ -32,6 +32,9 @@ interface SkillSwapApi {
     @POST("/users/forgot-password")
     suspend fun forgotPassword(@Body body: ForgotPasswordRequest): ForgotPasswordResponse
 
+    @POST("/users/referrals/validate")
+    suspend fun validateReferral(@Body body: Map<String, String>): ReferralPreview
+
     @GET("/users/me")
     suspend fun getMe(@Header("Authorization") token: String): User
     @PATCH("/users/me")

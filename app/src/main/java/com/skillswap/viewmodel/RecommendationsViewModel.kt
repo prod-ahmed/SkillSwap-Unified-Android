@@ -32,6 +32,8 @@ class RecommendationsViewModel(application: Application) : AndroidViewModel(appl
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
     
+    private val locationManager = com.skillswap.services.LocationManager.getInstance(application)
+
     init {
         loadCurrentUser()
     }
@@ -61,9 +63,14 @@ class RecommendationsViewModel(application: Application) : AndroidViewModel(appl
                     return@launch
                 }
                 
+                // Get current location for map centering
+                val location = locationManager.getCurrentLocation()
+                val baseLat = location?.latitude ?: 36.8065
+                val baseLng = location?.longitude ?: 10.1815
+                
                 val response = api.getSessionRecommendations("Bearer $token")
                 _recommendations.value = response.data
-                generateCoordinates(response.data)
+                generateCoordinates(response.data, baseLat, baseLng)
             } catch (e: Exception) {
                 _error.value = e.message ?: "Failed to load recommendations"
                 _recommendations.value = emptyList()
@@ -77,13 +84,11 @@ class RecommendationsViewModel(application: Application) : AndroidViewModel(appl
         loadRecommendations()
     }
 
-    private fun generateCoordinates(items: List<Recommendation>) {
-        val baseLat = 36.8065
-        val baseLng = 10.1815
+    private fun generateCoordinates(items: List<Recommendation>, baseLat: Double, baseLng: Double) {
         val coords = mutableMapOf<String, LatLng>()
         
         items.forEachIndexed { index, item ->
-            // Simple offset logic to scatter them around Tunis
+            // Simple offset logic to scatter them around user location
             val angle = (index * (2 * Math.PI / items.size.coerceAtLeast(1)))
             val radius = 0.02 + (index % 3) * 0.01 // roughly 2-5km
             

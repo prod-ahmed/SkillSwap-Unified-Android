@@ -111,11 +111,10 @@ class CallManager private constructor(private val context: Context) : WebRTCClie
     
     fun startCall(recipientId: String, recipientName: String, isVideo: Boolean = false) {
         if (isCallActive) return
-        
+
         if (!socketService.isConnected) {
-            Log.e(tag, "Cannot start call: socket not connected")
-            callStatus = "Connection Error"
-            return
+            Log.w(tag, "Socket not connected, attempting to connect before starting call")
+            socketService.connect()
         }
         
         Log.d(tag, "Starting call to $recipientName (video: $isVideo)")

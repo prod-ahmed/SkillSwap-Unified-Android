@@ -18,12 +18,14 @@ import kotlinx.coroutines.delay
 import java.util.UUID
 import com.skillswap.network.ChatSocketClient
 import kotlinx.coroutines.flow.collectLatest
+import org.json.JSONObject
 
 class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private val sharedPreferences = application.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
     private val socketClient = ChatSocketClient(
         context = application.applicationContext,
-        userIdProvider = { sharedPreferences.getString("user_id", null) }
+        userIdProvider = { sharedPreferences.getString("user_id", null) },
+        tokenProvider = { sharedPreferences.getString("auth_token", null) }
     )
 
     private val _conversations = MutableStateFlow<List<Conversation>>(emptyList())
@@ -251,6 +253,29 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
             }
+            launch {
+                socketClient.messageReactions.collectLatest { reaction ->
+                    val msgId = reaction["messageId"] as? String ?: return@collectLatest
+                    val reactionsJson = reaction["reactions"] as? String ?: return@collectLatest
+                    val reactions = parseReactions(reactionsJson)
+                    val updated = _messages.value.map { m ->
+                        if (m.id == msgId) {
+                            m.copy(reactions = reactions)
+                        } else m
+                    }
+                    _messages.value = updated
+                }
+            }
+            launch {
+                socketClient.messageDeletions.collectLatest { deletedId ->
+                    val updated = _messages.value.map { m ->
+                        if (m.id == deletedId) {
+                            m.copy(text = "🚫 Message supprimé", isDeleted = true)
+                        } else m
+                    }
+                    _messages.value = updated
+                }
+            }
         }
     }
 
@@ -306,7 +331,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             text = content,
             isMe = senderId == meId,
             time = createdAt,
-            read = read || senderId == meId
+            read = read || senderId == meId,
+            reactions = reactions,
+            isDeleted = isDeleted == true
         )
     }
 
@@ -321,6 +348,16 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             timestamp = thread.lastMessageAt ?: "",
             unreadCount = thread.unreadCount
         )
+    }
+
+    private fun parseReactions(json: String): Map<String, List<String>> {
+        return runCatching {
+            val obj = JSONObject(json)
+            obj.keys().asSequence().associateWith { key ->
+                val arr = obj.optJSONArray(key)
+                List(arr?.length() ?: 0) { idx -> arr?.optString(idx).orEmpty() }.filter { it.isNotBlank() }
+            }.filterValues { it.isNotEmpty() }
+        }.getOrDefault(emptyMap())
     }
     
     // ============ PHASE 12: Chat Enhancements ============

@@ -44,7 +44,8 @@ class CallViewModel(application: Application) : AndroidViewModel(application), W
     private val rtcClient = WebRtcClient(application.applicationContext, this)
     private val socketClient = ChatSocketClient(
         context = application.applicationContext,
-        userIdProvider = { application.getSharedPreferences("SkillSwapPrefs", android.content.Context.MODE_PRIVATE).getString("user_id", null) }
+        userIdProvider = { application.getSharedPreferences("SkillSwapPrefs", android.content.Context.MODE_PRIVATE).getString("user_id", null) },
+        tokenProvider = { application.getSharedPreferences("SkillSwapPrefs", android.content.Context.MODE_PRIVATE).getString("auth_token", null) }
     )
     private val notificationManager by lazy { LocalNotificationManager.getInstance(application) }
     private var threadId: String? = null

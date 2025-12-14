@@ -590,11 +590,11 @@ fun MapViewPlaceholder(
             }
         }
         
-        if (hasApiKey) {
-            GoogleMap(
-                modifier = Modifier.fillMaxSize(),
-                cameraPositionState = cameraPositionState
-            ) {
+    if (hasApiKey) {
+        GoogleMap(
+            modifier = Modifier.fillMaxSize(),
+            cameraPositionState = cameraPositionState
+        ) {
                 Marker(
                     state = MarkerState(position = tunis),
                     title = "Tunis",
@@ -612,35 +612,43 @@ fun MapViewPlaceholder(
                     }
                 }
             }
-        } else {
-            // Map placeholder
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color(0xFFE8F5E9)),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        Icons.Default.Map,
-                        contentDescription = null,
-                        modifier = Modifier.size(80.dp),
-                        tint = OrangePrimary.copy(alpha = 0.5f)
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        "Vue carte non disponible",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = OrangePrimary
-                    )
-                    Text(
-                        "Clé Google Maps manquante (MAPS_API_KEY)",
-                        fontSize = 14.sp,
-                        color = Color.Gray
-                    )
-                }
+    } else {
+        // Map placeholder with guidance to set the key
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFFE8F5E9)),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(
+                    Icons.Default.Map,
+                    contentDescription = null,
+                    modifier = Modifier.size(80.dp),
+                    tint = OrangePrimary.copy(alpha = 0.5f)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    "Vue carte non disponible",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = OrangePrimary
+                )
+                Text(
+                    "Ajoutez SKILLSWAP_MAPS_API_KEY dans .env ou BuildConfig",
+                    fontSize = 14.sp,
+                    color = Color.Gray,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 24.dp)
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    "Sinon, utilisez la vue liste pour les recommandations.",
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
             }
         }
     }
+}
 }

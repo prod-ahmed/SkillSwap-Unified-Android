@@ -26,12 +26,22 @@ import com.skillswap.ui.theme.OrangePrimary
 import com.skillswap.ui.theme.OrangeGradientStart
 import com.skillswap.ui.theme.OrangeGradientEnd
 
+import com.skillswap.viewmodel.RewardsViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RewardsScreen(navController: NavController) {
-    var totalPoints by remember { mutableIntStateOf(1250) }
-    var level by remember { mutableIntStateOf(5) }
-    var referralsCount by remember { mutableIntStateOf(8) }
+fun RewardsScreen(navController: NavController, viewModel: RewardsViewModel = viewModel()) {
+    LaunchedEffect(Unit) {
+        viewModel.loadRewards()
+    }
+    
+    val user by viewModel.user.collectAsState()
+    val referralsData by viewModel.referralsData.collectAsState()
+    
+    val totalPoints = user?.xp ?: 0
+    val level = (totalPoints / 500) + 1
+    val referralsCount = referralsData?.inviterReferrals?.size ?: 0
     
     Scaffold(
         topBar = {
@@ -133,7 +143,7 @@ fun RewardsScreen(navController: NavController) {
                 RewardStatCard(
                     icon = Icons.Default.Star,
                     title = "Sessions",
-                    value = "24",
+                    value = "${user?.credits ?: 0}", // Using credits as proxy for now
                     modifier = Modifier.weight(1f)
                 )
             }

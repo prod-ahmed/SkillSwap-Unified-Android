@@ -1,148 +1,123 @@
 package com.skillswap.services
 
 import android.content.Context
-import android.content.SharedPreferences
 import android.util.Log
 import com.skillswap.BuildConfig
 import io.socket.client.IO
 import io.socket.client.Socket
 import org.json.JSONObject
-import java.net.URISyntaxException
 
 class SocketService private constructor(private val context: Context) {
-    
+
     companion object {
         @Volatile
         private var instance: SocketService? = null
-        
+
         fun getInstance(context: Context): SocketService {
             return instance ?: synchronized(this) {
                 instance ?: SocketService(context.applicationContext).also { instance = it }
             }
         }
     }
-    
+
     private val tag = "SocketService"
+    private val prefs = context.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
+
     private var socket: Socket? = null
-    private val sharedPreferences: SharedPreferences = 
-        context.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
-    
-    init {
-        try {
-            val opts = IO.Options().apply {
-                reconnection = true
-                reconnectionAttempts = Int.MAX_VALUE
-                reconnectionDelay = 1000
-                reconnectionDelayMax = 5000
-                timeout = 10000
-            }
-            
-            val baseUrl = BuildConfig.API_BASE_URL.replace("/api", "")
-            socket = IO.socket("$baseUrl/calling", opts)
-            
-            socket?.on(Socket.EVENT_CONNECT) {
-                Log.d(tag, "Socket connected to /calling namespace")
-                isConnected = true
-                authenticateSocket()
-            }
-            
-            socket?.on(Socket.EVENT_DISCONNECT) {
-                Log.d(tag, "Socket disconnected")
-                isConnected = false
-            }
-            
-            socket?.on(Socket.EVENT_CONNECT_ERROR) { args ->
-                Log.e(tag, "Socket connection error: ${args.joinToString()}")
-                isConnected = false
-            }
-            
-        } catch (e: URISyntaxException) {
-            Log.e(tag, "Socket URI error", e)
-        }
+    private var hasListeners = false
+
+    private val incomingCallListeners = mutableListOf<(Any) -> Unit>()
+    private val callRingingListeners = mutableListOf<(Any) -> Unit>()
+    private val callAnsweredListeners = mutableListOf<(Any) -> Unit>()
+    private val iceCandidateListeners = mutableListOf<(Any) -> Unit>()
+    private val callEndedListeners = mutableListOf<() -> Unit>()
+    private val callRejectedListeners = mutableListOf<() -> Unit>()
+    private val callBusyListeners = mutableListOf<() -> Unit>()
+    private val callErrorListeners = mutableListOf<(Any) -> Unit>()
+
+    var isConnected: Boolean = false
+        private set
+
+    private fun normalizedBaseUrl(): String? {
+        val raw = BuildConfig.API_BASE_URL.trim()
+        if (raw.isEmpty()) return null
+        return if (raw.startsWith("http")) raw else "https://$raw"
     }
-    
-    private fun authenticateSocket() {
-        val userId = sharedPreferences.getString("user_id", null)
-        val authToken = sharedPreferences.getString("auth_token", null)
-        
-        if (userId != null && authToken != null) {
-            val authData = JSONObject().apply {
-                put("userId", userId)
-                put("token", authToken)
+
+    private fun buildSocket(): Socket? {
+        val userId = prefs.getString("user_id", null) ?: return null
+        val token = prefs.getString("auth_token", null)
+        val baseUrl = normalizedBaseUrl() ?: return null
+
+        val opts = IO.Options.builder()
+            .setReconnection(true)
+            .setReconnectionAttempts(Int.MAX_VALUE)
+            .setReconnectionDelay(1000)
+            .setReconnectionDelayMax(8000)
+            .setForceNew(true)
+            .setQuery("userId=$userId")
+            .apply {
+                token?.let {
+                    setExtraHeaders(mapOf("Authorization" to listOf("Bearer $it")))
+                }
             }
-            socket?.emit("authenticate", authData)
-            Log.d(tag, "Sent authentication with userId: $userId")
-        } else {
-            Log.w(tag, "Missing userId or authToken for socket authentication")
-        }
+            .build()
+
+        val callUrl = if (baseUrl.endsWith("/")) "${baseUrl}calling" else "$baseUrl/calling"
+        return runCatching { IO.socket(callUrl, opts) }
+            .onFailure { Log.e(tag, "Failed to create socket: ${it.message}") }
+            .getOrNull()
     }
-    
-    fun on(event: String, callback: (Array<Any>) -> Unit) {
-        socket?.on(event) { args ->
-            Log.d(tag, "Socket event received: $event")
-            callback(args)
-        }
-    }
-    
+
     fun onCallError(callback: (Any) -> Unit) {
-        on("call:error") { args ->
-            if (args.isNotEmpty()) callback(args[0])
-        }
+        callErrorListeners += callback
     }
-    
+
     fun onIceCandidate(callback: (Any) -> Unit) {
-        on("ice-candidate") { args ->
-            if (args.isNotEmpty()) callback(args[0])
-        }
+        iceCandidateListeners += callback
     }
-    
+
     fun onCallEnded(callback: () -> Unit) {
-        on("call:ended") { callback() }
+        callEndedListeners += callback
     }
-    
+
     fun onCallRejected(callback: () -> Unit) {
-        on("call:rejected") { callback() }
+        callRejectedListeners += callback
     }
-    
+
     fun onCallBusy(callback: () -> Unit) {
-        on("call:busy") { callback() }
+        callBusyListeners += callback
     }
-    
+
     fun onIncomingCall(callback: (Any) -> Unit) {
-        on("call:incoming") { args ->
-            if (args.isNotEmpty()) callback(args[0])
-        }
+        incomingCallListeners += callback
     }
-    
+
     fun onCallRinging(callback: (Any) -> Unit) {
-        on("call:ringing") { args ->
-            if (args.isNotEmpty()) callback(args[0])
-        }
+        callRingingListeners += callback
     }
-    
+
     fun onCallAnswered(callback: (Any) -> Unit) {
-        on("call:answered") { args ->
-            if (args.isNotEmpty()) callback(args[0])
-        }
+        callAnsweredListeners += callback
     }
-    
+
     fun emit(event: String, vararg args: Any?) {
-        if (socket?.connected() == true) {
-            socket?.emit(event, *args)
-            Log.d(tag, "Socket emit: $event")
-        } else {
+        if (socket?.connected() != true) {
             Log.w(tag, "Cannot emit $event - socket not connected")
+            return
         }
+        socket?.emit(event, *args)
+        Log.d(tag, "Socket emit: $event")
     }
-    
+
     fun emitIceCandidate(callId: String, candidateData: Any) {
         val data = JSONObject().apply {
             put("callId", callId)
             put("candidate", candidateData)
         }
-        emit("ice-candidate", data)
+        emit("call:ice-candidate", data)
     }
-    
+
     fun emitCallAnswer(callId: String, answer: String) {
         val data = JSONObject().apply {
             put("callId", callId)
@@ -150,28 +125,28 @@ class SocketService private constructor(private val context: Context) {
         }
         emit("call:answer", data)
     }
-    
+
     fun emitCallEnd(callId: String) {
         val data = JSONObject().apply {
             put("callId", callId)
         }
         emit("call:end", data)
     }
-    
+
     fun emitCallReject(callId: String) {
         val data = JSONObject().apply {
             put("callId", callId)
         }
         emit("call:reject", data)
     }
-    
+
     fun emitCallBusy(callId: String) {
         val data = JSONObject().apply {
             put("callId", callId)
         }
         emit("call:busy", data)
     }
-    
+
     fun emitCallOffer(recipientId: String, sdp: String, isVideo: Boolean) {
         val data = JSONObject().apply {
             put("recipientId", recipientId)
@@ -180,20 +155,91 @@ class SocketService private constructor(private val context: Context) {
         }
         emit("call:offer", data)
     }
-    
-    var isConnected: Boolean = false
-        private set
-    
+
     fun connect() {
-        if (socket?.connected() == false) {
-            socket?.connect()
-            Log.d(tag, "Connecting socket...")
+        if (socket?.connected() == true) {
+            Log.d(tag, "Socket already connected")
+            return
         }
+
+        socket = buildSocket()
+        if (socket == null) {
+            Log.e(tag, "Socket not created (missing base URL or userId)")
+            return
+        }
+
+        registerListeners()
+        socket?.connect()
+        Log.d(tag, "Connecting socket...")
     }
-    
+
     fun disconnect() {
         socket?.disconnect()
         isConnected = false
+        hasListeners = false
+        socket = null
         Log.d(tag, "Socket disconnected")
+    }
+
+    private fun registerListeners() {
+        if (hasListeners) return
+        hasListeners = true
+
+        socket?.on(Socket.EVENT_CONNECT) {
+            isConnected = true
+            Log.d(tag, "Socket connected to /calling namespace")
+        }
+
+        socket?.on(Socket.EVENT_DISCONNECT) {
+            isConnected = false
+            Log.d(tag, "Socket disconnected from /calling namespace")
+        }
+
+        socket?.on(Socket.EVENT_CONNECT_ERROR) { args ->
+            isConnected = false
+            Log.e(tag, "Socket connection error: ${args.joinToString()}")
+        }
+
+        socket?.on("call:incoming") { args ->
+            args.firstOrNull()?.let { payload ->
+                incomingCallListeners.forEach { it(payload) }
+            }
+        }
+
+        socket?.on("call:ringing") { args ->
+            args.firstOrNull()?.let { payload ->
+                callRingingListeners.forEach { it(payload) }
+            }
+        }
+
+        socket?.on("call:answered") { args ->
+            args.firstOrNull()?.let { payload ->
+                callAnsweredListeners.forEach { it(payload) }
+            }
+        }
+
+        socket?.on("call:ice-candidate") { args ->
+            args.firstOrNull()?.let { payload ->
+                iceCandidateListeners.forEach { it(payload) }
+            }
+        }
+
+        socket?.on("call:ended") {
+            callEndedListeners.forEach { it() }
+        }
+
+        socket?.on("call:rejected") {
+            callRejectedListeners.forEach { it() }
+        }
+
+        socket?.on("call:busy") {
+            callBusyListeners.forEach { it() }
+        }
+
+        socket?.on("call:error") { args ->
+            args.firstOrNull()?.let { payload ->
+                callErrorListeners.forEach { it(payload) }
+            }
+        }
     }
 }

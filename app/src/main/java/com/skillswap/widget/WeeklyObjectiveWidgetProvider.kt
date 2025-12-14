@@ -21,7 +21,7 @@ class WeeklyObjectiveWidgetProvider : AppWidgetProvider() {
         val prefs = context.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
         val token = prefs.getString("auth_token", null)
         
-        if (token != null) {
+        if (token != null && !com.skillswap.util.TokenUtils.isTokenExpired(token)) {
             CoroutineScope(Dispatchers.IO).launch {
                 try {
                     val objective = NetworkService.api.getCurrentWeeklyObjective("Bearer $token")

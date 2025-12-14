@@ -138,20 +138,17 @@ fun LoginView(viewModel: AuthViewModel, onSuccess: () -> Unit) {
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-        // Google Sign-In Button
+        // Google Sign-In Button (disabled until backend endpoint is live)
         OutlinedButton(
-            onClick = {
-                val signInIntent = viewModel.googleSignInHelper.getSignInIntent()
-                googleSignInLauncher.launch(signInIntent)
-            },
+            onClick = { /* disabled until /auth/google is available */ },
             modifier = Modifier.fillMaxWidth().height(50.dp),
-            enabled = !isLoading
+            enabled = false
         ) {
             Row(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Se connecter avec Google")
+                Text("Se connecter avec Google (bientôt)")
             }
         }
 
@@ -182,6 +179,7 @@ fun RegisterView(viewModel: AuthViewModel, onSuccess: () -> Unit) {
     val email by viewModel.email.collectAsState()
     val password by viewModel.password.collectAsState()
     val referralCode by viewModel.referralCode.collectAsState()
+    val referralPreview by viewModel.referralPreview.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
 
@@ -227,8 +225,24 @@ fun RegisterView(viewModel: AuthViewModel, onSuccess: () -> Unit) {
             onValueChange = { viewModel.onReferralCodeChange(it) },
             label = { Text("Code de parrainage (optionnel)") },
             leadingIcon = { Icon(Icons.Default.Person, contentDescription = "Code de parrainage") },
+            trailingIcon = {
+                if (referralCode.isNotEmpty()) {
+                    TextButton(onClick = { viewModel.validateReferralCode() }) {
+                        Text("Vérifier")
+                    }
+                }
+            },
             modifier = Modifier.fillMaxWidth()
         )
+        
+        if (referralPreview != null) {
+            Text(
+                text = "Parrainé par ${referralPreview!!.username} ✅",
+                color = Color(0xFF1B5E20),
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(start = 8.dp)
+            )
+        }
 
         Button(
             onClick = { viewModel.register(onSuccess) },

@@ -2,6 +2,12 @@ package com.skillswap.model
 
 import com.google.gson.annotations.SerializedName
 
+data class ReferralPreview(
+    val username: String,
+    val badges: List<String>?,
+    val remainingSlots: Int
+)
+
 data class SignInResponse(
     val message: String? = null,
     @SerializedName("access_token") val accessToken: String?,
@@ -126,7 +132,9 @@ data class Message(
     val text: String,
     val isMe: Boolean,
     val time: String,
-    val read: Boolean = false
+    val read: Boolean = false,
+    val reactions: Map<String, List<String>>? = null,
+    val isDeleted: Boolean = false
 )
 
 data class ChatPayload(

@@ -7,11 +7,14 @@ import androidx.lifecycle.viewModelScope
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.skillswap.auth.GoogleSignInHelper
 import com.skillswap.model.ForgotPasswordRequest
+import com.skillswap.model.ReferralPreview
 import com.skillswap.network.NetworkService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import android.util.Base64
+import org.json.JSONObject
 
 class AuthViewModel(application: Application) : AndroidViewModel(application) {
     private val _email = MutableStateFlow("")
@@ -27,6 +30,9 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     private val _referralCode = MutableStateFlow("")
     val referralCode: StateFlow<String> = _referralCode.asStateFlow()
 
+    private val _referralPreview = MutableStateFlow<ReferralPreview?>(null)
+    val referralPreview: StateFlow<ReferralPreview?> = _referralPreview.asStateFlow()
+
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
     
@@ -39,7 +45,62 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     fun onEmailChange(newValue: String) { _email.value = newValue }
     fun onPasswordChange(newValue: String) { _password.value = newValue }
     fun onFullNameChange(newValue: String) { _fullName.value = newValue }
-    fun onReferralCodeChange(newValue: String) { _referralCode.value = newValue }
+    fun onReferralCodeChange(newValue: String) { 
+        _referralCode.value = newValue 
+        if (newValue.isBlank()) _referralPreview.value = null
+    }
+
+    fun validateReferralCode() {
+        val code = _referralCode.value
+        if (code.isBlank()) return
+        
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                val preview = NetworkService.api.validateReferral(mapOf("codeParainnage" to code))
+                _referralPreview.value = preview
+                _errorMessage.value = null // Clear error if valid
+            } catch (e: Exception) {
+                _referralPreview.value = null
+                _errorMessage.value = "Code de parrainage invalide"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun checkSession(onValid: () -> Unit, onInvalid: () -> Unit) {
+        val token = sharedPreferences.getString("auth_token", null)
+        if (token != null && !isTokenExpired(token)) {
+            onValid()
+        } else {
+            logout()
+            onInvalid()
+        }
+    }
+
+    private fun isTokenExpired(token: String): Boolean {
+        try {
+            val parts = token.split(".")
+            if (parts.size != 3) return true
+            val payload = String(Base64.decode(parts[1], Base64.URL_SAFE))
+            val json = JSONObject(payload)
+            val exp = json.optLong("exp")
+            if (exp == 0L) return false
+            return System.currentTimeMillis() / 1000 >= exp
+        } catch (e: Exception) {
+            return true
+        }
+    }
+
+    fun logout() {
+        sharedPreferences.edit().clear().apply()
+        _email.value = ""
+        _password.value = ""
+        _fullName.value = ""
+        _referralCode.value = ""
+        _referralPreview.value = null
+    }
 
     fun login(onSuccess: () -> Unit) {
         viewModelScope.launch {

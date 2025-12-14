@@ -21,6 +21,11 @@ class ChatSocketClient(
     private val context: Context,
     private val userIdProvider: () -> String?
 ) {
+    private val sharedPrefs by lazy {
+        context.getSharedPreferences("SkillSwapPrefs", Context.MODE_PRIVATE)
+    }
+
+    private fun authToken(): String? = sharedPrefs.getString("auth_token", null)
     private fun normalizedBaseUrl(): String? {
         val raw = BuildConfig.API_BASE_URL?.trim()
         if (raw.isNullOrBlank()) return null
@@ -53,6 +58,10 @@ class ChatSocketClient(
     val presence = _presence.asSharedFlow()
     private val _readReceipts = MutableSharedFlow<Map<String, Any>>(replay = 0, extraBufferCapacity = 16, onBufferOverflow = BufferOverflow.DROP_OLDEST)
     val readReceipts = _readReceipts.asSharedFlow()
+    private val _messageReactions = MutableSharedFlow<Map<String, Any>>(replay = 0, extraBufferCapacity = 16, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+    val messageReactions = _messageReactions.asSharedFlow()
+    private val _messageDeletions = MutableSharedFlow<String>(replay = 0, extraBufferCapacity = 16, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+    val messageDeletions = _messageDeletions.asSharedFlow()
 
     fun connect() {
         if (chatSocket?.connected() == true) return
@@ -116,11 +125,7 @@ class ChatSocketClient(
         val baseUrl = normalizedBaseUrl() ?: return
         
         // Get auth token from SharedPreferences
-        val sharedPrefs = context.getSharedPreferences(
-            "SkillSwapPrefs",
-            Context.MODE_PRIVATE
-        )
-        val authToken = sharedPrefs.getString("auth_token", null)
+        val authToken = authToken()
         
         val authMap = mutableMapOf<String, String>("userId" to userId)
         if (authToken != null) {
@@ -133,6 +138,9 @@ class ChatSocketClient(
             .setReconnectionAttempts(8)
             .setReconnectionDelay(1000)
             .setReconnectionDelayMax(8000)
+            .apply {
+                authToken?.let { setExtraHeaders(mapOf("Authorization" to listOf("Bearer $it"))) }
+            }
             .build()
         val chatUrl = if (baseUrl.endsWith("/")) "${baseUrl}chat" else "$baseUrl/chat"
         chatSocket = runCatching { IO.socket(chatUrl, opts) }.getOrNull()
@@ -186,17 +194,52 @@ class ChatSocketClient(
                 }
             }
         }
+        chatSocket?.on("message:reaction") { args ->
+            args.firstOrNull()?.let {
+                if (it is JSONObject) {
+                    val threadId = it.optString("threadId")
+                    val messageId = it.optString("messageId")
+                    val reactionsObj = it.optJSONObject("reactions") ?: JSONObject()
+                    _messageReactions.tryEmit(
+                        mapOf(
+                            "threadId" to threadId,
+                            "messageId" to messageId,
+                            "reactions" to reactionsObj.toString()
+                        )
+                    )
+                }
+            }
+        }
+        chatSocket?.on("message:deleted") { args ->
+            args.firstOrNull()?.let {
+                if (it is JSONObject) {
+                    val messageId = it.optString("messageId")
+                    if (messageId.isNotBlank()) {
+                        _messageDeletions.tryEmit(messageId)
+                    }
+                }
+            }
+        }
     }
 
     private fun buildCallSocket() {
         val userId = userIdProvider() ?: return
         val baseUrl = normalizedBaseUrl() ?: return
+        val token = authToken()
         val opts = IO.Options.builder()
-            .setAuth(mapOf("userId" to userId)) // backend expects userId
+            .setAuth(
+                mapOf(
+                    "userId" to userId,
+                    "token" to (token ?: "")
+                )
+            ) // backend expects userId (+ token if provided)
             .setReconnection(true)
             .setReconnectionAttempts(8)
             .setReconnectionDelay(1000)
             .setReconnectionDelayMax(8000)
+            .apply {
+                token?.let { setExtraHeaders(mapOf("Authorization" to listOf("Bearer $it"))) }
+            }
             .build()
         val callUrl = if (baseUrl.endsWith("/")) "${baseUrl}calling" else "$baseUrl/calling"
         callSocket = runCatching { IO.socket(callUrl, opts) }.getOrNull()
