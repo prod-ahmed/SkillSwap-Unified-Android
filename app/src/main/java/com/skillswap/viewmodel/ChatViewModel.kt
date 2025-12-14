@@ -200,7 +200,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         }.getOrElse { false }
     }
     
-    fun sendMessage(text: String) {
+    fun sendMessage(text: String, replyTo: com.skillswap.model.ThreadMessage? = null) {
         val threadId = activeThreadId
         val header = authHeader()
         val me = currentUserId()
@@ -211,10 +211,20 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch {
             try {
+                val payload = mutableMapOf<String, String>(
+                    "content" to text,
+                    "type" to "text"
+                )
+                
+                // Add replyTo if present
+                replyTo?.let {
+                    payload["replyTo"] = it.id
+                }
+                
                 val remote = NetworkService.api.sendMessage(
                     header,
                     threadId,
-                    mapOf("content" to text, "type" to "text")
+                    payload
                 )
                 _messages.value = _messages.value + remote.toUiMessage(me)
             } catch (e: Exception) {

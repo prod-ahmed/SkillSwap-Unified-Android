@@ -96,6 +96,7 @@ fun ChatScreen(
     val chatError by viewModel.error.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     var inputText by remember { mutableStateOf("") }
+    var replyingTo by remember { mutableStateOf<com.skillswap.model.ThreadMessage?>(null) }
     val listState = rememberLazyListState()
     val context = LocalContext.current
     var pendingVideo by remember { mutableStateOf<Boolean?>(null) }
@@ -207,7 +208,25 @@ fun ChatScreen(
                     }
                 }
                 items(messages) { message ->
-                    ChatBubble(message)
+                    SwipeableMessageBubble(
+                        message = message,
+                        isOwnMessage = message.isMe,
+                        onReply = { msg ->
+                            replyingTo = com.skillswap.model.ThreadMessage(
+                                id = msg.id,
+                                threadId = conversationId,
+                                senderId = "",
+                                recipientId = null,
+                                type = "text",
+                                content = msg.text,
+                                read = msg.read,
+                                createdAt = msg.time
+                            )
+                        },
+                        onReact = { msg, emoji ->
+                            viewModel.reactToMessage(msg.id, emoji)
+                        }
+                    )
                 }
             }
         }
@@ -220,6 +239,51 @@ fun ChatScreen(
                     .padding(16.dp)
                     .shadow(elevation = 12.dp, shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
             ) {
+                // Reply preview
+                replyingTo?.let { reply ->
+                    Surface(
+                        color = Color(0xFFF5F5F5),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .width(3.dp)
+                                    .height(40.dp)
+                                    .background(OrangePrimary, RoundedCornerShape(2.dp))
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Réponse à",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = OrangePrimary
+                                )
+                                Text(
+                                    text = reply.content.take(50) + if (reply.content.length > 50) "..." else "",
+                                    fontSize = 13.sp,
+                                    color = Color.Gray,
+                                    maxLines = 1
+                                )
+                            }
+                            IconButton(onClick = { replyingTo = null }) {
+                                Icon(
+                                    Icons.Default.Close,
+                                    contentDescription = "Cancel reply",
+                                    tint = Color.Gray
+                                )
+                            }
+                        }
+                    }
+                }
+                
                 chatError?.let {
                     ChatStatusBanner(text = it, onDismiss = { viewModel.clearError() })
                     Spacer(Modifier.height(8.dp))
@@ -269,8 +333,9 @@ fun ChatScreen(
                 IconButton(
                     onClick = {
                         if (isSendEnabled) {
-                            viewModel.sendMessage(inputText)
+                            viewModel.sendMessage(inputText, replyTo = replyingTo)
                             inputText = ""
+                            replyingTo = null
                         }
                     },
                     modifier = Modifier

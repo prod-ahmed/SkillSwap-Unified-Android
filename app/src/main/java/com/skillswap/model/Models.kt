@@ -157,7 +157,8 @@ data class Message(
     val time: String,
     val read: Boolean = false,
     val reactions: Map<String, List<String>>? = null,
-    val isDeleted: Boolean = false
+    val isDeleted: Boolean = false,
+    val replyTo: ReferencedMessage? = null
 )
 
 data class ChatPayload(
