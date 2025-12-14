@@ -115,7 +115,7 @@ fun SessionCard(
                 )
                 Spacer(Modifier.width(6.dp))
                 Text(
-                    text = formatDate(session.date),
+                    text = formatSessionDate(session.date),
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color.Gray
                 )
@@ -128,7 +128,7 @@ fun SessionCard(
                 )
                 Spacer(Modifier.width(6.dp))
                 Text(
-                    text = formatTime(session.date),
+                    text = formatSessionTime(session.date),
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color.Gray
                 )
@@ -301,7 +301,7 @@ fun MemberAvatar(
     }
 }
 
-private fun formatDate(dateString: String): String {
+private fun formatSessionDate(dateString: String): String {
     return try {
         val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
         inputFormat.timeZone = TimeZone.getTimeZone("UTC")
@@ -313,7 +313,7 @@ private fun formatDate(dateString: String): String {
     }
 }
 
-private fun formatTime(dateString: String): String {
+private fun formatSessionTime(dateString: String): String {
     return try {
         val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
         inputFormat.timeZone = TimeZone.getTimeZone("UTC")

@@ -155,6 +155,12 @@ interface SkillSwapApi {
         @Query("skill") skill: String? = null,
         @Query("limit") limit: Int? = null
     ): List<User>
+    
+    @POST("/matching/interest/{userId}")
+    suspend fun expressInterest(
+        @Header("Authorization") token: String,
+        @Path("userId") userId: String
+    ): MatchResponse
 
     @GET("/locations/filters")
     suspend fun getLocationFilters(

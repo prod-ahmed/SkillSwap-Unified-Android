@@ -436,7 +436,7 @@ fun SkillSwapApp() {
 }
 
 @Composable
-fun RowScope.CustomBottomNavigationItem(
+private fun RowScope.CustomBottomNavigationItem(
     screen: Screen,
     isSelected: Boolean,
     activeColor: Color,
@@ -475,4 +475,5 @@ fun RowScope.CustomBottomNavigationItem(
              )
          }
     }
+}
 }

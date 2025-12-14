@@ -332,6 +332,11 @@ data class RedeemResponse(
     val status: String
 )
 
+data class MatchResponse(
+    val isMatch: Boolean? = false,
+    val message: String? = null
+)
+
 data class ReferralItem(
     @SerializedName("_id") val id: String,
     val codeId: String?,
