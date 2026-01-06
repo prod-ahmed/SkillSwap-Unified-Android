@@ -68,7 +68,9 @@ class AnnoncesViewModel(application: Application) : AndroidViewModel(application
             _isLoading.value = true
             _error.value = null
             try {
+                android.util.Log.d("AnnoncesViewModel", "Creating annonce: title=$title, media=${media != null}")
                 if (media != null && !isImageSafe(token, media)) {
+                    android.util.Log.w("AnnoncesViewModel", "Image moderation failed, aborting")
                     _isLoading.value = false
                     return@launch
                 }
@@ -82,12 +84,16 @@ class AnnoncesViewModel(application: Application) : AndroidViewModel(application
                         imageUrl = null
                     )
                 )
+                android.util.Log.d("AnnoncesViewModel", "Annonce created with id=${created.id}")
                 val finalAnnonce = if (media != null) {
+                    android.util.Log.d("AnnoncesViewModel", "Uploading image...")
                     uploadAnnonceImage(token, created.id, media) ?: created
                 } else created
+                android.util.Log.d("AnnoncesViewModel", "Final annonce imageUrl: ${finalAnnonce.imageUrl}")
                 _annonces.value = _annonces.value + withAbsoluteImage(finalAnnonce)
                 _success.value = if (media != null) "Annonce publiée avec image" else "Annonce créée"
             } catch (e: Exception) {
+                android.util.Log.e("AnnoncesViewModel", "Error creating annonce: ${e.message}", e)
                 _error.value = e.message
             } finally {
                 _isLoading.value = false
@@ -146,17 +152,19 @@ class AnnoncesViewModel(application: Application) : AndroidViewModel(application
             if (!result.safe) {
                 val reason = result.categories?.joinToString(", ")
                     ?: result.reasons?.joinToString(", ")
-                    ?: "Image refusée"
-                _error.value = reason
+                    ?: "Image non conforme aux règles de la communauté"
+                _error.value = "⚠️ $reason"
             }
             result.safe
         } catch (e: Exception) {
-            _error.value = "Vérification image impossible: ${e.message}"
-            false
+            // On error, allow the image (fail open) but log
+            android.util.Log.e("AnnoncesViewModel", "Moderation check failed: ${e.message}")
+            true
         }
     }
 
     private suspend fun uploadAnnonceImage(token: String, id: String, media: MediaPayload): Annonce? {
+        android.util.Log.d("AnnoncesViewModel", "Uploading image for annonce $id (${media.bytes.size} bytes)")
         val mediaType = runCatching { media.mimeType.toMediaType() }.getOrElse { "image/jpeg".toMediaType() }
         val countingBody = com.skillswap.network.CountingRequestBody(media.bytes, mediaType) { progress ->
             _uploadProgress.value = progress
@@ -168,8 +176,11 @@ class AnnoncesViewModel(application: Application) : AndroidViewModel(application
         )
         return try {
             _uploading.value = true
-            NetworkService.api.uploadAnnonceImage("Bearer $token", id, part)
+            val result = NetworkService.api.uploadAnnonceImage("Bearer $token", id, part)
+            android.util.Log.d("AnnoncesViewModel", "Image uploaded successfully. New imageUrl: ${result.imageUrl}")
+            result
         } catch (e: Exception) {
+            android.util.Log.e("AnnoncesViewModel", "Image upload failed: ${e.message}", e)
             _error.value = "Image non envoyée: ${e.message}"
             null
         } finally {
@@ -203,8 +214,9 @@ class AnnoncesViewModel(application: Application) : AndroidViewModel(application
     private fun withAbsoluteImage(annonce: Annonce): Annonce {
         val url = annonce.imageUrl
         val absolute = if (!url.isNullOrBlank() && !(url.startsWith("http://") || url.startsWith("https://"))) {
-            com.skillswap.BuildConfig.API_BASE_URL.trimEnd('/') + "/uploads/annonces/" + url
+            com.skillswap.network.NetworkService.baseUrl + "/uploads/annonces/" + url
         } else url
+        android.util.Log.d("AnnoncesViewModel", "withAbsoluteImage: original=$url, absolute=$absolute")
         return annonce.copy(imageUrl = absolute)
     }
 }

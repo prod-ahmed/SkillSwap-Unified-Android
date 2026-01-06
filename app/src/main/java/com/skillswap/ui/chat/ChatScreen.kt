@@ -167,7 +167,7 @@ fun ChatScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF2F2F7)) // System Grouped Background
+            .background(MaterialTheme.colorScheme.background) // System Grouped Background
     ) {
         ChatHeader(
             partnerName = partnerName,
@@ -251,12 +251,16 @@ fun ChatScreen(
         }
 
         // Composer
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = Color.White,
+            shadowElevation = 8.dp,
+            shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+        ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color.White)
-                    .padding(16.dp)
-                    .shadow(elevation = 12.dp, shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
                 // Reply preview
                 replyingTo?.let { reply ->
@@ -307,14 +311,14 @@ fun ChatScreen(
                     ChatStatusBanner(text = it, onDismiss = { viewModel.clearError() })
                     Spacer(Modifier.height(8.dp))
                 }
-                // Only show reconnection banner when socket is disconnected AND not loading
-                if (!socketConnected && !isLoading && messages.isNotEmpty()) {
-                    ChatStatusBanner(
-                        text = "Reconnexion en cours…",
-                        onDismiss = { /* keep banner until reconnect */ }
-                    )
-                    Spacer(Modifier.height(8.dp))
-                }
+                // Reconnection banner disabled
+                // if (!socketConnected && !isLoading && messages.isNotEmpty()) {
+                //     ChatStatusBanner(
+                //         text = "Reconnexion en cours…",
+                //         onDismiss = { /* keep banner until reconnect */ }
+                //     )
+                //     Spacer(Modifier.height(8.dp))
+                // }
              Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -344,8 +348,8 @@ fun ChatScreen(
                        // .heightIn(min = 44.dp, max = 100.dp),
                     shape = RoundedCornerShape(24.dp),
                     colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color(0xFFF2F2F7),
-                        unfocusedContainerColor = Color(0xFFF2F2F7),
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent
                     )
@@ -379,11 +383,12 @@ fun ChatScreen(
             Button(
                 onClick = onPlanSession,
                 modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF2F2F7)),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                 shape = RoundedCornerShape(24.dp),
                 contentPadding = PaddingValues(vertical = 12.dp)
             ) {
-                Text("📅 Planifier une session", color = Color.Black, fontWeight = FontWeight.SemiBold)
+                Text("📅 Planifier une session", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
+            }
             }
         }
     }
@@ -507,7 +512,7 @@ private fun ChatHeader(
                         when {
                             callStateInCall -> "En appel"
                             partnerTyping -> "Écrit..."
-                            else -> if (socketConnected) "Connecté" else "Reconnexion…"
+                            else -> "Connecté"
                         },
                         style = MaterialTheme.typography.labelSmall,
                         color = Color.White.copy(alpha = 0.8f)

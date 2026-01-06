@@ -77,7 +77,7 @@ fun ProfileScreen(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .background(Color(0xFFF2F2F7))
+            .background(MaterialTheme.colorScheme.background)
             .padding(bottom = 80.dp) // Add bottom padding for navigation bar
     ) {
         // Header Gradient
@@ -394,7 +394,7 @@ fun ProfileScreen(
 fun StatCard(title: String, value: String, modifier: Modifier = Modifier) {
     Card(
         modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {

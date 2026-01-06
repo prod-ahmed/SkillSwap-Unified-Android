@@ -14,6 +14,20 @@ data class SignInResponse(
     val user: User?
 )
 
+data class GoogleAuthResponse(
+    val accessToken: String,
+    val refreshToken: String? = null,
+    val user: GoogleAuthUser,
+    val isNewUser: Boolean = false
+)
+
+data class GoogleAuthUser(
+    val id: String,
+    val email: String,
+    val username: String,
+    val profileImageUrl: String? = null
+)
+
 data class User(
     @SerializedName("_id") val id: String,
     val username: String,

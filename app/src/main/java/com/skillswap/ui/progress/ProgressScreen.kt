@@ -27,6 +27,8 @@ import com.skillswap.model.ProgressGoalItem
 import com.skillswap.model.SkillProgressItem
 import com.skillswap.ui.theme.OrangePrimary
 import com.skillswap.viewmodel.ProgressViewModel
+import androidx.compose.ui.res.stringResource
+import com.skillswap.R
 
 @Composable
 fun ProgressScreen(
@@ -40,6 +42,7 @@ fun ProgressScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
     var showGoalDialog by remember { mutableStateOf(false) }
+    var goalToDelete by remember { mutableStateOf<ProgressGoalItem?>(null) }
     
     if (dashboard == null && isLoading) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -50,7 +53,7 @@ fun ProgressScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .background(Color(0xFFF2F2F7))
+                .background(MaterialTheme.colorScheme.background)
                 .padding(bottom = 100.dp) // Increased bottom padding for navigation bar clearance
         ) {
             dashboard?.let { data ->
@@ -116,7 +119,7 @@ fun ProgressScreen(
                     } else {
                         data.goals.forEach { goal ->
                             GoalCard(goal, onDelete = { 
-                                goal.id?.let { viewModel.deleteGoal(it) }
+                                goalToDelete = goal
                             })
                             Spacer(Modifier.height(8.dp))
                         }
@@ -212,6 +215,31 @@ fun ProgressScreen(
             }
         )
     }
+    
+    // Delete confirmation dialog
+    goalToDelete?.let { goal ->
+        AlertDialog(
+            onDismissRequest = { goalToDelete = null },
+            title = { Text(stringResource(R.string.delete_goal)) },
+            text = { Text(stringResource(R.string.delete_goal_confirm, goal.title)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        goal.id?.let { viewModel.deleteGoal(it) }
+                        goalToDelete = null
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = Color.Red)
+                ) {
+                    Text(stringResource(R.string.delete))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { goalToDelete = null }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
 }
 
 @Composable
@@ -227,7 +255,7 @@ fun SectionHeader(title: String) {
 @Composable
 fun EmptyCard(title: String, subtitle: String, onAction: () -> Unit) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(24.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -258,7 +286,7 @@ fun StatTile(title: String, value: String) {
 @Composable
 fun GoalCard(goal: ProgressGoalItem, onDelete: () -> Unit) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(24.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -300,7 +328,7 @@ fun GoalCard(goal: ProgressGoalItem, onDelete: () -> Unit) {
 @Composable
 fun SkillRow(item: SkillProgressItem) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(24.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -328,7 +356,7 @@ fun SkillRow(item: SkillProgressItem) {
 @Composable
 fun BadgeCard(badge: BadgeItem, modifier: Modifier = Modifier) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = Color.White), // Simplify color parsing
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), // Simplify color parsing
         shape = RoundedCornerShape(20.dp),
         modifier = modifier
     ) {

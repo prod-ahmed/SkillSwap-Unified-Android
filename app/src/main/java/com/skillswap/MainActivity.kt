@@ -9,6 +9,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 
 class MainActivity : ComponentActivity() {
     
@@ -19,6 +20,9 @@ class MainActivity : ComponentActivity() {
     }
     
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Install splash screen before super.onCreate
+        installSplashScreen()
+        
         super.onCreate(savedInstanceState)
         
         // Request notification permission for Android 13+
@@ -53,18 +57,30 @@ class MainActivity : ComponentActivity() {
             val data = mutableMapOf<String, String>()
             
             when (type) {
-                "chat" -> {
+                "chat", "message" -> {
                     extras.getString("threadId")?.let { data["threadId"] = it }
                 }
                 "call" -> {
                     extras.getString("callerId")?.let { data["callerId"] = it }
                     extras.getString("callType")?.let { data["callType"] = it }
                 }
-                "session" -> {
+                "session", "new_session", "session_reminder" -> {
                     extras.getString("sessionId")?.let { data["sessionId"] = it }
                 }
                 "notification" -> {
                     extras.getString("notificationId")?.let { data["notificationId"] = it }
+                }
+                "promo", "promotion" -> {
+                    extras.getString("promoId")?.let { data["promoId"] = it }
+                    extras.getString("skillCategory")?.let { data["skillCategory"] = it }
+                }
+                "announce", "announcement" -> {
+                    extras.getString("announcementId")?.let { data["announcementId"] = it }
+                    extras.getString("targetSkills")?.let { data["targetSkills"] = it }
+                }
+                "skill_match" -> {
+                    extras.getString("userId")?.let { data["userId"] = it }
+                    extras.getString("matchedSkill")?.let { data["matchedSkill"] = it }
                 }
             }
             

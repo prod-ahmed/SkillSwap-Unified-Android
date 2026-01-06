@@ -16,6 +16,10 @@ import java.time.Instant
 data class NotificationPrefs(
     val chat: Boolean = true,
     val calls: Boolean = true,
+    val sessions: Boolean = true,
+    val promos: Boolean = true,
+    val announcements: Boolean = true,
+    val skillMatches: Boolean = true,
     val marketing: Boolean = false
 )
 
@@ -118,21 +122,38 @@ class NotificationsViewModel(application: Application) : AndroidViewModel(applic
     fun clearMessage() { _message.value = null }
     fun clearError() { _error.value = null }
 
-    fun updatePrefs(chat: Boolean? = null, calls: Boolean? = null, marketing: Boolean? = null) {
+    fun updatePrefs(
+        chat: Boolean? = null,
+        calls: Boolean? = null,
+        sessions: Boolean? = null,
+        promos: Boolean? = null,
+        announcements: Boolean? = null,
+        skillMatches: Boolean? = null,
+        marketing: Boolean? = null
+    ) {
         val current = _prefs.value
         val updated = current.copy(
             chat = chat ?: current.chat,
             calls = calls ?: current.calls,
+            sessions = sessions ?: current.sessions,
+            promos = promos ?: current.promos,
+            announcements = announcements ?: current.announcements,
+            skillMatches = skillMatches ?: current.skillMatches,
             marketing = marketing ?: current.marketing
         )
         _prefs.value = updated
         persistPrefs(updated)
+        syncPrefsWithServer(updated)
     }
 
     private fun loadPrefsFromStorage(): NotificationPrefs {
         return NotificationPrefs(
             chat = sharedPreferences.getBoolean("notif_chat", true),
             calls = sharedPreferences.getBoolean("notif_calls", true),
+            sessions = sharedPreferences.getBoolean("notif_sessions", true),
+            promos = sharedPreferences.getBoolean("notif_promos", true),
+            announcements = sharedPreferences.getBoolean("notif_announcements", true),
+            skillMatches = sharedPreferences.getBoolean("notif_skill_matches", true),
             marketing = sharedPreferences.getBoolean("notif_marketing", false)
         )
     }
@@ -141,7 +162,33 @@ class NotificationsViewModel(application: Application) : AndroidViewModel(applic
         sharedPreferences.edit()
             .putBoolean("notif_chat", prefs.chat)
             .putBoolean("notif_calls", prefs.calls)
+            .putBoolean("notif_sessions", prefs.sessions)
+            .putBoolean("notif_promos", prefs.promos)
+            .putBoolean("notif_announcements", prefs.announcements)
+            .putBoolean("notif_skill_matches", prefs.skillMatches)
             .putBoolean("notif_marketing", prefs.marketing)
             .apply()
+    }
+    
+    private fun syncPrefsWithServer(prefs: NotificationPrefs) {
+        val token = sharedPreferences.getString("auth_token", null) ?: return
+        viewModelScope.launch {
+            try {
+                NetworkService.api.updateNotificationPreferences(
+                    "Bearer $token",
+                    mapOf(
+                        "chat" to prefs.chat,
+                        "calls" to prefs.calls,
+                        "sessions" to prefs.sessions,
+                        "promos" to prefs.promos,
+                        "announcements" to prefs.announcements,
+                        "skillMatches" to prefs.skillMatches,
+                        "marketing" to prefs.marketing
+                    )
+                )
+            } catch (_: Exception) {
+                // Silently fail - local prefs are still saved
+            }
+        }
     }
 }

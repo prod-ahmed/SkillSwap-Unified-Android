@@ -136,7 +136,7 @@ fun MapScreen(viewModel: MapViewModel = viewModel()) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 56.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     elevation = CardDefaults.cardElevation(4.dp)
                 ) {
                     Column {

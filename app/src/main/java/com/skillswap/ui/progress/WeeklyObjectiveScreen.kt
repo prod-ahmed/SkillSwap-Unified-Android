@@ -14,18 +14,21 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.AlertDialog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -46,6 +49,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.skillswap.model.WeeklyObjective
 import com.skillswap.viewmodel.WeeklyObjectiveViewModel
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import com.skillswap.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,6 +62,7 @@ fun WeeklyObjectiveScreen(viewModel: WeeklyObjectiveViewModel = viewModel(), onB
     val error by viewModel.error.collectAsState()
     val message by viewModel.message.collectAsState()
     var showCreate by remember { mutableStateOf(false) }
+    var showDeleteConfirmation by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -76,7 +82,7 @@ fun WeeklyObjectiveScreen(viewModel: WeeklyObjectiveViewModel = viewModel(), onB
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .background(Color(0xFFF2F2F7)),
+                .background(MaterialTheme.colorScheme.background),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             if (loading) {
@@ -94,7 +100,7 @@ fun WeeklyObjectiveScreen(viewModel: WeeklyObjectiveViewModel = viewModel(), onB
                     objective = objective,
                     onToggleTask = { idx, done -> viewModel.toggleTask(idx, done) },
                     onComplete = { viewModel.completeObjective() },
-                    onDelete = { viewModel.deleteObjective() }
+                    onDelete = { showDeleteConfirmation = true }
                 )
             } ?: run {
                 Text(
@@ -135,6 +141,31 @@ fun WeeklyObjectiveScreen(viewModel: WeeklyObjectiveViewModel = viewModel(), onB
             }
         )
     }
+    
+    // Delete confirmation dialog
+    if (showDeleteConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmation = false },
+            title = { Text(stringResource(R.string.delete_goal)) },
+            text = { Text(stringResource(R.string.delete_event_confirm)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteObjective()
+                        showDeleteConfirmation = false
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = Color.Red)
+                ) {
+                    Text(stringResource(R.string.delete))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirmation = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
 }
 
 @Composable
@@ -162,7 +193,7 @@ private fun StatusBanner(text: String, background: Color, content: Color, onDism
 @Composable
 private fun HistoryRow(title: String, status: String, progress: Int) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(12.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -200,7 +231,7 @@ private fun ObjectiveCard(
     onDelete: () -> Unit
 ) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         modifier = Modifier
             .padding(horizontal = 16.dp)
             .fillMaxWidth()

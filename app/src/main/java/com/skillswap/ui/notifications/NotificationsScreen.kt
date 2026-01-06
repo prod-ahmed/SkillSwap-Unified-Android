@@ -161,7 +161,7 @@ fun NotificationsScreen(
                 modifier = Modifier
                     .padding(padding)
                     .fillMaxSize()
-                    .background(Color(0xFFF2F2F7))
+                    .background(MaterialTheme.colorScheme.background)
             ) {
                 items(listToRender) { notif ->
                     val threadId = notif.payload?.get("threadId")?.toString()

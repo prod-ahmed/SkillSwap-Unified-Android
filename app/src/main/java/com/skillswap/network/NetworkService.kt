@@ -27,8 +27,19 @@ interface SkillSwapApi {
     @POST("/auth/login")
     suspend fun login(@Body body: Map<String, String>): SignInResponse
 
+    @Multipart
     @POST("/auth/register")
-    suspend fun register(@Body body: Map<String, String>): SignInResponse
+    suspend fun register(
+        @Part("username") username: okhttp3.RequestBody,
+        @Part("email") email: okhttp3.RequestBody,
+        @Part("password") password: okhttp3.RequestBody,
+        @Part("referralCode") referralCode: okhttp3.RequestBody? = null,
+        @Part image: MultipartBody.Part? = null
+    ): User
+    
+    @POST("/auth/google")
+    suspend fun googleAuth(@Body body: Map<String, String?>): GoogleAuthResponse
+    
     @POST("/users/forgot-password")
     suspend fun forgotPassword(@Body body: ForgotPasswordRequest): ForgotPasswordResponse
 
@@ -303,6 +314,25 @@ interface SkillSwapApi {
         @Path("id") id: String,
         @Body body: Map<String, Any?>
     ): NotificationItem
+    
+    @POST("/notifications/fcm-token")
+    suspend fun registerFCMToken(
+        @Header("Authorization") token: String,
+        @Body body: Map<String, String>
+    ): Map<String, Any>
+    
+    @DELETE("/notifications/fcm-token")
+    suspend fun unregisterFCMToken(
+        @Header("Authorization") token: String,
+        @Body body: Map<String, String>
+    ): Map<String, Any>
+    
+    @PATCH("/notifications/preferences")
+    suspend fun updateNotificationPreferences(
+        @Header("Authorization") token: String,
+        @Body body: Map<String, Boolean>
+    ): Map<String, Any>
+    
     // Lesson plans / AI
     @GET("/lesson-plan/{sessionId}")
     suspend fun getLessonPlan(
@@ -499,6 +529,9 @@ object NetworkService {
         url
     }
     
+    /** Public accessor for the resolved base URL (for image URL construction) */
+    val baseUrl: String get() = BASE_URL.trimEnd('/')
+    
     private fun isRunningOnEmulator(): Boolean {
         return (android.os.Build.FINGERPRINT.startsWith("generic")
                 || android.os.Build.FINGERPRINT.startsWith("unknown")
@@ -519,7 +552,38 @@ object NetworkService {
 
     private val gson: Gson = GsonBuilder()
         .setLenient()
+        .registerTypeAdapter(com.skillswap.model.AnnonceUser::class.java, AnnonceUserDeserializer())
         .create()
+
+    /** Custom deserializer to handle user field that can be either a String (ID) or an Object */
+    private class AnnonceUserDeserializer : com.google.gson.JsonDeserializer<com.skillswap.model.AnnonceUser?> {
+        override fun deserialize(
+            json: com.google.gson.JsonElement?,
+            typeOfT: java.lang.reflect.Type?,
+            context: com.google.gson.JsonDeserializationContext?
+        ): com.skillswap.model.AnnonceUser? {
+            if (json == null || json.isJsonNull) return null
+            
+            return if (json.isJsonPrimitive && json.asJsonPrimitive.isString) {
+                // User is just an ID string - create a placeholder AnnonceUser
+                com.skillswap.model.AnnonceUser(
+                    _id = json.asString,
+                    username = "Utilisateur",
+                    image = null
+                )
+            } else if (json.isJsonObject) {
+                // User is a full object - deserialize normally
+                val obj = json.asJsonObject
+                com.skillswap.model.AnnonceUser(
+                    _id = obj.get("_id")?.asString ?: "",
+                    username = obj.get("username")?.asString ?: "Utilisateur",
+                    image = obj.get("image")?.asString
+                )
+            } else {
+                null
+            }
+        }
+    }
 
     private val httpClient: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)

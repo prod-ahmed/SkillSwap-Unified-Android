@@ -1,0 +1,240 @@
+<resources>
+    <string name="app_name">SkillSwap</string>
+    
+    <!-- Common -->
+    <string name="ok">OK</string>
+    <string name="cancel">Annuler</string>
+    <string name="delete">Supprimer</string>
+    <string name="edit">Modifier</string>
+    <string name="save">Enregistrer</string>
+    <string name="add">Ajouter</string>
+    <string name="close">Fermer</string>
+    <string name="back">Retour</string>
+    <string name="next">Suivant</string>
+    <string name="previous">Précédent</string>
+    <string name="search">Rechercher</string>
+    <string name="loading">Chargement…</string>
+    <string name="error">Erreur</string>
+    <string name="success">Succès</string>
+    <string name="refresh">Rafraîchir</string>
+    <string name="retry">Réessayer</string>
+    <string name="apply">Appliquer</string>
+    <string name="confirm">Confirmer</string>
+    <string name="yes">Oui</string>
+    <string name="no">Non</string>
+    
+    <!-- Auth -->
+    <string name="login">Connexion</string>
+    <string name="signup">Inscription</string>
+    <string name="logout">Déconnexion</string>
+    <string name="email">Email</string>
+    <string name="password">Mot de passe</string>
+    <string name="confirm_password">Confirmer le mot de passe</string>
+    <string name="forgot_password">Mot de passe oublié ?</string>
+    <string name="reset_password">Réinitialiser le mot de passe</string>
+    <string name="username">Nom d\'utilisateur</string>
+    <string name="full_name">Nom complet</string>
+    <string name="show_password">Afficher le mot de passe</string>
+    <string name="hide_password">Masquer le mot de passe</string>
+    <string name="already_have_account">Vous avez déjà un compte ?</string>
+    <string name="no_account">Pas encore de compte ?</string>
+    <string name="login_error">Échec de connexion. Veuillez vérifier vos identifiants.</string>
+    <string name="signup_error">Échec d\'inscription. Veuillez réessayer.</string>
+    
+    <!-- Navigation -->
+    <string name="nav_home">Accueil</string>
+    <string name="nav_discover">Découvrir</string>
+    <string name="nav_messages">Messages</string>
+    <string name="nav_calendar">Calendrier</string>
+    <string name="nav_profile">Profil</string>
+    <string name="nav_progress">Progression</string>
+    <string name="nav_notifications">Notifications</string>
+    <string name="nav_settings">Paramètres</string>
+    
+    <!-- Discover -->
+    <string name="discover_title">Découvrir</string>
+    <string name="find_skills">Trouver des compétences</string>
+    <string name="no_more_profiles">Plus de profils à découvrir</string>
+    <string name="match_found">C\'est un Match !</string>
+    <string name="send_message">Envoyer un message</string>
+    <string name="keep_swiping">Continuer à swiper</string>
+    <string name="teaches">Enseigne</string>
+    <string name="learns">Apprend</string>
+    <string name="distance_km">À %s km</string>
+    <string name="match_request_sent">Demande de match envoyée !</string>
+    <string name="accept_request">Accepter la demande</string>
+    <string name="decline_request">Refuser</string>
+    
+    <!-- Messages / Chat -->
+    <string name="messages_title">Messages</string>
+    <string name="conversations">Conversations</string>
+    <string name="no_conversations">Aucune conversation</string>
+    <string name="start_conversation">Démarrer une conversation</string>
+    <string name="type_message">Écrivez votre message…</string>
+    <string name="send">Envoyer</string>
+    <string name="online">En ligne</string>
+    <string name="offline">Hors ligne</string>
+    <string name="typing">En train d\'écrire…</string>
+    <string name="delivered">Remis</string>
+    <string name="read">Lu</string>
+    <string name="today">Aujourd\'hui</string>
+    <string name="yesterday">Hier</string>
+    <string name="plan_session">Planifier une session</string>
+    <string name="reply">Répondre</string>
+    <string name="delete_message">Supprimer le message</string>
+    <string name="delete_message_confirm">Êtes-vous sûr de vouloir supprimer ce message ?</string>
+    
+    <!-- Calendar -->
+    <string name="calendar_title">Calendrier</string>
+    <string name="new_event">Nouvel événement</string>
+    <string name="event_title">Titre de l\'événement</string>
+    <string name="event_description">Description</string>
+    <string name="event_location">Lieu</string>
+    <string name="event_date">Date</string>
+    <string name="event_time">Heure</string>
+    <string name="start_time">Heure de début</string>
+    <string name="end_time">Heure de fin</string>
+    <string name="add_participants">Ajouter des participants</string>
+    <string name="participants">Participants</string>
+    <string name="no_events">Aucun événement prévu</string>
+    <string name="delete_event">Supprimer l\'événement</string>
+    <string name="delete_event_confirm">Êtes-vous sûr de vouloir supprimer cet événement ?</string>
+    <string name="event_deleted">Événement supprimé</string>
+    <string name="event_created">Événement créé</string>
+    <string name="session">Session</string>
+    <string name="confirmed">Confirmé</string>
+    <string name="pending">En attente</string>
+    <string name="cancelled">Annulé</string>
+    
+    <!-- Profile -->
+    <string name="profile_title">Profil</string>
+    <string name="edit_profile">Modifier le profil</string>
+    <string name="my_skills">Mes compétences</string>
+    <string name="skills_i_teach">Compétences que j\'enseigne</string>
+    <string name="skills_i_learn">Compétences que je veux apprendre</string>
+    <string name="bio">Bio</string>
+    <string name="location">Localisation</string>
+    <string name="city">Ville</string>
+    <string name="level">Niveau</string>
+    <string name="beginner">Débutant</string>
+    <string name="intermediate">Intermédiaire</string>
+    <string name="advanced">Avancé</string>
+    <string name="expert">Expert</string>
+    <string name="experience">Expérience</string>
+    <string name="years_experience">%d ans d\'expérience</string>
+    <string name="profile_updated">Profil mis à jour</string>
+    <string name="change_photo">Changer la photo</string>
+    <string name="take_photo">Prendre une photo</string>
+    <string name="choose_from_gallery">Choisir dans la galerie</string>
+    
+    <!-- Progress -->
+    <string name="progress_title">Progression</string>
+    <string name="weekly_activity">Activité de la semaine</string>
+    <string name="this_week">Cette semaine</string>
+    <string name="hours">Heures</string>
+    <string name="skills_count">Compétences</string>
+    <string name="total_xp">XP total</string>
+    <string name="goals">Objectifs</string>
+    <string name="no_goals">Aucun objectif défini</string>
+    <string name="add_goal">Ajouter un objectif</string>
+    <string name="create_goal">Créer un objectif</string>
+    <string name="goal_title">Titre de l\'objectif</string>
+    <string name="target_hours">Heures cibles</string>
+    <string name="period">Période</string>
+    <string name="weekly">Hebdomadaire</string>
+    <string name="monthly">Mensuel</string>
+    <string name="due_date">Date d\'échéance</string>
+    <string name="delete_goal">Supprimer l\'objectif</string>
+    <string name="delete_goal_confirm">Êtes-vous sûr de vouloir supprimer \"%s\" ?</string>
+    <string name="weekly_objective">Objectif hebdomadaire</string>
+    <string name="create_objective">Créer un objectif</string>
+    <string name="objective_completed">Objectif atteint !</string>
+    <string name="badges">Badges</string>
+    <string name="achievements">Réalisations</string>
+    
+    <!-- Settings -->
+    <string name="settings_title">Paramètres</string>
+    <string name="account">Compte</string>
+    <string name="notifications_settings">Notifications</string>
+    <string name="privacy">Confidentialité</string>
+    <string name="appearance">Apparence</string>
+    <string name="language">Langue</string>
+    <string name="dark_mode">Mode sombre</string>
+    <string name="light_mode">Mode clair</string>
+    <string name="system_default">Par défaut du système</string>
+    <string name="about">À propos</string>
+    <string name="version">Version</string>
+    <string name="help_support">Aide et support</string>
+    <string name="terms_of_service">Conditions d\'utilisation</string>
+    <string name="privacy_policy">Politique de confidentialité</string>
+    <string name="delete_account">Supprimer le compte</string>
+    <string name="delete_account_confirm">Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible.</string>
+    <string name="logout_confirm">Êtes-vous sûr de vouloir vous déconnecter ?</string>
+    
+    <!-- Promos -->
+    <string name="promos_title">Promos</string>
+    <string name="my_promos">Mes Promos</string>
+    <string name="create_promo">Créer une promo</string>
+    <string name="promo_title">Titre de la promo</string>
+    <string name="promo_description">Description</string>
+    <string name="discount">Réduction</string>
+    <string name="promo_code">Code promo</string>
+    <string name="valid_until">Valide jusqu\'au</string>
+    <string name="no_promos">Aucune promo créée</string>
+    <string name="delete_promo">Supprimer la promo</string>
+    <string name="delete_promo_confirm">Êtes-vous sûr de vouloir supprimer \"%s\" ?</string>
+    <string name="apply_promo">Appliquer la promo</string>
+    <string name="promo_applied">Promo appliquée !</string>
+    
+    <!-- Annonces -->
+    <string name="annonces_title">Annonces</string>
+    <string name="my_annonces">Mes Annonces</string>
+    <string name="create_annonce">Créer une annonce</string>
+    <string name="annonce_title">Titre</string>
+    <string name="annonce_description">Description</string>
+    <string name="category">Catégorie</string>
+    <string name="price">Prix</string>
+    <string name="free">Gratuit</string>
+    <string name="no_annonces">Aucune annonce</string>
+    <string name="delete_annonce">Supprimer l\'annonce</string>
+    <string name="delete_annonce_confirm">Êtes-vous sûr de vouloir supprimer \"%s\" ?</string>
+    
+    <!-- AI -->
+    <string name="generate_with_ai">Générer avec l\'IA</string>
+    <string name="ai_generating">L\'IA génère…</string>
+    <string name="ai_error">Échec de la génération IA</string>
+    
+    <!-- Notifications -->
+    <string name="notifications_title">Notifications</string>
+    <string name="no_notifications">Aucune notification</string>
+    <string name="mark_all_read">Tout marquer comme lu</string>
+    <string name="new_message">Nouveau message</string>
+    <string name="new_match">Nouveau match !</string>
+    <string name="session_reminder">Rappel de session</string>
+    <string name="session_cancelled">Session annulée</string>
+    
+    <!-- Errors -->
+    <string name="network_error">Erreur réseau. Veuillez vérifier votre connexion.</string>
+    <string name="unknown_error">Une erreur inconnue s\'est produite.</string>
+    <string name="session_expired">Session expirée. Veuillez vous reconnecter.</string>
+    <string name="field_required">Ce champ est obligatoire</string>
+    <string name="invalid_email">Veuillez entrer un email valide</string>
+    <string name="password_too_short">Le mot de passe doit contenir au moins 6 caractères</string>
+    <string name="passwords_dont_match">Les mots de passe ne correspondent pas</string>
+    
+    <!-- Rewards -->
+    <string name="rewards_title">Récompenses</string>
+    <string name="points">Points</string>
+    <string name="redeem">Échanger</string>
+    <string name="available_rewards">Récompenses disponibles</string>
+    
+    <!-- Onboarding -->
+    <string name="onboarding_welcome">Bienvenue sur SkillSwap</string>
+    <string name="onboarding_subtitle">Échangez des compétences avec des personnes près de chez vous</string>
+    <string name="get_started">Commencer</string>
+    <string name="skip">Passer</string>
+    <string name="what_you_teach">Qu\'enseignez-vous ?</string>
+    <string name="what_you_learn">Que voulez-vous apprendre ?</string>
+    <string name="where_are_you">Où êtes-vous situé ?</string>
+    <string name="complete_profile">Complétez votre profil</string>
+</resources>

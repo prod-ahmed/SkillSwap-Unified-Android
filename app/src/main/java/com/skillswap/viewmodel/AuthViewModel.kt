@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 
 class AuthViewModel(application: Application) : AndroidViewModel(application) {
     private val _email = MutableStateFlow("")
@@ -97,7 +99,9 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             _isLoading.value = true
             _errorMessage.value = null
             try {
-                val body = mapOf("email" to _email.value, "password" to _password.value)
+                val email = _email.value.trim().lowercase()
+                val body = mapOf("email" to email, "password" to _password.value)
+                android.util.Log.d("AuthViewModel", "Login attempt with email: $email")
                 val response = NetworkService.api.login(body)
 
                 val token = response.accessToken
@@ -107,8 +111,17 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                 } else {
                     _errorMessage.value = response.message ?: "Login failed"
                 }
+            } catch (e: retrofit2.HttpException) {
+                val errorBody = e.response()?.errorBody()?.string()
+                android.util.Log.e("AuthViewModel", "Login HTTP error ${e.code()}: $errorBody")
+                _errorMessage.value = when (e.code()) {
+                    401 -> "Email ou mot de passe incorrect"
+                    400 -> "Requête invalide: $errorBody"
+                    else -> "Erreur serveur: ${e.code()}"
+                }
             } catch (e: Exception) {
-                _errorMessage.value = "Error: ${e.message}"
+                android.util.Log.e("AuthViewModel", "Login error", e)
+                _errorMessage.value = "Erreur: ${e.message}"
             } finally {
                 _isLoading.value = false
             }
@@ -137,26 +150,59 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             _isLoading.value = true
             _errorMessage.value = null
             try {
-                val payload: MutableMap<String, String> = mutableMapOf(
-                    "username" to _fullName.value,
-                    "email" to _email.value,
-                    "password" to _password.value,
-                    "role" to "client"
-                )
-                if (_referralCode.value.isNotBlank()) {
-                    payload["referralCode"] = _referralCode.value
-                }
+                val textMediaType = "text/plain".toMediaType()
+                val usernameBody = _fullName.value.trim().toRequestBody(textMediaType)
+                val emailBody = _email.value.trim().lowercase().toRequestBody(textMediaType)
+                val passwordBody = _password.value.toRequestBody(textMediaType)
                 
-                val response = NetworkService.api.register(payload)
-                val token = response.accessToken
-                if (response.user != null && token != null) {
-                    saveSession(token, response.user)
+                // Only include referral code if it's exactly 5 characters (backend requirement)
+                val referralCode = _referralCode.value.trim().uppercase()
+                val referralBody = if (referralCode.length == 5) {
+                    referralCode.toRequestBody(textMediaType)
+                } else null
+                
+                android.util.Log.d("AuthViewModel", "Register attempt - username: ${_fullName.value}, email: ${_email.value}, referralCode: ${if (referralBody != null) referralCode else "null"}")
+                
+                // First register the user (returns User object)
+                NetworkService.api.register(
+                    username = usernameBody,
+                    email = emailBody,
+                    password = passwordBody,
+                    referralCode = referralBody
+                )
+                
+                android.util.Log.d("AuthViewModel", "Registration successful, now logging in...")
+                
+                // Then login to get the token (like iOS does)
+                val loginBody = mapOf("email" to _email.value.trim().lowercase(), "password" to _password.value)
+                val loginResponse = NetworkService.api.login(loginBody)
+                
+                val token = loginResponse.accessToken
+                if (loginResponse.user != null && token != null) {
+                    saveSession(token, loginResponse.user)
                     onSuccess()
                 } else {
-                    _errorMessage.value = response.message ?: "Inscription échouée"
+                    _errorMessage.value = loginResponse.message ?: "Inscription échouée"
+                }
+            } catch (e: retrofit2.HttpException) {
+                val errorBody = e.response()?.errorBody()?.string()
+                android.util.Log.e("AuthViewModel", "Register HTTP error ${e.code()}: $errorBody")
+                _errorMessage.value = when {
+                    e.code() == 400 && errorBody?.contains("Email already in use") == true -> 
+                        "Cet email est déjà utilisé"
+                    e.code() == 400 && errorBody?.contains("Referral") == true -> 
+                        "Code de parrainage invalide"
+                    e.code() == 400 && errorBody?.contains("email must be an email") == true ->
+                        "Format d'email invalide"
+                    e.code() == 400 && errorBody?.contains("password") == true ->
+                        "Le mot de passe est requis"
+                    e.code() == 400 && errorBody?.contains("username") == true ->
+                        "Le nom d'utilisateur est requis"
+                    else -> "Inscription échouée: $errorBody"
                 }
             } catch (e: Exception) {
-                _errorMessage.value = "Register failed: ${e.message}"
+                android.util.Log.e("AuthViewModel", "Register error", e)
+                _errorMessage.value = "Erreur: ${e.message}"
             } finally {
                 _isLoading.value = false
             }
@@ -173,31 +219,37 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             _isLoading.value = true
             _errorMessage.value = null
             try {
-                // Send Google ID token to backend for verification and session creation
-                val payload = mapOf(
-                    "idToken" to (account.idToken ?: ""),
-                    "email" to (account.email ?: ""),
-                    "name" to (account.displayName ?: "")
-                )
-                
-                // TODO: Backend needs a /auth/google endpoint
-                // For now, use standard registration with Google email
-                val response = NetworkService.api.register(
-                    mapOf(
-                        "username" to (account.displayName ?: account.email ?: "User"),
-                        "email" to (account.email ?: ""),
-                        "password" to "GOOGLE_AUTH_${account.id}",
-                        "role" to "client"
-                    )
-                )
-                
-                val token = response.accessToken
-                if (response.user != null && token != null) {
-                    saveSession(token, response.user)
-                    onSuccess()
-                } else {
-                    _errorMessage.value = response.message ?: "Google Sign-In failed"
+                val idToken = account.idToken
+                if (idToken.isNullOrEmpty()) {
+                    _errorMessage.value = "Google ID token missing"
+                    return@launch
                 }
+                
+                // Use the proper /auth/google endpoint
+                val payload = mapOf<String, String?>(
+                    "idToken" to idToken,
+                    "referralCode" to _referralCode.value.takeIf { it.isNotBlank() }?.uppercase()
+                )
+                
+                val response = NetworkService.api.googleAuth(payload)
+                
+                // Convert GoogleAuthUser to User for session storage
+                val user = com.skillswap.model.User(
+                    id = response.user.id,
+                    username = response.user.username,
+                    email = response.user.email,
+                    role = "client",
+                    credits = null,
+                    ratingAvg = null,
+                    isVerified = null,
+                    image = response.user.profileImageUrl
+                )
+                
+                saveSession(response.accessToken, user)
+                onSuccess()
+            } catch (e: retrofit2.HttpException) {
+                val errorBody = e.response()?.errorBody()?.string()
+                _errorMessage.value = "Google auth failed: ${errorBody ?: e.message()}"
             } catch (e: Exception) {
                 _errorMessage.value = "Google auth error: ${e.message}"
             } finally {

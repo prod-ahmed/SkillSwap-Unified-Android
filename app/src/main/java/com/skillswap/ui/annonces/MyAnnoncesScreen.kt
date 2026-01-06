@@ -54,6 +54,8 @@ import android.provider.OpenableColumns
 import com.skillswap.model.MediaPayload
 import kotlinx.coroutines.launch
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.ui.res.stringResource
+import com.skillswap.R
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -70,6 +72,7 @@ fun MyAnnoncesScreenContent(
     val uploading by viewModel.uploading.collectAsState()
     var showCreate by remember { mutableStateOf(false) }
     var editingAnnonce by remember { mutableStateOf<Annonce?>(null) }
+    var annonceToDelete by remember { mutableStateOf<Annonce?>(null) }
     
     // Filtering and Sorting state
     var searchQuery by remember { mutableStateOf("") }
@@ -226,7 +229,7 @@ fun MyAnnoncesScreenContent(
                 modifier = Modifier
                     .padding(padding)
                     .fillMaxSize()
-                    .background(Color(0xFFF2F2F7))
+                    .background(MaterialTheme.colorScheme.background)
             ) {
                 item {
                     com.skillswap.ui.components.FilterSortBar(
@@ -277,7 +280,7 @@ fun MyAnnoncesScreenContent(
                 items(filteredAnnonces) { annonce ->
                     AnnonceCard(
                         annonce = annonce,
-                        onDelete = { viewModel.deleteAnnonce(annonce.id) },
+                        onDelete = { annonceToDelete = annonce },
                         onEdit = { editingAnnonce = annonce },
                         onClick = {
                             // For simplicity, navigate with the annonce in the back stack
@@ -391,6 +394,31 @@ fun MyAnnoncesScreenContent(
             }
         }
     }
+    
+    // Delete confirmation dialog
+    annonceToDelete?.let { annonce ->
+        AlertDialog(
+            onDismissRequest = { annonceToDelete = null },
+            title = { Text(stringResource(R.string.delete_annonce)) },
+            text = { Text(stringResource(R.string.delete_annonce_confirm, annonce.title)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteAnnonce(annonce.id)
+                        annonceToDelete = null
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = Color.Red)
+                ) {
+                    Text(stringResource(R.string.delete))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { annonceToDelete = null }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
 }
 
 @Composable
@@ -415,7 +443,7 @@ private fun SortOption(label: String, value: String, current: String, onSelect: 
 fun AnnonceCard(annonce: Annonce, onDelete: () -> Unit, onEdit: () -> Unit, onClick: () -> Unit = {}) {
     Card(
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
@@ -436,7 +464,7 @@ fun AnnonceCard(annonce: Annonce, onDelete: () -> Unit, onEdit: () -> Unit, onCl
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(150.dp)
-                        .background(Color(0xFFF2F2F7)),
+                        .background(MaterialTheme.colorScheme.background),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(annonce.title, fontWeight = FontWeight.Bold)
@@ -494,7 +522,7 @@ private fun EmptyAnnoncesState(onRefresh: () -> Unit, message: String = "Aucune 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFFF2F2F7)),
+            .background(MaterialTheme.colorScheme.background),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {

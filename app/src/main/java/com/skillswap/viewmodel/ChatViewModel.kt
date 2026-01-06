@@ -147,15 +147,20 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
         hydrateActivePartner(conversationId, me)
 
-        if (_threads.value.isEmpty()) {
-            // ensure we have metadata for header if navigation came directly
-            loadConversations()
-        }
-
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
             try {
+                // Load threads first if needed (await completion)
+                if (_threads.value.isEmpty()) {
+                    val threadsResponse = NetworkService.api.getThreads(header)
+                    _threads.value = threadsResponse.items
+                    _conversations.value = threadsResponse.items.mapNotNull { thread ->
+                        toConversation(thread, me)
+                    }
+                    hydrateActivePartner(conversationId, me)
+                }
+                
                 val response = NetworkService.api.getMessages(header, conversationId)
                 _messages.value = response.items.map { it.toUiMessage(me) }
                 startSocket(conversationId)
@@ -340,6 +345,18 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun markThreadRead(threadId: String, ids: List<String>?) {
         val header = authHeader() ?: return
+        
+        // Update local conversation unread count immediately (optimistic update)
+        _conversations.value = _conversations.value.map { conv ->
+            if (conv.id == threadId) conv.copy(unreadCount = 0) else conv
+        }
+        
+        // Also update the threads list
+        _threads.value = _threads.value.map { thread ->
+            if (thread.id == threadId) thread.copy(unreadCount = 0) else thread
+        }
+        
+        // Then sync with server
         viewModelScope.launch {
             runCatching {
                 NetworkService.api.markThreadRead(

@@ -66,6 +66,10 @@ import com.skillswap.auth.AuthenticationManager
 import com.skillswap.security.SecureStorage
 import com.skillswap.util.LocalizationManager
 import com.skillswap.util.ThemeManager
+import com.skillswap.ui.guidedtour.GuidedTourManager
+import com.skillswap.ui.guidedtour.TourTargetRegistry
+import com.skillswap.ui.guidedtour.CoachMarkOverlay
+import androidx.compose.ui.layout.onGloballyPositioned
 
 sealed class Screen(val route: String, val title: String, val icon: String) {
     object Discover : Screen("discover", "Découvrir", "house.fill")
@@ -93,7 +97,8 @@ fun RowScope.CustomBottomNavigationItem(
     isSelected: Boolean,
     activeColor: Color,
     icon: ImageVector,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    tourTargetId: String? = null
 ) {
     androidx.compose.material3.TextButton(
         onClick = onClick,
@@ -103,7 +108,16 @@ fun RowScope.CustomBottomNavigationItem(
         ),
         shape = androidx.compose.foundation.shape.RoundedCornerShape(18.dp),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 10.dp, horizontal = 0.dp),
-        modifier = Modifier.defaultMinSize(minWidth = 1.dp).weight(1f)
+        modifier = Modifier
+            .defaultMinSize(minWidth = 1.dp)
+            .weight(1f)
+            .then(
+                if (tourTargetId != null) {
+                    Modifier.onGloballyPositioned { coordinates ->
+                        TourTargetRegistry.register(tourTargetId, coordinates)
+                    }
+                } else Modifier
+            )
     ) {
         androidx.compose.foundation.layout.Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -134,6 +148,7 @@ fun SkillSwapApp() {
     val localizationManager = remember { LocalizationManager.getInstance(context) }
     val themeManager = remember { ThemeManager.getInstance(context) }
     val securePrefs = remember { SecureStorage.getInstance(context) }
+    val guidedTourManager = remember { GuidedTourManager.getInstance(context) }
     val currentUser by authManager.currentUser.collectAsState()
     val isAuthenticated by authManager.isAuthenticated
     var hasSeenOnboarding by remember { mutableStateOf(securePrefs.getBoolean("onboarding_done", false)) }
@@ -176,6 +191,19 @@ fun SkillSwapApp() {
         }
     }
     
+    // Register FCM token when authenticated
+    LaunchedEffect(isAuthenticated, hasValidSession) {
+        if (isAuthenticated && hasValidSession) {
+            com.skillswap.service.SkillSwapMessagingService.requestToken { token ->
+                if (token != null) {
+                    android.util.Log.d("SkillSwapApp", "FCM Token retrieved: ${token.take(20)}...")
+                } else {
+                    android.util.Log.d("SkillSwapApp", "FCM not available, using local notifications only")
+                }
+            }
+        }
+    }
+    
     // Observe layout direction for RTL support
     @Suppress("UNUSED_VARIABLE")
     val currentLanguage by localizationManager.currentLanguage
@@ -196,6 +224,7 @@ fun SkillSwapApp() {
             val navController = rememberNavController()
             var showBottomBar by remember { mutableStateOf(false) }
             val callViewModel: CallViewModel = viewModel()
+            val chatViewModel: com.skillswap.viewmodel.ChatViewModel = viewModel()
             val startDestination = when {
                 !hasSeenOnboarding -> "onboarding"
                 !isAuthenticated || !hasValidSession -> "auth"
@@ -259,7 +288,7 @@ fun SkillSwapApp() {
                         return@LaunchedEffect
                     }
                     when (deepLinkType) {
-                        "chat" -> {
+                        "chat", "message" -> {
                             val threadId = deepLinkData["threadId"]
                             if (!threadId.isNullOrEmpty()) {
                                 navController.navigate(Screen.ChatDetail.createRoute(threadId))
@@ -267,7 +296,7 @@ fun SkillSwapApp() {
                                 navController.navigate(Screen.Messages.route)
                             }
                         }
-                        "session" -> {
+                        "session", "new_session", "session_reminder" -> {
                             val sessionId = deepLinkData["sessionId"]
                             if (!sessionId.isNullOrEmpty()) {
                                 navController.navigate("session_detail/$sessionId")
@@ -277,6 +306,31 @@ fun SkillSwapApp() {
                         }
                         "notification" -> {
                             navController.navigate("notifications")
+                        }
+                        "promo", "promotion" -> {
+                            val promoId = deepLinkData["promoId"]
+                            if (!promoId.isNullOrEmpty()) {
+                                navController.navigate("promo_detail/$promoId")
+                            } else {
+                                navController.navigate(Screen.MyPromos.route)
+                            }
+                        }
+                        "announce", "announcement" -> {
+                            val announcementId = deepLinkData["announcementId"]
+                            if (!announcementId.isNullOrEmpty()) {
+                                navController.navigate("annonce_detail/$announcementId")
+                            } else {
+                                navController.navigate(Screen.MyAnnonces.route)
+                            }
+                        }
+                        "skill_match" -> {
+                            val userId = deepLinkData["userId"]
+                            if (!userId.isNullOrEmpty()) {
+                                // Navigate to user profile or chat
+                                navController.navigate(Screen.ChatDetail.createRoute(userId))
+                            } else {
+                                navController.navigate(Screen.Discover.route)
+                            }
                         }
                     }
                     // Clear after handling
@@ -296,10 +350,19 @@ fun SkillSwapApp() {
 
             // Show BottomBar only on main screens
             showBottomBar = isAuthenticated && currentRoute in bottomNavItems.map { it.route }
+            
+            // Start guided tour when user first reaches main screen
+            LaunchedEffect(showBottomBar) {
+                if (showBottomBar && guidedTourManager.shouldShowTour) {
+                    // Small delay to let UI settle
+                    kotlinx.coroutines.delay(500)
+                    guidedTourManager.startTour()
+                }
+            }
 
         Scaffold(
             // Remove standard bottomBar from Scaffold as we overlay it
-        ) {
+        ) { _ ->
             Box(Modifier.fillMaxSize()) {
                 NavHost(
                     navController = navController, 
@@ -375,7 +438,8 @@ fun SkillSwapApp() {
                         ConversationsScreen(
                              onNavigateToChat = { conversationId ->
                                  navController.navigate(Screen.ChatDetail.createRoute(conversationId))
-                             }
+                             },
+                             viewModel = chatViewModel
                         )
                     }
                     
@@ -489,6 +553,7 @@ fun SkillSwapApp() {
                             conversationId = conversationId,
                             onBack = { navController.popBackStack() },
                             onPlanSession = { navController.navigate("create_session") },
+                            viewModel = chatViewModel,
                             callViewModel = callViewModel
                         )
                     }
@@ -564,6 +629,17 @@ fun SkillSwapApp() {
                                         "bell.fill" -> Icons.Default.Notifications
                                         else -> Icons.Default.Home
                                     }
+                                    
+                                    // Tour target ID for each tab
+                                    val tourTargetId = when(screen) {
+                                        Screen.Discover -> "tab_discover"
+                                        Screen.Messages -> "tab_messages"
+                                        Screen.Sessions -> "tab_sessions"
+                                        Screen.Progress -> "tab_progress"
+                                        Screen.Map -> "tab_map"
+                                        Screen.Profile -> "tab_profile"
+                                        else -> null
+                                    }
 
                                     CustomBottomNavigationItem(
                                         screen = screen,
@@ -571,7 +647,7 @@ fun SkillSwapApp() {
                                         activeColor = activeColor,
                                         icon = iconVector,
                                         onClick = {
-                                            if (!isSelected) {
+                                            if (!isSelected && !guidedTourManager.isShowingTour) {
                                                 navController.navigate(screen.route) {
                                                     popUpTo(navController.graph.findStartDestination().id) {
                                                         saveState = true
@@ -580,7 +656,8 @@ fun SkillSwapApp() {
                                                     restoreState = true
                                                 }
                                             }
-                                        }
+                                        },
+                                        tourTargetId = tourTargetId
                                     )
                                     if (screen != bottomNavItems.last()) {
                                         androidx.compose.foundation.layout.Spacer(modifier = Modifier.width(12.dp))
@@ -608,9 +685,24 @@ fun SkillSwapApp() {
                         onDismissEnded = { callViewModel.clearEnded() }
                     )
                 }
+                
+                // Guided Tour Overlay
+                if (guidedTourManager.isShowingTour) {
+                    val currentStep = guidedTourManager.currentStep
+                    if (currentStep != null) {
+                        val targetRect = TourTargetRegistry.getRect(currentStep.targetId)
+                        CoachMarkOverlay(
+                            step = currentStep,
+                            targetRect = targetRect,
+                            onNext = { guidedTourManager.nextStep() },
+                            onSkip = { guidedTourManager.skipTour() },
+                            isLastStep = guidedTourManager.isLastStep,
+                            progress = guidedTourManager.progress
+                        )
+                    }
+                }
             }
         }
+        }
     }
-}
-
 }

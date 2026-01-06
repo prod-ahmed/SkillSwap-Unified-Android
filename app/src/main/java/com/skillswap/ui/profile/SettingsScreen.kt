@@ -114,7 +114,7 @@ fun SettingsScreen(navController: NavController) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(Color(0xFFF2F2F7))
+                .background(MaterialTheme.colorScheme.background)
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
@@ -177,47 +177,94 @@ fun SettingsScreen(navController: NavController) {
             Spacer(Modifier.height(24.dp))
             
             SettingsSection("Notifications") {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Default.Notifications,
-                            contentDescription = null,
-                            tint = OrangePrimary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(Modifier.width(16.dp))
-                        Column {
-                            Text(
-                                "Activer les notifications",
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Medium
-                            )
-                            Text(
-                                "Recevoir des alertes",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color.Gray
-                            )
-                        }
-                    }
-                    Switch(
+                Column(modifier = Modifier.padding(16.dp)) {
+                    // Master toggle
+                    NotificationToggleRow(
+                        icon = Icons.Default.Notifications,
+                        title = "Activer les notifications",
+                        subtitle = "Recevoir des alertes",
                         checked = notificationsEnabled,
                         onCheckedChange = { enabled ->
                             notificationsEnabled = enabled
                             sharedPrefs.edit()
                                 .putBoolean("notifications_enabled", enabled)
                                 .apply()
-                        },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = Color.White,
-                            checkedTrackColor = OrangePrimary
-                        )
+                        }
                     )
+                    
+                    if (notificationsEnabled) {
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+                        
+                        // Messages
+                        NotificationToggleRow(
+                            title = "💬 Messages",
+                            subtitle = "Nouveaux messages de chat",
+                            checked = sharedPrefs.getBoolean("notif_chat", true),
+                            onCheckedChange = { enabled ->
+                                sharedPrefs.edit().putBoolean("notif_chat", enabled).apply()
+                            }
+                        )
+                        
+                        Spacer(Modifier.height(8.dp))
+                        
+                        // Sessions
+                        NotificationToggleRow(
+                            title = "📅 Sessions",
+                            subtitle = "Nouvelles sessions et rappels",
+                            checked = sharedPrefs.getBoolean("notif_sessions", true),
+                            onCheckedChange = { enabled ->
+                                sharedPrefs.edit().putBoolean("notif_sessions", enabled).apply()
+                            }
+                        )
+                        
+                        Spacer(Modifier.height(8.dp))
+                        
+                        // Calls
+                        NotificationToggleRow(
+                            title = "📞 Appels",
+                            subtitle = "Appels entrants",
+                            checked = sharedPrefs.getBoolean("notif_calls", true),
+                            onCheckedChange = { enabled ->
+                                sharedPrefs.edit().putBoolean("notif_calls", enabled).apply()
+                            }
+                        )
+                        
+                        Spacer(Modifier.height(8.dp))
+                        
+                        // Promos
+                        NotificationToggleRow(
+                            title = "🎁 Promotions",
+                            subtitle = "Offres spéciales sur vos compétences",
+                            checked = sharedPrefs.getBoolean("notif_promos", true),
+                            onCheckedChange = { enabled ->
+                                sharedPrefs.edit().putBoolean("notif_promos", enabled).apply()
+                            }
+                        )
+                        
+                        Spacer(Modifier.height(8.dp))
+                        
+                        // Announcements
+                        NotificationToggleRow(
+                            title = "📢 Annonces",
+                            subtitle = "Annonces basées sur ce que vous voulez apprendre",
+                            checked = sharedPrefs.getBoolean("notif_announcements", true),
+                            onCheckedChange = { enabled ->
+                                sharedPrefs.edit().putBoolean("notif_announcements", enabled).apply()
+                            }
+                        )
+                        
+                        Spacer(Modifier.height(8.dp))
+                        
+                        // Skill matches
+                        NotificationToggleRow(
+                            title = "🎯 Correspondances",
+                            subtitle = "Nouveaux utilisateurs correspondant à vos intérêts",
+                            checked = sharedPrefs.getBoolean("notif_skill_matches", true),
+                            onCheckedChange = { enabled ->
+                                sharedPrefs.edit().putBoolean("notif_skill_matches", enabled).apply()
+                            }
+                        )
+                    }
                 }
             }
             
@@ -399,4 +446,54 @@ fun LanguagePickerDialog(
             }
         }
     )
+}
+
+@Composable
+fun NotificationToggleRow(
+    icon: ImageVector? = null,
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.weight(1f)
+        ) {
+            if (icon != null) {
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    tint = OrangePrimary,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(Modifier.width(16.dp))
+            }
+            Column {
+                Text(
+                    title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
+                )
+            }
+        }
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color.White,
+                checkedTrackColor = OrangePrimary
+            )
+        )
+    }
 }

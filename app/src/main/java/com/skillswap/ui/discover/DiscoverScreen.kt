@@ -188,7 +188,10 @@ fun DiscoverScreen(
         }
 
         // Content
-        Box(modifier = Modifier.fillMaxSize().padding(top = 16.dp)) {
+        Box(modifier = Modifier
+            .fillMaxSize()
+            .padding(top = 16.dp, bottom = 100.dp) // Add bottom padding to avoid tab bar
+        ) {
             successMessage?.let {
                 StatusBanner(
                     text = it,
@@ -217,33 +220,41 @@ fun DiscoverScreen(
                     DiscoverSegment.PROFILS -> {
                         if (users.isNotEmpty() && currentIndex < users.size) {
                             val currentUser = users[currentIndex]
-                            Column(
+                            Box(
                                 modifier = Modifier.fillMaxSize(),
-                                horizontalAlignment = Alignment.CenterHorizontally
+                                contentAlignment = Alignment.Center
                             ) {
-                                Spacer(Modifier.weight(1f))
-                                key(currentUser.id) {
-                                    SwipeableProfileCard(
-                                        user = currentUser,
-                                        onSwipe = { viewModel.nextProfile() }
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                                ) {
+                                    key(currentUser.id) {
+                                        SwipeableProfileCard(
+                                            user = currentUser,
+                                            onSwipeLeft = { viewModel.swipeLeft() },
+                                            onSwipeRight = {
+                                                viewModel.swipeRight(currentUser) { matchUser ->
+                                                    matchedUser = matchUser
+                                                    showMatchDialog = true
+                                                }
+                                            }
+                                        )
+                                    }
+                                    ActionButtons(
+                                        onPass = { viewModel.swipeLeft() },
+                                        onLike = {
+                                            viewModel.swipeRight(currentUser) { matchUser ->
+                                                matchedUser = matchUser
+                                                showMatchDialog = true
+                                            }
+                                        },
+                                        onMessage = {
+                                            viewModel.startChatWithUser(currentUser.id) { threadId ->
+                                                onNavigateToChat(threadId)
+                                            }
+                                        }
                                     )
                                 }
-                                Spacer(Modifier.weight(1f))
-                                ActionButtons(
-                                    onPass = { viewModel.swipeLeft() },
-                                    onLike = {
-                                        viewModel.swipeRight(currentUser) { matchUser ->
-                                            matchedUser = matchUser
-                                            showMatchDialog = true
-                                        }
-                                    },
-                                    onMessage = {
-                                        viewModel.startChatWithUser(currentUser.id) { threadId ->
-                                            onNavigateToChat(threadId)
-                                        }
-                                    }
-                                )
-                                Spacer(Modifier.height(30.dp))
                             }
                         } else {
                             EmptyDiscoverState(message = "Plus de profils pour le moment", action = { viewModel.loadForCurrentSegment() })
@@ -558,44 +569,90 @@ private fun EmptyDiscoverState(message: String, action: () -> Unit) {
 }
 
 @Composable
-fun SwipeableProfileCard(user: User, onSwipe: () -> Unit) {
+fun SwipeableProfileCard(
+    user: User, 
+    onSwipeLeft: () -> Unit,
+    onSwipeRight: () -> Unit
+) {
     var offsetX by remember { mutableStateOf(0f) }
     var rotation by remember { mutableStateOf(0f) }
     val teaching = remember(user.skillsTeach) { user.skillsTeach?.takeIf { it.isNotEmpty() }?.joinToString(", ") }
     val learning = remember(user.skillsLearn) { user.skillsLearn?.takeIf { it.isNotEmpty() }?.joinToString(", ") }
     val rating = user.ratingAvg?.let { String.format("%.1f", it) }
+    
+    // Swipe threshold
+    val swipeThreshold = 150f
 
-    Card(
+    Box(
         modifier = Modifier
-            .fillMaxWidth(0.9f)
-            .height(550.dp) // Fixed height to match iOS look roughly
-            .offset { IntOffset(offsetX.roundToInt(), 0) }
-            .graphicsLayer(rotationZ = rotation)
-            .pointerInput(Unit) {
-                detectDragGestures(
-                    onDragEnd = {
-                        if (kotlin.math.abs(offsetX) > 150) {
-                            onSwipe()
+            .fillMaxWidth(0.92f)
+            .height(480.dp)
+    ) {
+        // Swipe indicators
+        if (offsetX > 50) {
+            // Like indicator
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .padding(start = 24.dp)
+                    .size(60.dp)
+                    .clip(CircleShape)
+                    .background(Color.Green.copy(alpha = 0.9f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.Favorite, contentDescription = null, tint = Color.White, modifier = Modifier.size(32.dp))
+            }
+        }
+        if (offsetX < -50) {
+            // Pass indicator
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(end = 24.dp)
+                    .size(60.dp)
+                    .clip(CircleShape)
+                    .background(Color.Red.copy(alpha = 0.9f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.Close, contentDescription = null, tint = Color.White, modifier = Modifier.size(32.dp))
+            }
+        }
+
+        Card(
+            modifier = Modifier
+                .fillMaxSize()
+                .offset { IntOffset(offsetX.roundToInt(), 0) }
+                .graphicsLayer(rotationZ = rotation)
+                .pointerInput(Unit) {
+                    detectDragGestures(
+                        onDragEnd = {
+                            when {
+                                offsetX > swipeThreshold -> {
+                                    onSwipeRight()
+                                }
+                                offsetX < -swipeThreshold -> {
+                                    onSwipeLeft()
+                                }
+                            }
                             offsetX = 0f
                             rotation = 0f
-                        } else {
+                        },
+                        onDragCancel = {
                             offsetX = 0f
                             rotation = 0f
                         }
+                    ) { change, dragAmount ->
+                        change.consume()
+                        offsetX += dragAmount.x
+                        rotation = (offsetX / 25f).coerceIn(-15f, 15f)
                     }
-                ) { change, dragAmount ->
-                    change.consume()
-                    offsetX += dragAmount.x
-                    rotation = offsetX / 20
-                }
-            },
-        shape = RoundedCornerShape(32.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-    ) {
-        Column {
-            // Image Area
-            Box(modifier = Modifier.height(350.dp).fillMaxWidth()) {
+                },
+            shape = RoundedCornerShape(28.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
+        ) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                // Background Image
                 if (user.avatarUrl?.isNotBlank() == true) {
                     AsyncImage(
                         model = user.avatarUrl,
@@ -607,58 +664,126 @@ fun SwipeableProfileCard(user: User, onSwipe: () -> Unit) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(Color(0xFF5C52BF).copy(alpha = 0.1f)),
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(
+                                        Color(0xFF667eea),
+                                        Color(0xFF764ba2)
+                                    )
+                                )
+                            ),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            user.username.firstOrNull()?.uppercase() ?: "",
-                            style = MaterialTheme.typography.headlineMedium,
+                            user.username.firstOrNull()?.uppercase() ?: "?",
+                            style = MaterialTheme.typography.displayLarge,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF5C52BF)
+                            color = Color.White.copy(alpha = 0.8f)
                         )
                     }
                 }
                 
+                // Gradient overlay at bottom
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(220.dp)
+                        .align(Alignment.BottomCenter)
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    Color.Black.copy(alpha = 0.8f)
+                                )
+                            )
+                        )
+                )
+                
+                // Online status badge
                 Row(
                     modifier = Modifier
-                        .align(Alignment.BottomStart)
+                        .align(Alignment.TopStart)
                         .padding(16.dp)
-                        .background(androidx.compose.ui.graphics.Color.Black.copy(alpha=0.4f), CircleShape)
+                        .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(20.dp))
                         .padding(horizontal = 12.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                     Box(Modifier.size(8.dp).background(Color.Green, CircleShape))
-                     Spacer(Modifier.width(6.dp))
-                     Text("En ligne", color = Color.White, style = MaterialTheme.typography.labelSmall)
+                    Box(
+                        Modifier
+                            .size(8.dp)
+                            .background(Color(0xFF4CAF50), CircleShape)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text("En ligne", color = Color.White, style = MaterialTheme.typography.labelSmall)
                 }
-            }
-            
-            // Text Info
-            Column(Modifier.padding(24.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("${user.username}", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                    Spacer(Modifier.weight(1f))
-                    Surface(color = SkillGold.copy(alpha=0.1f), shape = CircleShape) {
-                        Row(Modifier.padding(horizontal=12.dp, vertical=6.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Star, contentDescription=null, tint=SkillGold, modifier=Modifier.size(16.dp))
-                            Text(rating ?: "N/A", color = SkillGold, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
-                        }
+                
+                // Rating badge
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(16.dp),
+                    color = Color.Black.copy(alpha = 0.5f),
+                    shape = RoundedCornerShape(20.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.Star, 
+                            contentDescription = null, 
+                            tint = SkillGold, 
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            rating ?: "N/A", 
+                            color = Color.White, 
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.labelMedium
+                        )
                     }
                 }
                 
-                Text(
-                     user.bio ?: "Passionné par le partage de connaissances.",
-                     color = Color.Gray,
-                     maxLines = 3,
-                     modifier = Modifier.padding(top = 8.dp)
-                )
-                
-                Spacer(Modifier.height(16.dp))
-                
-                // Skills
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                     SkillTag("Enseigne: ${teaching ?: "—"}", SkillCoral)
-                     SkillTag("Apprend: ${learning ?: "—"}", SkillTurquoise)
+                // User info at bottom
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(20.dp)
+                ) {
+                    // Name and age
+                    Text(
+                        user.username,
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                    
+                    // Bio
+                    if (!user.bio.isNullOrBlank()) {
+                        Text(
+                            user.bio,
+                            color = Color.White.copy(alpha = 0.85f),
+                            maxLines = 2,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
+                    
+                    Spacer(Modifier.height(12.dp))
+                    
+                    // Skills tags
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        if (!teaching.isNullOrBlank()) {
+                            SkillTagGlass("Enseigne", teaching, SkillCoral)
+                        }
+                        if (!learning.isNullOrBlank()) {
+                            SkillTagGlass("Apprend", learning, SkillTurquoise)
+                        }
+                    }
                 }
             }
         }
@@ -666,47 +791,99 @@ fun SwipeableProfileCard(user: User, onSwipe: () -> Unit) {
 }
 
 @Composable
-fun SkillTag(text: String, color: Color) {
-    Surface(color = color.copy(alpha=0.1f), shape = RoundedCornerShape(8.dp)) {
-        Text(text, color = color, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(horizontal=8.dp, vertical=4.dp))
+fun SkillTagGlass(label: String, value: String, color: Color) {
+    Surface(
+        color = Color.White.copy(alpha = 0.15f),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+        ) {
+            Text(
+                label,
+                color = color,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                value,
+                color = Color.White,
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 1
+            )
+        }
     }
 }
 
 @Composable
 fun ActionButtons(onPass: () -> Unit, onLike: () -> Unit, onMessage: () -> Unit) {
-    Row(horizontalArrangement = Arrangement.spacedBy(30.dp), verticalAlignment = Alignment.CenterVertically) {
-        // Pass
-        FloatingActionButton(
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(24.dp), 
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(vertical = 8.dp)
+    ) {
+        // Pass button - red X
+        Surface(
             onClick = onPass,
-            containerColor = Color.White,
-            contentColor = Color.Red,
-            elevation = FloatingActionButtonDefaults.elevation(8.dp),
-            modifier = Modifier.size(64.dp)
+            shape = CircleShape,
+            color = Color.White,
+            shadowElevation = 8.dp,
+            modifier = Modifier.size(60.dp)
         ) {
-            Icon(Icons.Default.Close, contentDescription = "Pass")
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                Icon(
+                    Icons.Default.Close, 
+                    contentDescription = "Passer",
+                    tint = Color(0xFFFF6B6B),
+                    modifier = Modifier.size(28.dp)
+                )
+            }
         }
 
-        // Message
-        FloatingActionButton(
+        // Message button - turquoise chat
+        Surface(
             onClick = onMessage,
-            containerColor = SkillTurquoise,
-            contentColor = Color.White,
-            elevation = FloatingActionButtonDefaults.elevation(8.dp),
-            modifier = Modifier.size(56.dp)
+            shape = CircleShape,
+            color = SkillTurquoise,
+            shadowElevation = 8.dp,
+            modifier = Modifier.size(52.dp)
         ) {
-            Icon(Icons.Default.ChatBubble, contentDescription = "Message")
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                Icon(
+                    Icons.Default.ChatBubble, 
+                    contentDescription = "Message",
+                    tint = Color.White,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
         }
 
-        // Like
-        Box(
-            modifier = Modifier
-                .size(64.dp)
-                .clip(CircleShape)
-                .background(Brush.linearGradient(colors = listOf(SkillCoral, SkillCoralLight)))
-                .clickable(onClick = onLike),
-            contentAlignment = Alignment.Center
+        // Like button - gradient heart
+        Surface(
+            onClick = onLike,
+            shape = CircleShape,
+            color = Color.Transparent,
+            shadowElevation = 8.dp,
+            modifier = Modifier.size(60.dp)
         ) {
-            Icon(Icons.Default.Favorite, contentDescription = "Like", tint = Color.White)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(SkillCoral, SkillCoralLight)
+                        ),
+                        CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.Favorite, 
+                    contentDescription = "J'aime",
+                    tint = Color.White,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
         }
     }
 }

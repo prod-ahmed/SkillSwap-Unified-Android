@@ -36,6 +36,8 @@ import com.skillswap.model.MediaPayload
 import java.io.ByteArrayOutputStream
 import android.graphics.BitmapFactory
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.ui.res.stringResource
+import com.skillswap.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,6 +55,7 @@ fun MyPromosScreenContent(
     val uploadProgress by viewModel.uploadProgress.collectAsState()
     var showCreate by remember { mutableStateOf(false) }
     var editingPromo by remember { mutableStateOf<Promo?>(null) }
+    var promoToDelete by remember { mutableStateOf<Promo?>(null) }
     var pendingImage by remember { mutableStateOf<MediaPayload?>(null) }
     var imageError by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
@@ -130,12 +133,12 @@ fun MyPromosScreenContent(
                 modifier = Modifier
                     .padding(padding)
                     .fillMaxSize()
-                    .background(Color(0xFFF2F2F7))
+                    .background(MaterialTheme.colorScheme.background)
             ) {
                 items(promos) { promo ->
                     PromoCard(
                         promo,
-                        onDelete = { viewModel.deletePromo(promo.id) },
+                        onDelete = { promoToDelete = promo },
                         onEdit = {
                             editingPromo = promo
                         }
@@ -162,6 +165,31 @@ fun MyPromosScreenContent(
             onPromoUpdated = {
                 editingPromo = null
                 viewModel.loadPromos()
+            }
+        )
+    }
+    
+    // Delete confirmation dialog
+    promoToDelete?.let { promo ->
+        AlertDialog(
+            onDismissRequest = { promoToDelete = null },
+            title = { Text(stringResource(R.string.delete_promo)) },
+            text = { Text(stringResource(R.string.delete_promo_confirm, promo.title)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deletePromo(promo.id)
+                        promoToDelete = null
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = Color.Red)
+                ) {
+                    Text(stringResource(R.string.delete))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { promoToDelete = null }) {
+                    Text(stringResource(R.string.cancel))
+                }
             }
         )
     }
@@ -196,7 +224,7 @@ private fun EmptyPromosState(onRefresh: () -> Unit, modifier: Modifier = Modifie
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFFF2F2F7)),
+            .background(MaterialTheme.colorScheme.background),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -209,7 +237,7 @@ private fun EmptyPromosState(onRefresh: () -> Unit, modifier: Modifier = Modifie
 fun PromoCard(promo: Promo, onDelete: () -> Unit, onEdit: () -> Unit) {
     Card(
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column {
@@ -229,7 +257,7 @@ fun PromoCard(promo: Promo, onDelete: () -> Unit, onEdit: () -> Unit) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(150.dp)
-                            .background(Color(0xFFF2F2F7)),
+                            .background(MaterialTheme.colorScheme.background),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(promo.title, fontWeight = FontWeight.Bold)

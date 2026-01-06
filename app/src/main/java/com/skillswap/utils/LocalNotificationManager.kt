@@ -17,9 +17,12 @@ import com.skillswap.R
 class LocalNotificationManager(private val context: Context) {
     
     companion object {
-        private const val CHANNEL_ID = "skillswap_notifications"
-        private const val CHANNEL_NAME = "SkillSwap Notifications"
-        private const val CHANNEL_DESCRIPTION = "Notifications for SkillSwap app"
+        private const val CHANNEL_ID_MESSAGES = "skillswap_messages"
+        private const val CHANNEL_ID_SESSIONS = "skillswap_sessions"
+        private const val CHANNEL_ID_PROMOS = "skillswap_promos"
+        private const val CHANNEL_ID_CALLS = "skillswap_calls"
+        private const val CHANNEL_ID_GENERAL = "skillswap_notifications"
+        
         private var instance: LocalNotificationManager? = null
         
         fun getInstance(context: Context): LocalNotificationManager {
@@ -34,18 +37,66 @@ class LocalNotificationManager(private val context: Context) {
         context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     
     init {
-        createNotificationChannel()
+        createNotificationChannels()
     }
     
-    private fun createNotificationChannel() {
+    private fun createNotificationChannels() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val importance = NotificationManager.IMPORTANCE_HIGH
-            val channel = NotificationChannel(CHANNEL_ID, CHANNEL_NAME, importance).apply {
-                description = CHANNEL_DESCRIPTION
+            // Messages channel - high priority
+            val messagesChannel = NotificationChannel(
+                CHANNEL_ID_MESSAGES,
+                "Messages",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Nouveaux messages de chat"
                 enableLights(true)
                 enableVibration(true)
             }
-            notificationManager.createNotificationChannel(channel)
+            
+            // Sessions channel - high priority
+            val sessionsChannel = NotificationChannel(
+                CHANNEL_ID_SESSIONS,
+                "Sessions",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Nouvelles sessions et rappels"
+                enableLights(true)
+                enableVibration(true)
+            }
+            
+            // Promos & announcements channel - default priority
+            val promosChannel = NotificationChannel(
+                CHANNEL_ID_PROMOS,
+                "Promotions et Annonces",
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                description = "Offres spéciales et annonces basées sur vos intérêts"
+                enableLights(true)
+            }
+            
+            // Calls channel - max priority
+            val callsChannel = NotificationChannel(
+                CHANNEL_ID_CALLS,
+                "Appels",
+                NotificationManager.IMPORTANCE_MAX
+            ).apply {
+                description = "Appels entrants"
+                enableLights(true)
+                enableVibration(true)
+            }
+            
+            // General channel
+            val generalChannel = NotificationChannel(
+                CHANNEL_ID_GENERAL,
+                "Général",
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                description = "Notifications générales"
+            }
+            
+            notificationManager.createNotificationChannels(
+                listOf(messagesChannel, sessionsChannel, promosChannel, callsChannel, generalChannel)
+            )
         }
     }
     
@@ -64,7 +115,8 @@ class LocalNotificationManager(private val context: Context) {
         id: Int = System.currentTimeMillis().toInt(),
         title: String,
         body: String,
-        data: Map<String, String>? = null
+        data: Map<String, String>? = null,
+        channelId: String = CHANNEL_ID_GENERAL
     ) {
         if (!requestPermissionIfNeeded()) {
             return
@@ -79,12 +131,12 @@ class LocalNotificationManager(private val context: Context) {
         
         val pendingIntent: PendingIntent = PendingIntent.getActivity(
             context,
-            0,
+            id,
             intent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
         
-        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
+        val builder = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle(title)
             .setContentText(body)
@@ -110,12 +162,14 @@ class LocalNotificationManager(private val context: Context) {
         messageText: String
     ) {
         showNotification(
+            id = threadId.hashCode(),
             title = senderName,
             body = messageText,
             data = mapOf(
                 "type" to "chat",
                 "threadId" to threadId
-            )
+            ),
+            channelId = CHANNEL_ID_MESSAGES
         )
     }
     
@@ -125,13 +179,134 @@ class LocalNotificationManager(private val context: Context) {
         callType: String
     ) {
         showNotification(
+            id = callerId.hashCode(),
             title = "Appel entrant",
             body = "$callerName vous appelle ($callType)",
             data = mapOf(
                 "type" to "call",
                 "callerId" to callerId,
                 "callType" to callType
-            )
+            ),
+            channelId = CHANNEL_ID_CALLS
+        )
+    }
+    
+    fun showSessionNotification(
+        sessionId: String,
+        title: String,
+        body: String
+    ) {
+        showNotification(
+            id = sessionId.hashCode(),
+            title = title,
+            body = body,
+            data = mapOf(
+                "type" to "session",
+                "sessionId" to sessionId
+            ),
+            channelId = CHANNEL_ID_SESSIONS
+        )
+    }
+    
+    fun showSessionReminderNotification(
+        sessionId: String,
+        title: String,
+        body: String,
+        scheduledTime: String
+    ) {
+        val reminderBody = if (scheduledTime.isNotEmpty()) {
+            "$body\n⏰ $scheduledTime"
+        } else {
+            body
+        }
+        
+        showNotification(
+            id = "reminder_$sessionId".hashCode(),
+            title = "⏰ $title",
+            body = reminderBody,
+            data = mapOf(
+                "type" to "session_reminder",
+                "sessionId" to sessionId
+            ),
+            channelId = CHANNEL_ID_SESSIONS
+        )
+    }
+    
+    fun showPromoNotification(
+        promoId: String,
+        title: String,
+        body: String,
+        skillCategory: String
+    ) {
+        val promoTitle = "🎁 $title"
+        val promoBody = if (skillCategory.isNotEmpty()) {
+            "$body\n📚 Catégorie: $skillCategory"
+        } else {
+            body
+        }
+        
+        showNotification(
+            id = promoId.hashCode(),
+            title = promoTitle,
+            body = promoBody,
+            data = mapOf(
+                "type" to "promo",
+                "promoId" to promoId,
+                "skillCategory" to skillCategory
+            ),
+            channelId = CHANNEL_ID_PROMOS
+        )
+    }
+    
+    fun showAnnouncementNotification(
+        announcementId: String,
+        title: String,
+        body: String,
+        targetSkills: String
+    ) {
+        val announcementTitle = "📢 $title"
+        val announcementBody = if (targetSkills.isNotEmpty()) {
+            "$body\n🎯 Compétences: $targetSkills"
+        } else {
+            body
+        }
+        
+        showNotification(
+            id = announcementId.hashCode(),
+            title = announcementTitle,
+            body = announcementBody,
+            data = mapOf(
+                "type" to "announcement",
+                "announcementId" to announcementId,
+                "targetSkills" to targetSkills
+            ),
+            channelId = CHANNEL_ID_PROMOS
+        )
+    }
+    
+    fun showSkillMatchNotification(
+        userId: String,
+        title: String,
+        body: String,
+        matchedSkill: String
+    ) {
+        val matchTitle = "🎯 $title"
+        val matchBody = if (matchedSkill.isNotEmpty()) {
+            "$body\n💡 Compétence: $matchedSkill"
+        } else {
+            body
+        }
+        
+        showNotification(
+            id = "match_$userId".hashCode(),
+            title = matchTitle,
+            body = matchBody,
+            data = mapOf(
+                "type" to "skill_match",
+                "userId" to userId,
+                "matchedSkill" to matchedSkill
+            ),
+            channelId = CHANNEL_ID_PROMOS
         )
     }
     

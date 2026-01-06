@@ -70,7 +70,7 @@ fun EventDetailScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(Color(0xFFF2F2F7))
+                .background(MaterialTheme.colorScheme.background)
         ) {
             when {
                 isLoading -> {
@@ -115,7 +115,7 @@ fun EventDetailScreen(
                         
                         // Event Details Card
                         Card(
-                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                             shape = RoundedCornerShape(16.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
@@ -219,7 +219,7 @@ fun EventDetailScreen(
                         event!!.participants?.let { participants ->
                             if (participants.isNotEmpty()) {
                                 Card(
-                                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                                     shape = RoundedCornerShape(16.dp),
                                     modifier = Modifier.fillMaxWidth()
                                 ) {

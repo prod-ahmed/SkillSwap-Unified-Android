@@ -1,0 +1,240 @@
+<resources>
+    <string name="app_name">SkillSwap</string>
+    
+    <!-- Common -->
+    <string name="ok">حسنا</string>
+    <string name="cancel">إلغاء</string>
+    <string name="delete">حذف</string>
+    <string name="edit">تعديل</string>
+    <string name="save">حفظ</string>
+    <string name="add">إضافة</string>
+    <string name="close">إغلاق</string>
+    <string name="back">رجوع</string>
+    <string name="next">التالي</string>
+    <string name="previous">السابق</string>
+    <string name="search">بحث</string>
+    <string name="loading">جاري التحميل…</string>
+    <string name="error">خطأ</string>
+    <string name="success">نجاح</string>
+    <string name="refresh">تحديث</string>
+    <string name="retry">إعادة المحاولة</string>
+    <string name="apply">تطبيق</string>
+    <string name="confirm">تأكيد</string>
+    <string name="yes">نعم</string>
+    <string name="no">لا</string>
+    
+    <!-- Auth -->
+    <string name="login">تسجيل الدخول</string>
+    <string name="signup">إنشاء حساب</string>
+    <string name="logout">تسجيل الخروج</string>
+    <string name="email">البريد الإلكتروني</string>
+    <string name="password">كلمة المرور</string>
+    <string name="confirm_password">تأكيد كلمة المرور</string>
+    <string name="forgot_password">نسيت كلمة المرور؟</string>
+    <string name="reset_password">إعادة تعيين كلمة المرور</string>
+    <string name="username">اسم المستخدم</string>
+    <string name="full_name">الاسم الكامل</string>
+    <string name="show_password">إظهار كلمة المرور</string>
+    <string name="hide_password">إخفاء كلمة المرور</string>
+    <string name="already_have_account">لديك حساب بالفعل؟</string>
+    <string name="no_account">ليس لديك حساب؟</string>
+    <string name="login_error">فشل تسجيل الدخول. يرجى التحقق من بياناتك.</string>
+    <string name="signup_error">فشل إنشاء الحساب. يرجى المحاولة مرة أخرى.</string>
+    
+    <!-- Navigation -->
+    <string name="nav_home">الرئيسية</string>
+    <string name="nav_discover">اكتشف</string>
+    <string name="nav_messages">الرسائل</string>
+    <string name="nav_calendar">التقويم</string>
+    <string name="nav_profile">الملف الشخصي</string>
+    <string name="nav_progress">التقدم</string>
+    <string name="nav_notifications">الإشعارات</string>
+    <string name="nav_settings">الإعدادات</string>
+    
+    <!-- Discover -->
+    <string name="discover_title">اكتشف</string>
+    <string name="find_skills">البحث عن مهارات</string>
+    <string name="no_more_profiles">لا توجد ملفات شخصية أخرى</string>
+    <string name="match_found">تم التطابق!</string>
+    <string name="send_message">إرسال رسالة</string>
+    <string name="keep_swiping">استمر في التصفح</string>
+    <string name="teaches">يُعلّم</string>
+    <string name="learns">يتعلم</string>
+    <string name="distance_km">على بعد %s كم</string>
+    <string name="match_request_sent">تم إرسال طلب التطابق!</string>
+    <string name="accept_request">قبول الطلب</string>
+    <string name="decline_request">رفض</string>
+    
+    <!-- Messages / Chat -->
+    <string name="messages_title">الرسائل</string>
+    <string name="conversations">المحادثات</string>
+    <string name="no_conversations">لا توجد محادثات</string>
+    <string name="start_conversation">بدء محادثة</string>
+    <string name="type_message">اكتب رسالتك…</string>
+    <string name="send">إرسال</string>
+    <string name="online">متصل</string>
+    <string name="offline">غير متصل</string>
+    <string name="typing">يكتب…</string>
+    <string name="delivered">تم التسليم</string>
+    <string name="read">مقروءة</string>
+    <string name="today">اليوم</string>
+    <string name="yesterday">أمس</string>
+    <string name="plan_session">جدولة جلسة</string>
+    <string name="reply">رد</string>
+    <string name="delete_message">حذف الرسالة</string>
+    <string name="delete_message_confirm">هل أنت متأكد من حذف هذه الرسالة؟</string>
+    
+    <!-- Calendar -->
+    <string name="calendar_title">التقويم</string>
+    <string name="new_event">حدث جديد</string>
+    <string name="event_title">عنوان الحدث</string>
+    <string name="event_description">الوصف</string>
+    <string name="event_location">الموقع</string>
+    <string name="event_date">التاريخ</string>
+    <string name="event_time">الوقت</string>
+    <string name="start_time">وقت البدء</string>
+    <string name="end_time">وقت الانتهاء</string>
+    <string name="add_participants">إضافة مشاركين</string>
+    <string name="participants">المشاركون</string>
+    <string name="no_events">لا توجد أحداث مجدولة</string>
+    <string name="delete_event">حذف الحدث</string>
+    <string name="delete_event_confirm">هل أنت متأكد من حذف هذا الحدث؟</string>
+    <string name="event_deleted">تم حذف الحدث</string>
+    <string name="event_created">تم إنشاء الحدث</string>
+    <string name="session">جلسة</string>
+    <string name="confirmed">مؤكد</string>
+    <string name="pending">قيد الانتظار</string>
+    <string name="cancelled">ملغى</string>
+    
+    <!-- Profile -->
+    <string name="profile_title">الملف الشخصي</string>
+    <string name="edit_profile">تعديل الملف الشخصي</string>
+    <string name="my_skills">مهاراتي</string>
+    <string name="skills_i_teach">المهارات التي أُعلّمها</string>
+    <string name="skills_i_learn">المهارات التي أريد تعلمها</string>
+    <string name="bio">نبذة</string>
+    <string name="location">الموقع</string>
+    <string name="city">المدينة</string>
+    <string name="level">المستوى</string>
+    <string name="beginner">مبتدئ</string>
+    <string name="intermediate">متوسط</string>
+    <string name="advanced">متقدم</string>
+    <string name="expert">خبير</string>
+    <string name="experience">الخبرة</string>
+    <string name="years_experience">%d سنوات خبرة</string>
+    <string name="profile_updated">تم تحديث الملف الشخصي</string>
+    <string name="change_photo">تغيير الصورة</string>
+    <string name="take_photo">التقاط صورة</string>
+    <string name="choose_from_gallery">اختيار من المعرض</string>
+    
+    <!-- Progress -->
+    <string name="progress_title">التقدم</string>
+    <string name="weekly_activity">نشاط الأسبوع</string>
+    <string name="this_week">هذا الأسبوع</string>
+    <string name="hours">ساعات</string>
+    <string name="skills_count">المهارات</string>
+    <string name="total_xp">مجموع XP</string>
+    <string name="goals">الأهداف</string>
+    <string name="no_goals">لا توجد أهداف محددة</string>
+    <string name="add_goal">إضافة هدف</string>
+    <string name="create_goal">إنشاء هدف</string>
+    <string name="goal_title">عنوان الهدف</string>
+    <string name="target_hours">الساعات المستهدفة</string>
+    <string name="period">الفترة</string>
+    <string name="weekly">أسبوعي</string>
+    <string name="monthly">شهري</string>
+    <string name="due_date">تاريخ الاستحقاق</string>
+    <string name="delete_goal">حذف الهدف</string>
+    <string name="delete_goal_confirm">هل أنت متأكد من حذف \"%s\"؟</string>
+    <string name="weekly_objective">الهدف الأسبوعي</string>
+    <string name="create_objective">إنشاء هدف</string>
+    <string name="objective_completed">تم تحقيق الهدف!</string>
+    <string name="badges">الشارات</string>
+    <string name="achievements">الإنجازات</string>
+    
+    <!-- Settings -->
+    <string name="settings_title">الإعدادات</string>
+    <string name="account">الحساب</string>
+    <string name="notifications_settings">الإشعارات</string>
+    <string name="privacy">الخصوصية</string>
+    <string name="appearance">المظهر</string>
+    <string name="language">اللغة</string>
+    <string name="dark_mode">الوضع الداكن</string>
+    <string name="light_mode">الوضع الفاتح</string>
+    <string name="system_default">افتراضي النظام</string>
+    <string name="about">حول</string>
+    <string name="version">الإصدار</string>
+    <string name="help_support">المساعدة والدعم</string>
+    <string name="terms_of_service">شروط الخدمة</string>
+    <string name="privacy_policy">سياسة الخصوصية</string>
+    <string name="delete_account">حذف الحساب</string>
+    <string name="delete_account_confirm">هل أنت متأكد من حذف حسابك؟ لا يمكن التراجع عن هذا الإجراء.</string>
+    <string name="logout_confirm">هل أنت متأكد من تسجيل الخروج؟</string>
+    
+    <!-- Promos -->
+    <string name="promos_title">العروض</string>
+    <string name="my_promos">عروضي</string>
+    <string name="create_promo">إنشاء عرض</string>
+    <string name="promo_title">عنوان العرض</string>
+    <string name="promo_description">الوصف</string>
+    <string name="discount">الخصم</string>
+    <string name="promo_code">كود العرض</string>
+    <string name="valid_until">صالح حتى</string>
+    <string name="no_promos">لا توجد عروض</string>
+    <string name="delete_promo">حذف العرض</string>
+    <string name="delete_promo_confirm">هل أنت متأكد من حذف \"%s\"؟</string>
+    <string name="apply_promo">تطبيق العرض</string>
+    <string name="promo_applied">تم تطبيق العرض!</string>
+    
+    <!-- Annonces -->
+    <string name="annonces_title">الإعلانات</string>
+    <string name="my_annonces">إعلاناتي</string>
+    <string name="create_annonce">إنشاء إعلان</string>
+    <string name="annonce_title">العنوان</string>
+    <string name="annonce_description">الوصف</string>
+    <string name="category">الفئة</string>
+    <string name="price">السعر</string>
+    <string name="free">مجاني</string>
+    <string name="no_annonces">لا توجد إعلانات</string>
+    <string name="delete_annonce">حذف الإعلان</string>
+    <string name="delete_annonce_confirm">هل أنت متأكد من حذف \"%s\"؟</string>
+    
+    <!-- AI -->
+    <string name="generate_with_ai">توليد بالذكاء الاصطناعي</string>
+    <string name="ai_generating">الذكاء الاصطناعي يُنشئ…</string>
+    <string name="ai_error">فشل التوليد بالذكاء الاصطناعي</string>
+    
+    <!-- Notifications -->
+    <string name="notifications_title">الإشعارات</string>
+    <string name="no_notifications">لا توجد إشعارات</string>
+    <string name="mark_all_read">تحديد الكل كمقروء</string>
+    <string name="new_message">رسالة جديدة</string>
+    <string name="new_match">تطابق جديد!</string>
+    <string name="session_reminder">تذكير بالجلسة</string>
+    <string name="session_cancelled">تم إلغاء الجلسة</string>
+    
+    <!-- Errors -->
+    <string name="network_error">خطأ في الشبكة. يرجى التحقق من اتصالك.</string>
+    <string name="unknown_error">حدث خطأ غير معروف.</string>
+    <string name="session_expired">انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.</string>
+    <string name="field_required">هذا الحقل مطلوب</string>
+    <string name="invalid_email">يرجى إدخال بريد إلكتروني صالح</string>
+    <string name="password_too_short">يجب أن تتكون كلمة المرور من 6 أحرف على الأقل</string>
+    <string name="passwords_dont_match">كلمات المرور غير متطابقة</string>
+    
+    <!-- Rewards -->
+    <string name="rewards_title">المكافآت</string>
+    <string name="points">النقاط</string>
+    <string name="redeem">استبدال</string>
+    <string name="available_rewards">المكافآت المتاحة</string>
+    
+    <!-- Onboarding -->
+    <string name="onboarding_welcome">مرحباً بك في SkillSwap</string>
+    <string name="onboarding_subtitle">تبادل المهارات مع أشخاص بالقرب منك</string>
+    <string name="get_started">ابدأ الآن</string>
+    <string name="skip">تخطي</string>
+    <string name="what_you_teach">ماذا تُعلّم؟</string>
+    <string name="what_you_learn">ماذا تريد أن تتعلم؟</string>
+    <string name="where_are_you">أين موقعك؟</string>
+    <string name="complete_profile">أكمل ملفك الشخصي</string>
+</resources>

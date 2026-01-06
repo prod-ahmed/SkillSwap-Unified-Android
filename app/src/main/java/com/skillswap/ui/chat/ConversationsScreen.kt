@@ -28,22 +28,17 @@ fun ConversationsScreen(
     onNavigateToChat: (String) -> Unit,
     viewModel: ChatViewModel = viewModel()
 ) {
-    // Reload conversations when screen becomes visible
-    LaunchedEffect(Unit) {
-        viewModel.loadConversations()
-    }
-    
-    // Also reload when navigating back to this screen
-    androidx.compose.runtime.DisposableEffect(Unit) {
-        onDispose {
-            viewModel.loadConversations()
-        }
-    }
-    
     val conversations by viewModel.conversations.collectAsState()
     val presence by viewModel.presence.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
+    
+    // Only load conversations if we don't have any yet
+    LaunchedEffect(Unit) {
+        if (conversations.isEmpty()) {
+            viewModel.loadConversations()
+        }
+    }
 
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp)

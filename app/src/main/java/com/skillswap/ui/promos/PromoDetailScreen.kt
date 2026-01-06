@@ -90,7 +90,7 @@ fun PromoDetailScreen(
                     .fillMaxSize()
                     .padding(padding)
                     .verticalScroll(rememberScrollState())
-                    .background(Color(0xFFF2F2F7))
+                    .background(MaterialTheme.colorScheme.background)
             ) {
                 // Image Section
                 Card(
@@ -98,7 +98,7 @@ fun PromoDetailScreen(
                         .fillMaxWidth()
                         .padding(16.dp),
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White)
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Box {
                         if (currentPromo.imageUrl?.isNotBlank() == true) {
@@ -115,7 +115,7 @@ fun PromoDetailScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(250.dp)
-                                    .background(Color(0xFFF2F2F7)),
+                                    .background(MaterialTheme.colorScheme.background),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
@@ -151,7 +151,7 @@ fun PromoDetailScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White)
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Column(
                         modifier = Modifier.padding(20.dp),

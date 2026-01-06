@@ -193,22 +193,9 @@ class DiscoverViewModel(application: Application) : AndroidViewModel(application
     }
     
     fun swipeRight(user: User, onMatch: (User) -> Unit) {
-        val token = sharedPreferences.getString("auth_token", null) ?: return
-        viewModelScope.launch {
-            try {
-                // Call API to express interest
-                val response = NetworkService.api.expressInterest("Bearer $token", user.id)
-                
-                // Check if it's a match (mutual interest)
-                if (response.isMatch == true) {
-                    onMatch(user)
-                }
-            } catch (e: Exception) {
-                _errorMessage.value = "Erreur lors de l'expression d'intérêt"
-            } finally {
-                nextProfile()
-            }
-        }
+        // Move to next profile (interest endpoint not available in backend)
+        // In production, this would save the interest to the server
+        nextProfile()
     }
     
     fun swipeLeft() {
@@ -251,7 +238,7 @@ class DiscoverViewModel(application: Application) : AndroidViewModel(application
     private fun withAbsoluteAnnonce(item: Annonce): Annonce {
         val url = item.imageUrl
         val absolute = if (!url.isNullOrBlank() && !(url.startsWith("http://") || url.startsWith("https://"))) {
-            com.skillswap.BuildConfig.API_BASE_URL.trimEnd('/') + "/uploads/annonces/" + url
+            com.skillswap.network.NetworkService.baseUrl + "/uploads/annonces/" + url
         } else url
         return item.copy(imageUrl = absolute)
     }
@@ -259,7 +246,7 @@ class DiscoverViewModel(application: Application) : AndroidViewModel(application
     private fun withAbsolutePromo(item: Promo): Promo {
         val url = item.imageUrl
         val absolute = if (!url.isNullOrBlank() && !(url.startsWith("http://") || url.startsWith("https://"))) {
-            com.skillswap.BuildConfig.API_BASE_URL.trimEnd('/') + "/uploads/promos/" + url
+            com.skillswap.network.NetworkService.baseUrl + "/uploads/promos/" + url
         } else url
         return item.copy(imageUrl = absolute)
     }
@@ -267,7 +254,7 @@ class DiscoverViewModel(application: Application) : AndroidViewModel(application
     private fun withAbsoluteAvatar(user: User): User {
         val url = user.avatarUrl ?: user.image
         val absolute = if (!url.isNullOrBlank() && !(url.startsWith("http://") || url.startsWith("https://"))) {
-            com.skillswap.BuildConfig.API_BASE_URL.trimEnd('/') + "/uploads/users/" + url
+            com.skillswap.network.NetworkService.baseUrl + "/uploads/users/" + url
         } else url
         return user.copy(avatarUrl = absolute ?: user.avatarUrl, image = absolute ?: user.image)
     }
