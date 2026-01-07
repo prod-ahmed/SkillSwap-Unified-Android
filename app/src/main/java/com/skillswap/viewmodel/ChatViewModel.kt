@@ -281,6 +281,45 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun uploadVoiceMessage(file: java.io.File, context: android.content.Context) {
+        val threadId = activeThreadId
+        val header = authHeader()
+        val me = currentUserId()
+        if (threadId == null || header == null || me == null) {
+            _error.value = "Impossible d'envoyer le message vocal (session expirée)"
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                _isLoading.value = true
+                
+                // Read file bytes
+                val bytes = file.readBytes()
+                val mimeType = "audio/mp4"
+                val fileName = file.name
+                
+                // Create multipart body
+                val requestBody = bytes.toRequestBody(mimeType.toMediaTypeOrNull())
+                val filePart = okhttp3.MultipartBody.Part.createFormData("file", fileName, requestBody)
+                
+                val remote = NetworkService.api.uploadChatAttachment(
+                    header,
+                    threadId,
+                    filePart
+                )
+                _messages.value = _messages.value + remote.toUiMessage(me)
+                
+                // Clean up temp file
+                file.delete()
+            } catch (e: Exception) {
+                _error.value = "Message vocal non envoyé: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
     private fun startSocket(threadId: String) {
         socketJob?.cancel()
         socketClient.reconnect()

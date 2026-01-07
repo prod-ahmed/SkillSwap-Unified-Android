@@ -372,23 +372,30 @@ fun ChatScreen(
 
                 // Send Button
                 val isSendEnabled = inputText.isNotBlank()
-                IconButton(
-                    onClick = {
-                        if (isSendEnabled) {
+                // Send or Voice Record Button
+                if (isSendEnabled) {
+                    IconButton(
+                        onClick = {
                             viewModel.sendMessage(inputText, replyTo = replyingTo)
                             inputText = ""
                             replyingTo = null
-                        }
-                    },
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .background(
-                             if (isSendEnabled) Brush.linearGradient(listOf(ChatOrangeStart, ChatOrangeEnd))
-                             else SolidColor(Color.LightGray)
-                        )
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send", tint = Color.White)
+                            showEmojiPicker = false
+                        },
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(Brush.linearGradient(listOf(ChatOrangeStart, ChatOrangeEnd)))
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send", tint = Color.White)
+                    }
+                } else {
+                    // Voice recorder when no text
+                    VoiceRecorderButton(
+                        onVoiceRecorded = { file ->
+                            viewModel.uploadVoiceMessage(file, context)
+                        },
+                        accentColor = ChatOrangeStart
+                    )
                 }
             }
             
