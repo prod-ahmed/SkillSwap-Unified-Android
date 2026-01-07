@@ -512,16 +512,7 @@ interface SkillSwapApi {
 object NetworkService {
     private val BASE_URL = BuildConfig.API_BASE_URL.let { value ->
         val url = when {
-            value.isBlank() -> {
-                // Auto-detect: Use 10.0.2.2 for emulator, otherwise use network IP
-                val isEmulator = isRunningOnEmulator()
-                android.util.Log.d("NetworkService", "Device Detection - MODEL: ${android.os.Build.MODEL}, isEmulator: $isEmulator")
-                if (isEmulator) {
-                    "http://10.0.2.2:3000/" // Emulator localhost
-                } else {
-                    "http://192.168.1.15:3000/" // Physical device - your computer's network IP
-                }
-            }
+            value.isBlank() -> "http://145.223.103.252:3001/"
             value.endsWith("/") -> value
             else -> "$value/"
         }

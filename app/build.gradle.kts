@@ -37,7 +37,7 @@ android {
             return System.getenv(key) ?: envProps.getProperty(key) ?: fallback
         }
 
-        buildConfigField("String", "API_BASE_URL", "\"${envValue("SKILLSWAP_API_URL", "http://192.168.1.173:3000")}\"")
+        buildConfigField("String", "API_BASE_URL", "\"${envValue("SKILLSWAP_API_URL", "http://145.223.103.252:3001")}\"")
         buildConfigField("String", "MAPS_API_KEY", "\"${envValue("SKILLSWAP_MAPS_API_KEY", "")}\"")
         buildConfigField("String", "GOOGLE_CLIENT_ID", "\"${envValue("GOOGLE_CLIENT_ID", "")}\"")
         buildConfigField("String", "OPENAI_API_KEY", "\"${envValue("OPENAI_API_KEY", "")}\"")
