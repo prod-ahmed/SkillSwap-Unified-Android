@@ -137,9 +137,18 @@ class ChatSocketClient private constructor(
     }
 
     private fun buildChatSocket() {
-        val userId = userIdProvider() ?: return
-        val baseUrl = normalizedBaseUrl() ?: return
-        val authToken = authToken() ?: return
+        val userId = userIdProvider() ?: run {
+            android.util.Log.w("ChatSocketClient", "No userId, cannot connect chat socket")
+            return
+        }
+        val baseUrl = normalizedBaseUrl() ?: run {
+            android.util.Log.w("ChatSocketClient", "No baseUrl, cannot connect chat socket")
+            return
+        }
+        val authToken = authToken() ?: run {
+            android.util.Log.w("ChatSocketClient", "No auth token, cannot connect chat socket")
+            return
+        }
         
         val authMap = mutableMapOf<String, String>("userId" to userId)
         authMap["token"] = authToken
@@ -155,11 +164,22 @@ class ChatSocketClient private constructor(
             }
             .build()
         val chatUrl = if (baseUrl.endsWith("/")) "${baseUrl}chat" else "$baseUrl/chat"
+        android.util.Log.d("ChatSocketClient", "Connecting chat socket to: $chatUrl")
         chatSocket = runCatching { IO.socket(chatUrl, opts) }.getOrNull()
-        chatSocket?.on(Socket.EVENT_CONNECT) { _connection.tryEmit(true) }
-        chatSocket?.on(Socket.EVENT_DISCONNECT) { _connection.tryEmit(false) }
-        chatSocket?.on(Socket.EVENT_CONNECT_ERROR) { _connection.tryEmit(false) }
+        chatSocket?.on(Socket.EVENT_CONNECT) { 
+            android.util.Log.d("ChatSocketClient", "Chat socket connected!")
+            _connection.tryEmit(true) 
+        }
+        chatSocket?.on(Socket.EVENT_DISCONNECT) { 
+            android.util.Log.d("ChatSocketClient", "Chat socket disconnected")
+            _connection.tryEmit(false) 
+        }
+        chatSocket?.on(Socket.EVENT_CONNECT_ERROR) { args ->
+            android.util.Log.e("ChatSocketClient", "Chat socket connect error: ${args.firstOrNull()}")
+            _connection.tryEmit(false) 
+        }
         chatSocket?.on("message:new") { args ->
+            android.util.Log.d("ChatSocketClient", "Received message:new event")
             args.firstOrNull()?.let {
                 if (it is JSONObject) {
                     val id = it.optString("_id", it.optString("id", ""))
@@ -169,12 +189,15 @@ class ChatSocketClient private constructor(
                     val createdAt = it.optString("createdAt")
                     val senderName = it.optString("senderName", it.optString("senderUsername", ""))
                     
+                    android.util.Log.d("ChatSocketClient", "Message from $senderId: $content")
+                    
                     // Emit to flow
                     _messages.tryEmit(SocketMessagePayload(id, threadId, senderId, content, createdAt))
                     
                     // Show notification if not from self
                     val currentUserId = userIdProvider()
                     if (senderId != currentUserId) {
+                        android.util.Log.d("ChatSocketClient", "Showing notification for message from $senderName")
                         notificationManager.showMessageNotification(
                             threadId = threadId,
                             senderName = senderName.ifEmpty { "Nouveau message" }, 
