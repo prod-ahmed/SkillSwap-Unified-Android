@@ -289,7 +289,8 @@ class ChatSocketClient private constructor(
                     "userId" to userId,
                     "token" to token
                 )
-            ) // backend expects userId (+ token if provided)
+            )
+            .setQuery("userId=$userId") // Also send in query for backend compatibility
             .setReconnection(true)
             .setReconnectionAttempts(8)
             .setReconnectionDelay(1000)
