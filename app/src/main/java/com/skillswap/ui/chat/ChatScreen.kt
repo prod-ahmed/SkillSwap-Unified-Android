@@ -104,6 +104,7 @@ fun ChatScreen(
     var inputText by remember { mutableStateOf("") }
     var replyingTo by remember { mutableStateOf<com.skillswap.model.ThreadMessage?>(null) }
     var fullScreenImageUrl by remember { mutableStateOf<String?>(null) }
+    var showEmojiPicker by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
     val context = LocalContext.current
     var pendingVideo by remember { mutableStateOf<Boolean?>(null) }
@@ -321,18 +322,33 @@ fun ChatScreen(
                 // }
              Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.Bottom
             ) {
                 // Attach Button
                 IconButton(
                     onClick = { filePickerLauncher.launch("image/*") },
                     modifier = Modifier
-                        .size(44.dp)
+                        .size(40.dp)
                         .clip(CircleShape)
                         .background(ChatOrangeStart.copy(alpha = 0.1f))
                 ) {
                     Icon(Icons.Default.AttachFile, contentDescription = "Ajouter une pièce jointe", tint = ChatOrangeStart)
+                }
+                
+                // Emoji Button
+                IconButton(
+                    onClick = { showEmojiPicker = !showEmojiPicker },
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(if (showEmojiPicker) ChatOrangeStart.copy(alpha = 0.2f) else ChatOrangeStart.copy(alpha = 0.1f))
+                ) {
+                    Icon(
+                        if (showEmojiPicker) Icons.Default.Keyboard else Icons.Default.EmojiEmotions,
+                        contentDescription = "Emoji",
+                        tint = ChatOrangeStart
+                    )
                 }
 
                 // Text Input
@@ -342,10 +358,9 @@ fun ChatScreen(
                         inputText = input
                         viewModel.sendTyping(input.isNotBlank())
                     },
-                    placeholder = { Text("Écrivez votre message...", color = Color.Gray) },
+                    placeholder = { Text("Message...", color = Color.Gray) },
                     modifier = Modifier
                         .weight(1f),
-                       // .heightIn(min = 44.dp, max = 100.dp),
                     shape = RoundedCornerShape(24.dp),
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -376,6 +391,15 @@ fun ChatScreen(
                     Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send", tint = Color.White)
                 }
             }
+            
+            // Emoji Picker
+            EmojiPicker(
+                visible = showEmojiPicker,
+                onEmojiSelected = { emoji ->
+                    inputText += emoji
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
             
             Spacer(Modifier.height(12.dp))
             
