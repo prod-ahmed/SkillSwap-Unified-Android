@@ -155,6 +155,7 @@ class ChatSocketClient private constructor(
         
         val opts = IO.Options.builder()
             .setAuth(authMap)
+            .setQuery("userId=$userId") // Also send in query for backend compatibility
             .setReconnection(true)
             .setReconnectionAttempts(8)
             .setReconnectionDelay(1000)
@@ -164,7 +165,7 @@ class ChatSocketClient private constructor(
             }
             .build()
         val chatUrl = if (baseUrl.endsWith("/")) "${baseUrl}chat" else "$baseUrl/chat"
-        android.util.Log.d("ChatSocketClient", "Connecting chat socket to: $chatUrl")
+        android.util.Log.d("ChatSocketClient", "Connecting chat socket to: $chatUrl with userId: $userId")
         chatSocket = runCatching { IO.socket(chatUrl, opts) }.getOrNull()
         chatSocket?.on(Socket.EVENT_CONNECT) { 
             android.util.Log.d("ChatSocketClient", "Chat socket connected!")
