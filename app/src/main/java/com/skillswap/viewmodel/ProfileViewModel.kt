@@ -55,7 +55,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             try {
                 val fetchedUser = com.skillswap.network.NetworkService.api.getMe("Bearer $token")
-                _user.value = fetchedUser
+                _user.value = withAbsoluteImage(fetchedUser)
                 // Save to preferences
                 sharedPreferences.edit().apply {
                     putString("username", fetchedUser.username)
@@ -137,7 +137,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                     payload
                 )
                 
-                _user.value = updatedUser
+                _user.value = withAbsoluteImage(updatedUser)
                 _successMessage.value = "Profil mis à jour avec succès"
                 
                 // Update shared preferences
@@ -176,7 +176,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                     "Bearer $token",
                     body
                 )
-                _user.value = updatedUser
+                _user.value = withAbsoluteImage(updatedUser)
                 _successMessage.value = "Photo de profil mise à jour"
             } catch (e: Exception) {
                 _errorMessage.value = e.message ?: "Erreur lors de l'upload de l'image"
@@ -210,6 +210,18 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     fun clearMessages() {
         _errorMessage.value = null
         _successMessage.value = null
+    }
+
+    private fun withAbsoluteImage(user: User): User {
+        val url = user.avatarUrl ?: user.image
+        val absolute = if (!url.isNullOrBlank() && !(url.startsWith("http://") || url.startsWith("https://"))) {
+            if (url.startsWith("/uploads/")) {
+                com.skillswap.network.NetworkService.baseUrl + url
+            } else {
+                com.skillswap.network.NetworkService.baseUrl + "/uploads/users/" + url
+            }
+        } else url
+        return user.copy(avatarUrl = absolute, image = absolute)
     }
 
     private fun buildFallbackUser(id: String, username: String): User {
