@@ -271,9 +271,18 @@ class ChatSocketClient private constructor(
     }
 
     private fun buildCallSocket() {
-        val userId = userIdProvider() ?: return
-        val baseUrl = normalizedBaseUrl() ?: return
-        val token = authToken() ?: return
+        val userId = userIdProvider() ?: run {
+            android.util.Log.w("ChatSocketClient", "No userId for call socket")
+            return
+        }
+        val baseUrl = normalizedBaseUrl() ?: run {
+            android.util.Log.w("ChatSocketClient", "No baseUrl for call socket")
+            return
+        }
+        val token = authToken() ?: run {
+            android.util.Log.w("ChatSocketClient", "No token for call socket")
+            return
+        }
         val opts = IO.Options.builder()
             .setAuth(
                 mapOf(
@@ -290,11 +299,24 @@ class ChatSocketClient private constructor(
             }
             .build()
         val callUrl = if (baseUrl.endsWith("/")) "${baseUrl}calling" else "$baseUrl/calling"
+        android.util.Log.d("ChatSocketClient", "Connecting call socket to: $callUrl with userId: $userId")
         callSocket = runCatching { IO.socket(callUrl, opts) }.getOrNull()
-        callSocket?.on(Socket.EVENT_CONNECT) { _connection.tryEmit(true) }
-        callSocket?.on(Socket.EVENT_DISCONNECT) { _connection.tryEmit(false) }
-        callSocket?.on(Socket.EVENT_CONNECT_ERROR) { _connection.tryEmit(false) }
-        callSocket?.on("connection:confirmed") { _connection.tryEmit(true) }
+        callSocket?.on(Socket.EVENT_CONNECT) { 
+            android.util.Log.d("ChatSocketClient", "Call socket connected!")
+            _connection.tryEmit(true) 
+        }
+        callSocket?.on(Socket.EVENT_DISCONNECT) { 
+            android.util.Log.d("ChatSocketClient", "Call socket disconnected")
+            _connection.tryEmit(false) 
+        }
+        callSocket?.on(Socket.EVENT_CONNECT_ERROR) { args ->
+            android.util.Log.e("ChatSocketClient", "Call socket connect error: ${args.firstOrNull()}")
+            _connection.tryEmit(false) 
+        }
+        callSocket?.on("connection:confirmed") { args ->
+            android.util.Log.d("ChatSocketClient", "Call socket connection confirmed by server: ${args.firstOrNull()}")
+            _connection.tryEmit(true) 
+        }
         callSocket?.on("call:incoming") { args ->
             args.firstOrNull()?.let {
                 if (it is JSONObject) {
