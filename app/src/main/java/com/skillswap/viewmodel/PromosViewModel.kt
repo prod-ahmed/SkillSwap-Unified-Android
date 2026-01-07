@@ -258,7 +258,11 @@ class PromosViewModel(application: Application) : AndroidViewModel(application) 
     private fun withAbsoluteImage(promo: Promo): Promo {
         val url = promo.imageUrl
         val absolute = if (!url.isNullOrBlank() && !(url.startsWith("http://") || url.startsWith("https://"))) {
-            NetworkService.baseUrl + "/uploads/promos/" + url
+            if (url.startsWith("/uploads/")) {
+                NetworkService.baseUrl + url
+            } else {
+                NetworkService.baseUrl + "/uploads/promos/" + url
+            }
         } else url
         android.util.Log.d("PromosViewModel", "withAbsoluteImage: original=$url, absolute=$absolute")
         return promo.copy(imageUrl = absolute)

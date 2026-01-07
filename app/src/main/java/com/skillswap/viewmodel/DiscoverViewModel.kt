@@ -238,7 +238,11 @@ class DiscoverViewModel(application: Application) : AndroidViewModel(application
     private fun withAbsoluteAnnonce(item: Annonce): Annonce {
         val url = item.imageUrl
         val absolute = if (!url.isNullOrBlank() && !(url.startsWith("http://") || url.startsWith("https://"))) {
-            com.skillswap.network.NetworkService.baseUrl + "/uploads/annonces/" + url
+            if (url.startsWith("/uploads/")) {
+                com.skillswap.network.NetworkService.baseUrl + url
+            } else {
+                com.skillswap.network.NetworkService.baseUrl + "/uploads/annonces/" + url
+            }
         } else url
         return item.copy(imageUrl = absolute)
     }
@@ -246,7 +250,11 @@ class DiscoverViewModel(application: Application) : AndroidViewModel(application
     private fun withAbsolutePromo(item: Promo): Promo {
         val url = item.imageUrl
         val absolute = if (!url.isNullOrBlank() && !(url.startsWith("http://") || url.startsWith("https://"))) {
-            com.skillswap.network.NetworkService.baseUrl + "/uploads/promos/" + url
+            if (url.startsWith("/uploads/")) {
+                com.skillswap.network.NetworkService.baseUrl + url
+            } else {
+                com.skillswap.network.NetworkService.baseUrl + "/uploads/promos/" + url
+            }
         } else url
         return item.copy(imageUrl = absolute)
     }
@@ -254,7 +262,11 @@ class DiscoverViewModel(application: Application) : AndroidViewModel(application
     private fun withAbsoluteAvatar(user: User): User {
         val url = user.avatarUrl ?: user.image
         val absolute = if (!url.isNullOrBlank() && !(url.startsWith("http://") || url.startsWith("https://"))) {
-            com.skillswap.network.NetworkService.baseUrl + "/uploads/users/" + url
+            if (url.startsWith("/uploads/")) {
+                com.skillswap.network.NetworkService.baseUrl + url
+            } else {
+                com.skillswap.network.NetworkService.baseUrl + "/uploads/users/" + url
+            }
         } else url
         return user.copy(avatarUrl = absolute ?: user.avatarUrl, image = absolute ?: user.image)
     }

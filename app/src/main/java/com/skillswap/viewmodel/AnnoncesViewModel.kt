@@ -214,7 +214,11 @@ class AnnoncesViewModel(application: Application) : AndroidViewModel(application
     private fun withAbsoluteImage(annonce: Annonce): Annonce {
         val url = annonce.imageUrl
         val absolute = if (!url.isNullOrBlank() && !(url.startsWith("http://") || url.startsWith("https://"))) {
-            com.skillswap.network.NetworkService.baseUrl + "/uploads/annonces/" + url
+            if (url.startsWith("/uploads/")) {
+                com.skillswap.network.NetworkService.baseUrl + url
+            } else {
+                com.skillswap.network.NetworkService.baseUrl + "/uploads/annonces/" + url
+            }
         } else url
         android.util.Log.d("AnnoncesViewModel", "withAbsoluteImage: original=$url, absolute=$absolute")
         return annonce.copy(imageUrl = absolute)
