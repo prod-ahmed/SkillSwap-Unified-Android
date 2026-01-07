@@ -89,6 +89,8 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     fun updateProfile(
         username: String,
         location: String?,
+        bio: String? = null,
+        age: Int? = null,
         skillsTeach: List<String>,
         skillsLearn: List<String>
     ) {
@@ -120,6 +122,14 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                 
                 if (locationPayload != null) {
                     payload["location"] = locationPayload
+                }
+                
+                if (!bio.isNullOrBlank()) {
+                    payload["bio"] = bio
+                }
+                
+                if (age != null) {
+                    payload["age"] = age
                 }
 
                 val updatedUser = com.skillswap.network.NetworkService.api.updateProfile(

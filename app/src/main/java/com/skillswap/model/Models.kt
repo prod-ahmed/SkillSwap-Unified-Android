@@ -37,6 +37,7 @@ data class User(
     val ratingAvg: Double?,
     val isVerified: Boolean?,
     val bio: String? = null,
+    val age: Int? = null,
     val avatarUrl: String? = null,
     val image: String? = null,
     @SerializedName("skillsTeach") val skillsTeach: List<String>? = null,

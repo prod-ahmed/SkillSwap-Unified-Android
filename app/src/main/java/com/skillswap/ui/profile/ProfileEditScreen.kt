@@ -48,6 +48,8 @@ fun ProfileEditScreen(
     var username by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var location by remember { mutableStateOf("") }
+    var bio by remember { mutableStateOf("") }
+    var age by remember { mutableStateOf("") }
     var teachSkills by remember { mutableStateOf<List<String>>(emptyList()) }
     var learnSkills by remember { mutableStateOf<List<String>>(emptyList()) }
     var showCitySuggestions by remember { mutableStateOf(false) }
@@ -58,6 +60,8 @@ fun ProfileEditScreen(
             username = it.username
             email = it.email
             location = it.location?.city ?: ""
+            bio = it.bio ?: ""
+            age = it.age?.toString() ?: ""
             teachSkills = it.skillsTeach ?: emptyList()
             learnSkills = it.skillsLearn ?: emptyList()
         }
@@ -73,10 +77,12 @@ fun ProfileEditScreen(
         else cities.filter { it.contains(location, ignoreCase = true) }.take(5)
     }
 
-    val hasChanges = remember(user, username, location, teachSkills, learnSkills) {
+    val hasChanges = remember(user, username, location, bio, age, teachSkills, learnSkills) {
         user?.let {
             username != it.username ||
             location != (it.location?.city ?: "") ||
+            bio != (it.bio ?: "") ||
+            age != (it.age?.toString() ?: "") ||
             !teachSkills.containsAll(it.skillsTeach ?: emptyList()) || 
             !(it.skillsTeach ?: emptyList()).containsAll(teachSkills) ||
             !learnSkills.containsAll(it.skillsLearn ?: emptyList()) ||
@@ -120,6 +126,8 @@ fun ProfileEditScreen(
                             viewModel.updateProfile(
                                 username = username,
                                 location = location.ifBlank { null },
+                                bio = bio.ifBlank { null },
+                                age = age.toIntOrNull(),
                                 skillsTeach = teachSkills,
                                 skillsLearn = learnSkills
                             )
@@ -217,6 +225,25 @@ fun ProfileEditScreen(
                         disabledLeadingIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                         disabledLabelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                     )
+                )
+
+                OutlinedTextField(
+                    value = age,
+                    onValueChange = { if (it.all { char -> char.isDigit() }) age = it },
+                    label = { Text("Âge") },
+                    leadingIcon = { Icon(Icons.Default.DateRange, contentDescription = "Icône âge") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                OutlinedTextField(
+                    value = bio,
+                    onValueChange = { bio = it },
+                    label = { Text("Bio") },
+                    leadingIcon = { Icon(Icons.Default.Info, contentDescription = "Icône bio") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 3,
+                    maxLines = 5
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
