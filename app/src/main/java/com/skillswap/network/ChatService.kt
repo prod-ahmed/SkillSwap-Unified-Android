@@ -1,7 +1,6 @@
 package com.skillswap.network
 
 import com.google.gson.Gson
-import com.skillswap.BuildConfig
 import com.skillswap.model.ReferencedMessage
 import com.skillswap.model.ThreadMessage
 import kotlinx.coroutines.Dispatchers
@@ -19,7 +18,7 @@ class ChatService {
         .build()
     
     private val gson = Gson()
-    private val baseURL = BuildConfig.API_BASE_URL
+    private val baseURL = NetworkService.baseUrl
     
     /**
      * Add a reaction to a message
