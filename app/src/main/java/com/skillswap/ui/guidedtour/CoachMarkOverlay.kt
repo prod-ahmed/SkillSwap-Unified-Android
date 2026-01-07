@@ -129,20 +129,21 @@ fun CoachMarkOverlay(
                     )
                 }
                 
-                // Draw dark overlay
-                drawRect(
-                    color = Color.Black.copy(alpha = 0.75f),
-                    size = size
-                )
-                
-                // Cut out spotlight
-                clipPath(spotlightPath, clipOp = ClipOp.Intersect) {
-                    drawRect(
-                        color = Color.Transparent,
-                        size = size,
-                        blendMode = BlendMode.Clear
-                    )
+                // Create a path for the entire screen
+                val overlayPath = Path().apply {
+                    addRect(Rect(0f, 0f, size.width, size.height))
                 }
+                
+                // Subtract the spotlight from the overlay using PathOperation
+                val finalPath = Path().apply {
+                    op(overlayPath, spotlightPath, PathOperation.Difference)
+                }
+                
+                // Draw the dark overlay with cutout
+                drawPath(
+                    path = finalPath,
+                    color = Color.Black.copy(alpha = 0.75f)
+                )
                 
                 // Draw pulsing ring
                 val ringSize = maxOf(expandedRect.width, expandedRect.height) + 8.dp.toPx()
